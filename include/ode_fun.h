@@ -48,6 +48,9 @@ public:
     void set_species(const std::initializer_list<par::index> species_list, const std::initializer_list<double> fractions_list);
     // Set excitation parameters like this: set_excitation_params({-2.0e5, 30000.0, 1.0});
     void set_excitation_params(const std::initializer_list<double> params_list);
+    // Copy from another ControlParameters object
+    void copy(const ControlParameters& cpar);
+    // TODO: check()
 } cpar_t;
 
 /*________________________________ode_function________________________________*/
