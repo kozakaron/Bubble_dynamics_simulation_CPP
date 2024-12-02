@@ -16,6 +16,8 @@ public:
 
     void set_up() override
     {
+        ErrorHandler::print_when_log = false;
+        ErrorHandler::clear_errors();
         // Set up the ODE object
         ode = new ODE();
         cpar = ode->cpar;
@@ -48,6 +50,8 @@ public:
 
     void tear_down() override
     {
+        if (ErrorHandler::get_error_count() != 0) ErrorHandler::print_errors();
+        ErrorHandler::clear_errors();
         delete ode;
     }
 };
@@ -56,46 +60,92 @@ void test_ode_fun()
 {
     OdeFunTester tester = OdeFunTester();
 
-    ADD_TEST(tester, "test tester",
-        long double x = 1.0L;
-        ASSERT_TRUE(sizeof(x) > 8);    // long double is at least 80 bits
-        long double fact_200 = 1.0L;
-        for (int i = 1; i <= 200; ++i)
-        {
-            fact_200 *= i;
-        }
-        ASSERT_APPROX(fact_200, 7.88657867364790503383170119245e+374L, 1e-10);
-        ASSERT_APPROX(LDBL_MAX, 1.189731495357231765e+4932L, 1e-10);
+    ADD_TEST(tester, "test ErrorHandler",
+        LOG_ERROR("Test error message", 33);
+        LOG_ERROR("Another test error message", 44);
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 2)
+        ASSERT_EQUAL(ErrorHandler::get_error(0).ID, 33)
+        ASSERT_EQUAL(ErrorHandler::get_error(1).ID, 44)
+        ASSERT_EQUAL(ErrorHandler::get_error(0).message, "Test error message")
+        ErrorHandler::clear_errors();
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
     );
 
     ADD_TEST(tester, "Test long double exists",
         long double x = 1.0L;
-        ASSERT_TRUE(sizeof(x) > 8);    // long double is at least 80 bits
+        ASSERT_TRUE(sizeof(x) > 8)    // long double is at least 80 bits
         long double fact_200 = 1.0L;
         for (int i = 1; i <= 200; ++i)
         {
             fact_200 *= i;
         }
-        ASSERT_APPROX(fact_200, 7.88657867364790503383170119245e+374L, 1e-10);
-        ASSERT_APPROX(LDBL_MAX, 1.189731495357231765e+4932L, 1e-10);
+        ASSERT_APPROX(fact_200, 7.88657867364790503383170119245e+374L, 1e-10)
+        ASSERT_APPROX(LDBL_MAX, 1.189731495357231765e+4932L, 1e-10)
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
     );
 
     ADD_TEST(tester, "Test parameter correctness",
         ASSERT_EQUAL(par::model, "chemkin_otomo2018")
         ASSERT_EQUAL(par::num_species, 32)
-        ASSERT_TRUE(tester.cpar->enable_heat_transfer);
-        ASSERT_TRUE(tester.cpar->enable_evaporation);
-        ASSERT_TRUE(tester.cpar->enable_reactions);
-        ASSERT_TRUE(tester.cpar->enable_dissipated_energy);
-        ASSERT_EQUAL(tester.cpar->target_specie, par::index::NH3);
-        ASSERT_EQUAL(tester.cpar->excitation_type, par::excitation::sin_impulse);
-        ASSERT_EQUAL(tester.cpar->excitation_params[0], -2.0e5);
-        ASSERT_EQUAL(tester.cpar->excitation_params[1], 30000.0);
-        ASSERT_EQUAL(tester.cpar->excitation_params[2], 1.0);
-        ASSERT_EQUAL(tester.cpar->species[0], par::index::H2);
-        ASSERT_EQUAL(tester.cpar->species[1], par::index::N2);
-        ASSERT_EQUAL(tester.cpar->fractions[0], 0.75);
-        ASSERT_EQUAL(tester.cpar->fractions[1], 0.25);
+        ASSERT_TRUE(tester.cpar->enable_heat_transfer)
+        ASSERT_TRUE(tester.cpar->enable_evaporation)
+        ASSERT_TRUE(tester.cpar->enable_reactions)
+        ASSERT_TRUE(tester.cpar->enable_dissipated_energy)
+        ASSERT_EQUAL(tester.cpar->target_specie, par::index::NH3)
+        ASSERT_EQUAL(tester.cpar->excitation_type, par::excitation::sin_impulse)
+        ASSERT_EQUAL(tester.cpar->excitation_params[0], -2.0e5)
+        ASSERT_EQUAL(tester.cpar->excitation_params[1], 30000.0)
+        ASSERT_EQUAL(tester.cpar->excitation_params[2], 1.0)
+        ASSERT_EQUAL(tester.cpar->species[0], par::index::H2)
+        ASSERT_EQUAL(tester.cpar->species[1], par::index::N2)
+        ASSERT_EQUAL(tester.cpar->fractions[0], 0.75)
+        ASSERT_EQUAL(tester.cpar->fractions[1], 0.25)
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
+    );
+
+    ADD_TEST(tester, "Test ControlParameters",
+        // set_species()
+        tester.cpar->ID = 1;
+        tester.cpar->set_species({par::index::H2, par::index::N2, par::index::NH3}, {0.5, 0.3, 0.2});
+        ASSERT_EQUAL(tester.cpar->n_species, 3)
+        ASSERT_EQUAL(tester.cpar->species[0], par::index::H2)
+        ASSERT_EQUAL(tester.cpar->species[1], par::index::N2)
+        ASSERT_EQUAL(tester.cpar->species[2], par::index::NH3)
+        ASSERT_EQUAL(tester.cpar->fractions[0], 0.5)
+        ASSERT_EQUAL(tester.cpar->fractions[1], 0.3)
+        ASSERT_EQUAL(tester.cpar->fractions[2], 0.2)
+
+        // set_excitation_params()
+        tester.cpar->excitation_type = par::excitation::sin_impulse;
+        tester.cpar->set_excitation_params({-1.0e5, 20000.0, 0.5});
+        ASSERT_EQUAL(tester.cpar->excitation_params[0], -1.0e5)
+        ASSERT_EQUAL(tester.cpar->excitation_params[1], 20000.0)
+        ASSERT_EQUAL(tester.cpar->excitation_params[2], 0.5)
+
+        // copy()
+        cpar_t cpar;
+        cpar.copy(*tester.cpar);
+        ASSERT_EQUAL(cpar.ID, 1)
+        ASSERT_EQUAL(cpar.n_species, 3)
+        ASSERT_EQUAL(cpar.species[0], par::index::H2)
+        ASSERT_EQUAL(cpar.species[1], par::index::N2)
+        ASSERT_EQUAL(cpar.species[2], par::index::NH3)
+        ASSERT_EQUAL(cpar.fractions[0], 0.5)
+        ASSERT_EQUAL(cpar.fractions[1], 0.3)
+        ASSERT_EQUAL(cpar.fractions[2], 0.2)
+        ASSERT_EQUAL(cpar.excitation_type, par::excitation::sin_impulse)
+        ASSERT_EQUAL(cpar.excitation_params[0], -1.0e5)
+        ASSERT_EQUAL(cpar.excitation_params[1], 20000.0)
+        ASSERT_EQUAL(cpar.excitation_params[2], 0.5)
+
+        // error
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
+        cpar.set_species({par::index::H2, par::index::N2}, {0.75, 0.25, 0.0});
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 1)
+        cpar.excitation_type = par::excitation::no_excitation;
+        cpar.set_excitation_params({-1.0e5, 20000.0, 0.5});
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 2)
+        ErrorHandler::clear_errors();
     );
 
     ADD_TEST(tester, "Test pressure()",
@@ -137,6 +187,7 @@ void test_ode_fun()
         result = tester.ode->pressures(t, p, p_dot);
         ASSERT_APPROX(result.first, 28364954.865982585, 1e-10)
         ASSERT_APPROX(result.second, -1.795787629998652e+16, 1e-10)
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
     );
 
     ADD_TEST(tester, "Test thermodynamic()",
@@ -235,10 +286,12 @@ void test_ode_fun()
         ASSERT_APPROX_ARRAY(tester.ode->H,   H,   par::num_species, 1e-8)
         ASSERT_APPROX_ARRAY(tester.ode->S,   S,   par::num_species, 1e-8)
         ASSERT_APPROX_ARRAY(tester.ode->C_v, C_v, par::num_species, 1e-8)
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
     );
 
     ADD_TEST(tester, "Test evaporation()",
         FAIL("Not implemented yet.")
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
     );
 
     ADD_TEST(tester, "Test forward_rate()",
@@ -312,6 +365,7 @@ void test_ode_fun()
         
         tester.ode->forward_rate(T, M, p);
         ASSERT_APPROX_ARRAY(tester.ode->k_forward, expected, par::num_reactions, 1e-8)
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
     );
 
 
@@ -458,6 +512,7 @@ void test_ode_fun()
 
         tester.ode->backward_rate(T);
         ASSERT_APPROX_ARRAY(tester.ode->k_backward, expected, par::num_reactions, 1e-6)
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
     );
         
 
