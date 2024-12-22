@@ -9,21 +9,24 @@ using std::string;
 namespace par{
 
 enum reac_type {LINDEMANN, TROE, SRI};
-enum excitation {no_excitation=0, two_sinusoids=1, sin_impulse=2};
-constexpr array<size_t, 3> excitation_arg_nums = {
+enum excitation {no_excitation=0, two_sinusoids=1, sin_impulse=2, sin_impulse_logf=3};
+constexpr array<size_t, 4> excitation_arg_nums = {
     0, // no_excitation
     5, // two_sinusoids
-    3  // sin_impulse
+    3, // sin_impulse
+    3  // sin_impulse_logf
 };
-const array<string, 3> excitation_arg_names = {
+const array<string, 4> excitation_arg_names = {
     "",                                     // no_excitation
     "p_A1 p_A2 freq1 freq2 theta_pahse",    // two_sinusoids
-    "p_A freq n"                            // sin_impulse
+    "p_A freq n",                           // sin_impulse
+    "p_A log_f n"                           // sin_impulse_logf
 };
-const array<string, 3> excitation_arg_units = {
+const array<string, 4> excitation_arg_units = {
     "",                                     // no_excitation
     "Pa Pa Hz Hz rad",                      // two_sinusoids
-    "Pa Hz -"                               // sin_impulse
+    "Pa Hz -",                              // sin_impulse
+    "Pa - -"                                // sin_impulse_logf
 };
 
 
