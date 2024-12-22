@@ -116,6 +116,8 @@ ODE::ODE()
     this->M_eff      = new double[par::num_third_bodies];
     this->k_forward  = new double[par::num_reactions];
     this->k_backward = new double[par::num_reactions];
+    this->net_rates  = new double[par::num_reactions];
+    this->omega_dot  = new double[par::num_species];
 }
 ODE::~ODE()
 {
@@ -128,6 +130,8 @@ ODE::~ODE()
     if (this->M_eff != nullptr)      delete[] this->M_eff;
     if (this->k_forward != nullptr)  delete[] this->k_forward;
     if (this->k_backward != nullptr) delete[] this->k_backward;
+    if (this->net_rates != nullptr)  delete[] this->net_rates;
+    if (this->omega_dot != nullptr)  delete[] this->omega_dot;
 }
 
 
@@ -141,9 +145,14 @@ std::pair<double, double> ODE::pressures(
     {
     case par::excitation::two_sinusoids:
         {
-            // TODO
-            p_Inf = this->cpar->P_amb;
-            p_Inf_dot = 0.0;
+            double p_A1 = this->cpar->excitation_params[0];
+            double p_A2 = this->cpar->excitation_params[1];
+            double freq1 = this->cpar->excitation_params[2];
+            double freq2 = this->cpar->excitation_params[3];
+            double theta_phase = this->cpar->excitation_params[4];
+
+            p_Inf = this->cpar->P_amb + p_A1 * sin(2.0 * M_PI * freq1 * t) + p_A2 * sin(2.0 * M_PI * freq2 * t + theta_phase);
+            p_Inf_dot = 2.0 * M_PI * (p_A1 * freq1 * cos(2.0 * M_PI * freq1 * t) + p_A2 * freq2 * cos(2.0 * M_PI * freq2 * t + theta_phase));
             break;
         }
     case par::excitation::sin_impulse:
@@ -151,6 +160,7 @@ std::pair<double, double> ODE::pressures(
             double p_A = this->cpar->excitation_params[0];
             double freq = this->cpar->excitation_params[1];
             double n = this->cpar->excitation_params[2];
+
             if (t < 0.0 || t > n / freq)
             {
                 p_Inf = this->cpar->P_amb;
@@ -163,6 +173,24 @@ std::pair<double, double> ODE::pressures(
                 p_Inf_dot = p_A * insin * cos(insin * t);
             }
             break;
+        }
+    case par::excitation::sin_impulse_logf:
+        {
+            double p_A = this->cpar->excitation_params[0];
+            double freq = pow(10.0, this->cpar->excitation_params[1]);
+            double n = this->cpar->excitation_params[2];
+
+            if (t < 0.0 || t > n / freq)
+            {
+                p_Inf = this->cpar->P_amb;
+                p_Inf_dot = 0.0;
+            }
+            else
+            {
+                double insin = 2.0 * M_PI * freq;
+                p_Inf = this->cpar->P_amb + p_A * sin(insin * t);
+                p_Inf_dot = p_A * insin * cos(insin * t);
+            }
         }
     default: // no_excitation
         {
@@ -204,7 +232,7 @@ void ODE::thermodynamic(
         {
             C_p += a[n] * T_pow;
             H += a[n] * T_pow / (n + 1);
-            S += (n != 0) * a[n] * T_pow / n;
+            if (n != 0) S += a[n] * T_pow / n;
             T_pow *= T;
         }
     // calculations outside the sums
@@ -213,7 +241,7 @@ void ODE::thermodynamic(
         // Enthalpies [erg/mol]
         this->H[k] = par::R_erg * (T * H + a[par::NASA_order]);
         // Entropies [erg/mol/K]
-        this->S[k] = par::R_erg * (a[0] * log(T) + S + a[par::NASA_order+1]);
+        this->S[k] = par::R_erg * (a[0] * std::log(T) + S + a[par::NASA_order+1]);
         // Molar heat capacities at constant volume (isochoric) [erg/mol/K]
         this->C_v[k] = this->C_p[k] - par::R_erg;
     }
@@ -222,12 +250,58 @@ void ODE::thermodynamic(
 
 std::pair<double, double> ODE::evaporation(
     const double p,
-    const double T
+    const double T,
+    const double X_H2O
 ) //noexcept
 {
-    // TODO
-    (void)p; (void)T;
-    return std::make_pair<double, double>(0.0, 0.0);
+// condensation and evaporation
+    double p_H2O = p * X_H2O;
+    double n_eva_dot = 1.0e3 * this->cpar->alfa_M * par::P_v / (par::W[par::index_of_water] * std::sqrt(2.0 * M_PI * par::R_v * this->cpar->T_inf));
+    double n_con_dot = 1.0e3 * this->cpar->alfa_M * p_H2O    / (par::W[par::index_of_water] * std::sqrt(2.0 * M_PI * par::R_v * T));
+    double n_net_dot = n_eva_dot - n_con_dot;
+// Molar heat capacity of water at constant volume (isochoric) [J/mol/K]
+    // get coefficients for T
+    const double *a;
+    if (T <= par::temp_range[par::index_of_water][2]) // T <= T_mid
+    {
+        a = par::a_low[par::index_of_water].data();
+    }
+    else
+    {
+        a = par::a_high[par::index_of_water].data();
+    }
+    // calculate sum
+    double C_v = 0.0; double T_pow = 1.0;
+    for (size_t n = 0; n < par::NASA_order; ++n)
+    {
+        C_v += a[n] * T_pow;
+        T_pow *= T;
+    }
+    C_v = par::R_erg * (C_v - 1.0);
+    // TODO: remember C_V_inf
+    // get coefficients for T_inf
+    if (this->cpar->T_inf <= par::temp_range[par::index_of_water][2]) // T_inf <= T_mid
+    {
+        a = par::a_low[par::index_of_water].data();
+    }
+    else
+    {
+        a = par::a_high[par::index_of_water].data();
+    }
+    // calculate sum
+    double C_v_inf = 0.0; T_pow = 1.0;
+    for (size_t n = 0; n < par::NASA_order; ++n)
+    {
+        C_v_inf += a[n] * T_pow;
+        T_pow *= this->cpar->T_inf;
+    }
+    C_v_inf = par::R_erg * (C_v_inf - 1.0);
+// Evaporation energy [J/mol]
+    double e_eva = C_v_inf * this->cpar->T_inf * 1.0e-7;
+    double e_con = C_v * T * 1.0e-7;
+    double evap_energy = n_eva_dot * e_eva - n_con_dot * e_con;    // [W/m^2]
+
+    return std::make_pair(n_net_dot, evap_energy);
 }
 
 
@@ -253,13 +327,10 @@ void ODE::forward_rate(
         
     // Third body reactions
         double M_eff_loc = M;
-        for (size_t i = 0; i < par::num_third_bodies; ++i)
+        size_t third_body_index = par::is_third_body_indexes[j];
+        if (third_body_index < par::num_third_bodies)
         {
-            if (par::third_body_indexes[i] == index)
-            {
-                M_eff_loc = this->M_eff[i];
-                break;
-            }
+            M_eff_loc = this->M_eff[third_body_index];
         }
         
         double P_r = k_0 / k_inf * M_eff_loc;
@@ -345,16 +416,20 @@ void ODE::backward_rate(
     for(size_t index = 0; index < par::num_reactions; ++index)
     {
         double Delta_S = 0.0, Delta_H = 0.0;
-        size_t sum_nu_i = 0.0;
-        for(size_t k = 0; k < par::num_species; ++k)
+        char sum_nu_i = 0.0;
+        for(size_t k = 0; k < par::num_max_specie_per_reaction; ++k)
         {
-            Delta_S += par::nu[index][k] * this->S[k];
-            Delta_H += par::nu[index][k] * this->H[k];
-            sum_nu_i += par::nu[index][k];
+            size_t nu_index = par::nu_indexes[index][k];
+            if (nu_index == par::index::INVALID) continue;
+
+            Delta_S += par::nu[index][2][k] * this->S[nu_index];
+            Delta_H += par::nu[index][2][k] * this->H[nu_index];
+            sum_nu_i += par::nu[index][2][k];
         }
-        long double K_p = std::exp(Delta_S / par::R_erg - Delta_H / (par::R_erg * T));
-        long double K_c = K_p * std::pow((par::atm2Pa * 10.0 / (par::R_erg * T)), sum_nu_i);
-        this->k_backward[index] = static_cast<double>(this->k_forward[index] / K_c);
+        // TODO: fix long double overflow thing
+        /*long*/ double K_p = std::exp(Delta_S / par::R_erg - Delta_H / (par::R_erg * T));
+        /*long*/ double K_c = K_p * std::pow((par::atm2Pa * 10.0 / (par::R_erg * T)), sum_nu_i);
+        this->k_backward[index] = /*static_cast<double>*/(this->k_forward[index] / K_c);
     }
     for(size_t j = 0; j < par::num_irreversible; ++j)
     {
@@ -362,3 +437,69 @@ void ODE::backward_rate(
         this->k_backward[index] = 0.0;
     }
 }
+
+
+void ODE::production_rate(
+    const double T,
+    const double M,
+    const double p
+) //noexcept
+{
+// Third body correction factors
+    double *c = this->x + 3;
+    for (size_t j = 0; j < par::num_third_bodies; ++j)
+    {
+        double M_eff_j = 0.0;
+        for (size_t k = 0; k < par::num_species; ++k)
+        {
+            M_eff_j += par::alfa[j][k] * c[k];
+        }
+        this->M_eff[j] = M_eff_j;
+    }
+// Forward and backward rates
+    this->forward_rate(T, M, p);
+    this->backward_rate(T);
+// Net rates
+    for (size_t index = 0; index < par::num_reactions; ++index)
+    {
+        double forward = 1.0;
+        double backward = 1.0;
+        for (size_t k = 0; k < par::num_max_specie_per_reaction; ++k)
+        {
+            size_t nu_index = par::nu_indexes[index][k];
+            if (nu_index == par::index::INVALID) continue;
+
+            forward  *= std::pow(c[nu_index], par::nu[index][0][k]);
+            backward *= std::pow(c[nu_index], par::nu[index][1][k]);
+        }
+        this->net_rates[index] = this->k_forward[index] * forward - this->k_backward[index] * backward;
+    }
+// Third body reaction rates
+    for (size_t j = 0; j < par::num_third_bodies; ++j)
+    {
+        if (!par::is_pressure_dependent[j])
+        {
+            size_t index = par::third_body_indexes[j];
+            this->net_rates[index] *= this->M_eff[j];
+        }
+    }
+// Production rates
+   std::fill(this->omega_dot, this->omega_dot + par::num_species, 0.0);
+   for (size_t index = 0; index < par::num_reactions; ++index)
+   {
+        for(size_t k = 0; k < par::num_max_specie_per_reaction; ++k)
+        {
+            size_t nu_index = par::nu_indexes[index][k];
+            if (nu_index == par::index::INVALID) continue;
+
+            this->omega_dot[nu_index] += par::nu[index][2][k] * this->net_rates[index];
+        }
+   }
+}
+
+/*
+TODO:
+    - implement and test check_cpar()
+    - do something with the long doubles
+    - improve the backward_rate() function
+*/

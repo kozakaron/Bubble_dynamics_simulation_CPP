@@ -1,6 +1,9 @@
 #ifndef ODE_FUN_H
 #define ODE_FUN_H
+#define _USE_MATH_DEFINES
 #include <initializer_list>
+#include <cmath>
+#include <algorithm>
 
 #include "common.h"
 #include "parameters.h"
@@ -78,6 +81,8 @@ class ODE
     double* M_eff;              // effective molar masses of third bodies (length: par::num_third_bodies)
     double* k_forward;          // forward reaction rates (length: par::num_reactions)
     double* k_backward;         // backward reaction rates (length: par::num_reactions)
+    double* net_rates;          // net production rates (length: par::num_reactions)
+    double* omega_dot;          // production rates (length: par::num_species)
 
 // Methods
     std::pair<double, double> pressures(
@@ -94,7 +99,8 @@ class ODE
 
     std::pair<double, double> evaporation(
         const double p,
-        const double T
+        const double T,
+        const double X_H2O
     ) ; //noexcept
 
 
@@ -107,6 +113,13 @@ class ODE
 
     void backward_rate(
         const double T
+    ) ; //noexcept
+
+    
+    void production_rate(
+        const double T,
+        const double M,
+        const double p
     ) ; //noexcept
 
 public:

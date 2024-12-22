@@ -100,6 +100,8 @@ def print_array(array, width=0, comments=[], columns=[], max_len=0):
             for y in x:
                 if type(y) == str:
                     y = '"' + y + '"'
+                if type(y) == bool:
+                    y = str(y).lower()
                 text += f'{y: >{width}}' + separator
             if i != len(array)-1:
                 text = text[:-1]
@@ -124,6 +126,8 @@ def print_array(array, width=0, comments=[], columns=[], max_len=0):
         for i, x in enumerate(array):
             if type(x) == str:
                 x = '"' + x + '"'
+            if type(x) == bool:
+                x = str(x).lower()
             text += f'{x: >{width}}' + separator
         text = text[:-1]
         text += arr_closer + arr_closer
@@ -143,6 +147,8 @@ def print_array(array, width=0, comments=[], columns=[], max_len=0):
                 x = array[j]
                 if type(x) == str:
                     x = '\'' + x + '\''
+                if type(x) == bool:
+                    x = str(x).lower()
                 text += f'{x: >{width}}' + separator
             
             i += max_len
@@ -602,8 +608,34 @@ def _get_nu(reactions, species, W):
     for i in range(0, len(reactions)):
         if abs(sum(nu[i] * W)) > 1e-5:
             print(colored(f'Warning, nonconsistent reaction {i} (\'{reactions[i]}\')', 'yellow'))
+
+    max_participants = max([sum(abs(nu[i]) + abs(nu_forward[i]) + abs(nu_backward[i]) != 0) for i in range(len(reactions))])
+    nu_indexes = np.zeros((len(reactions), max_participants), dtype=np.int32)
+    nu_forward_small = np.zeros((len(reactions), max_participants), dtype=np.int32)
+    nu_backward_small = np.zeros((len(reactions), max_participants), dtype=np.int32)
+    nu_small = np.zeros((len(reactions), max_participants), dtype=np.int32)
+
+    for i in range(len(reactions)):
+        loc_nu = []
+        loc_nu_forward = []
+        loc_nu_backward = []
+        indexes = []
+        for j in range(len(species)):
+            if nu[i][j] != 0 or nu_forward[i][j] != 0 or nu_backward[i][j] != 0:
+                loc_nu.append(nu[i][j])
+                loc_nu_forward.append(nu_forward[i][j])
+                loc_nu_backward.append(nu_backward[i][j])
+                indexes.append(j)
+        loc_nu =          np.pad(np.array(loc_nu,          dtype=np.int32), (0, max_participants - len(loc_nu)),          'constant', constant_values=(0))
+        loc_nu_forward =  np.pad(np.array(loc_nu_forward,  dtype=np.int32), (0, max_participants - len(loc_nu_forward)),  'constant', constant_values=(0))
+        loc_nu_backward = np.pad(np.array(loc_nu_backward, dtype=np.int32), (0, max_participants - len(loc_nu_backward)), 'constant', constant_values=(0))
+        indexes =         np.pad(np.array(indexes,         dtype=np.int32), (0, max_participants - len(indexes)),         'constant', constant_values=(len(species)))
+        nu_indexes[i] = indexes
+        nu_forward_small[i] = loc_nu_forward
+        nu_backward_small[i] = loc_nu_backward
+        nu_small[i] = loc_nu
     
-    return nu_forward, nu_backward, IrreversibleIndexes
+    return nu_forward, nu_backward, nu, IrreversibleIndexes, max_participants, nu_indexes, nu_forward_small, nu_backward_small, nu_small
 
 """________________________________Printing to file________________________________"""
 
@@ -636,8 +668,9 @@ def extract(path, name=''):
             TroeIndexes, Troe,
             SRIIndexes, SRI,
         PlogIndexes, Plog) = _get_reactions(lines, species)
-    nu_forward, nu_backward, IrreversibleIndexes = _get_nu(reactions, species, W)
-    nu = nu_backward - nu_forward
+    (nu_forward, nu_backward, nu, IrreversibleIndexes,
+      max_participants, nu_indexes, nu_forward_small,
+      nu_backward_small, nu_small) = _get_nu(reactions, species, W)
 
     
   # Create parameters.py
@@ -656,11 +689,11 @@ def extract(path, name=''):
     text += line_start + 'Species' + line_end
     text += f'constexpr size_t num_elements = {len(elements)};    // Number of elements\n'
     text += f'constexpr size_t num_species = {len(species)};    // Number of species\n'
-    text += f'constexpr int index_of_water = ' + ( '-1' if not 'H2O' in species else str(species.index('H2O')) ) + ';    // -1 if H2O is not in mechanism\n'
+    text += f'constexpr size_t index_of_water = ' + ( str(len(species)) if not 'H2O' in species else str(species.index('H2O')) ) + ';    // INVALID if H2O is not in mechanism\n'
     text += f'const array<string, {len(elements)}> elements = {print_array(elements, 5)};\n'
     text += f'//                                     {print_array([i for i in range(len(species))], 12)[1:-1]}\n'
     text += f'const array<string, {len(species)}> species =      {print_array(species, 12, max_len=0)};\n'
-    text += 'enum index                             {  ' + ''.join([f'{specie: >6} = {index: >2}, ' for index, specie in enumerate(species)])[:-2] + ' };\n'
+    text += 'enum index                             {  ' + ''.join([f'{specie: >6} = {index: >2}, ' for index, specie in enumerate(species)]) + f'    INVALID = {len(species)} ' + '};\n'
     text += f'// molar mass [g/mol]\n'
     text += f'constexpr array<double, {len(species)}> W =        {print_array(W, 12, max_len=0)};\n'
     text += f'// thermal conductivity [W / m / K]\n'
@@ -688,17 +721,27 @@ def extract(path, name=''):
     
     # Reaction matrixes
     text += line_start + 'Reaction matrixes' + line_end
-    text += f'// Forward reaction matrix\n'
-    text += f'constexpr std::array<std::array<char, {len(species)}>, {len(reactions)}> nu_forward = '+ print_array(nu_forward, 3, [f'{x:>2}. {reaction}' for x, reaction in enumerate(reactions)], species) + ';\n\n'
-    text += f'// Backward reaction matrix\n'
-    text += f'constexpr std::array<std::array<char, {len(species)}>, {len(reactions)}> nu_backward = '+ print_array(nu_backward, 3, [f'{x:>2}. {reaction}' for x, reaction in enumerate(reactions)], species) + ';\n\n'
-    text += f'// Reaction matrix (nu = nu_backward - nu_forward)\n'
-    text += f'constexpr std::array<std::array<char, {len(species)}>, {len(reactions)}> nu = '+ print_array(nu, 3, [f'{x:>2}. {reaction}' for x, reaction in enumerate(reactions)], species) + ';\n\n'
-    
+    #text += f'// Forward reaction matrix\n'
+    #text += f'constexpr std::array<std::array<char, {len(species)}>, {len(reactions)}> nu_forward = '+ print_array(nu_forward, 3, [f'{x:>2}. {reaction}' for x, reaction in enumerate(reactions)], species) + ';\n\n'
+    #text += f'// Backward reaction matrix\n'
+    #text += f'constexpr std::array<std::array<char, {len(species)}>, {len(reactions)}> nu_backward = '+ print_array(nu_backward, 3, [f'{x:>2}. {reaction}' for x, reaction in enumerate(reactions)], species) + ';\n\n'
+    #text += f'// Reaction matrix (nu = nu_backward - nu_forward)\n'
+    #text += f'constexpr std::array<std::array<char, {len(species)}>, {len(reactions)}> nu = '+ print_array(nu, 3, [f'{x:>2}. {reaction}' for x, reaction in enumerate(reactions)], species) + ';\n\n'
+    text += f'constexpr size_t num_max_specie_per_reaction = {max_participants};    // Maximum number of species participating in a reaction\n'
+    text += f'// Indexes of species participating in reactions\n'
+    text += f'constexpr std::array<std::array<size_t, {max_participants}>, {len(reactions)}> nu_indexes = '+ print_array(nu_indexes, 4, [f'{x:>2}. {reaction}' for x, reaction in enumerate(reactions)]) + ';\n\n'
+    text += f'constexpr std::array<std::array<std::array<char, {max_participants}>, 3>, {len(reactions)}> nu = ' + '{{\n'
+    text += f'    // {"nu_forward":>{4*max_participants}}      {"nu_backward":>{4*max_participants}}      {"nu":>{4*max_participants}}\n'
+    for i, reaction in enumerate(reactions):
+        comma = ',' if i < len(reactions)-1 else ' '
+        text += '    {{ ' + print_array(nu_forward_small[i], 3) + ',    ' + print_array(nu_backward_small[i], 3) + ',    ' + print_array(nu_small[i], 3) + ' }}' + comma + '    // ' + f'{i:>2}. {reaction}\n'
+    text += '}};\n\n'
+
     # Three-body reactions
     text += line_start + 'Third-body reactions' + line_end
     text += f'constexpr size_t num_third_bodies = {len(ThirdBodyIndexes)};    // Number of third body reactions\n'
-    text += f'constexpr std::array<size_t, {len(ThirdBodyIndexes)}> third_body_indexes{print_array(ThirdBodyIndexes, 4)};\n\n'
+    text += f'constexpr std::array<size_t, {len(ThirdBodyIndexes)}> third_body_indexes =  {print_array(ThirdBodyIndexes, 6)};\n'
+    text += f'constexpr std::array<bool, {len(ThirdBodyIndexes)}> is_pressure_dependent = {print_array([bool(i in PressureDependentIndexes) for i in ThirdBodyIndexes], 6)};\n\n'
     text += f'// third-body efficiency factors\n'
     text += f'constexpr std::array<std::array<double, {len(species)}>, {len(ThirdBodyIndexes)}> alfa = '+ print_array(alfa, 8, [f'{x:>2}. {reactions[x]}' for x in ThirdBodyIndexes], species) + ';\n\n'
     
@@ -721,7 +764,15 @@ def extract(path, name=''):
             return 'SRI'
         else:
             print(colored(f'Error, reaction {index} is not in LindemannIndexes, TroeIndexes or SRIIndexes', 'red'))
-    text += '{' + ''.join([f'reac_type::{reac_type(index)}, ' for index in PressureDependentIndexes]) + '};\n\n'
+    text += '{' + ''.join([f'reac_type::{reac_type(index)}, ' for index in PressureDependentIndexes]) + '};\n'
+    isThirdBodyIndexes = []
+    ThirdBodyIndexes = np.array(ThirdBodyIndexes)
+    for index in PressureDependentIndexes:
+        if index in ThirdBodyIndexes:
+            isThirdBodyIndexes.append(np.where(ThirdBodyIndexes == index)[0][0])
+        else:
+            isThirdBodyIndexes.append(len(ThirdBodyIndexes))
+    text += f'constexpr std::array<size_t, {len(PressureDependentIndexes)}> is_third_body_indexes = {print_array(isThirdBodyIndexes, 4)};\n\n'
     text += f'// Fall-off parameters\n'
     text += f'constexpr std::array<std::array<double, 3>, {len(PressureDependentIndexes)}> reac_const = '+ print_array(ReacConst, 18, [f'{x:>2}. {reactions[x]}' for x in PressureDependentIndexes], ['A_0', 'b_0', 'E_0']) + ';\n\n'
     
@@ -738,7 +789,7 @@ def extract(path, name=''):
         for PlogLine in Plog[i]:
             PlogFlattened.append(PlogLine)
     PlogFlattened = np.array(PlogFlattened, dtype=np.float64)
-    text += f'constexpr size_t num_plog = {len(PlogIndexes)};    // Number of PLOG reactions\n\n'
+    text += f'constexpr size_t num_plog = {len(PlogIndexes)};    // Number of PLOG reactions\n'
     text += f'constexpr std::array<size_t, {len(PlogIndexes)}> plog_indexes = {print_array(PlogIndexes, 4)};\n'
     text += f'constexpr std::array<size_t, {max(len(PlogIndexes)+1, 2)}> plog_seperators = {print_array(PlogSperators, 4)};\n\n'
     text += f'// PLOG parameters\n'
@@ -763,20 +814,21 @@ def main():
     parser.add_argument('-n', '--name', type=str, help='name of the output file (without extension)')
     args = parser.parse_args()
 
-    # Find .inp files
-    inp_files = []
-    for root, dirs, files in os.walk('.'):
-        for file in files:
-            if file.endswith('.inp'):
-                inp_files.append(os.path.join(root, file))
-    if not inp_files:
-        print('No .inp files found in the current directory.')
-        return None
-    print('Available .inp files:')
-    for idx, file in enumerate(inp_files):
-        print(f"{idx: >2}: {file}")
     # User chooses a file
     if args.file is None:
+        # Find .inp files
+        inp_files = []
+        for root, dirs, files in os.walk('.'):
+            for file in files:
+                if file.endswith('.inp'):
+                    inp_files.append(os.path.join(root, file))
+        if not inp_files:
+            print('No .inp files found in the current directory.')
+            return None
+        print('Available .inp files:')
+        for idx, file in enumerate(inp_files):
+            print(f"{idx: >2}: {file}")
+
         if inp_files is None:
             return
         choice = int(input("Choose a file by number: "))

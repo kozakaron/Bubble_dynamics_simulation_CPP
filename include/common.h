@@ -1,6 +1,5 @@
 #ifndef COMMON_H
 #define COMMON_H
-#define _USE_MATH_DEFINES
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -10,7 +9,6 @@
 #include <array>
 #include <vector>
 #include <algorithm>
-#include <cmath>
 #include <mutex>
 
 #define WHITE "\033[0m"
@@ -93,6 +91,15 @@ public:
 #define ERROR(message, ID) Error(message, __FUNCTION__, __FILE__, __LINE__, ID)
 #define LOG_ERROR(message, ID) ErrorHandler::log_error(ERROR(message, ID))
 
+// Unrolling macro
+#if defined GCC
+#define LOOP_UNROLL(n) _Pragma("GCC unroll " #n)
+#elif defined CLANG
+#define LOOP_UNROLL(n) _Pragma("clang loop unroll_count(" #n ")")
+#else
+#define LOOP_UNROLL(n)
+#endif
+
 // Benchmarking macro
 #ifdef BENCHMARK
 #define BENCHMARK_LINE(line, N) \
@@ -105,8 +112,16 @@ public:
             line; \
         } \
         double benchmark_time = benchmark_timer.lap(); \
-        std::cout << "Runtime of " << BLUE << #line << RESET; \
-        std::cout << ":  " << BOLD << 1e6 * benchmark_time / N << " us" << RESET << std::endl; \
+        double run_time = benchmark_time / N; \
+        std::cout << "Runtime of " << BLUE << #line << RESET << " is " << BOLD; \
+        if (run_time < 1e-6) \
+            std::cout << 1e9 * run_time << " ns" << RESET << std::endl; \
+        else if (run_time < 1e-3) \
+            std::cout << 1e6 * run_time << " us" << RESET << std::endl; \
+        else if (run_time < 1.0) \
+            std::cout << 1e3 * run_time << " ms" << RESET << std::endl; \
+        else \
+            std::cout  << run_time << " s" << RESET << std::endl; \
     }
 #else
 #define BENCHMARK_LINE(line, N)

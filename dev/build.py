@@ -45,7 +45,7 @@ linker_flags = [
 ]
 common_flags = [
     #'-v',                     # Verbose output
-# Sanitizers: help identify issues in runtime, small performance overhead
+# Sanitizers: help identify issues in runtime, performance overhead
     '-fsanitize=address',     # Protect against memory errors (a.g. use after free)
     '-fsanitize=undefined',   # Protect against undefined behavior (e.g. integer overflow, invalid type casts)
     '-fno-omit-frame-pointer',# Keep frame pointer for better stack traces

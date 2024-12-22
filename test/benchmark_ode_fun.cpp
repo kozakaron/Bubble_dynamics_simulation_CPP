@@ -67,7 +67,8 @@ void benchmark_ode_fun()
 
 // evaporation()
     std::pair<double, double> result_evap;
-    BENCHMARK_LINE(result_evap = ode.evaporation(p, T);, 1000000);
+    const double X_H2O = 3.2315225982636570e-01;
+    BENCHMARK_LINE(result_evap = ode.evaporation(p, T, X_H2O);, 1000000);
 
 // forward_rate()
     double M = 0.8363084533423445;
@@ -81,7 +82,10 @@ void benchmark_ode_fun()
     BENCHMARK_LINE(ode.forward_rate(T, M, p);, 100000);
 
 // backward_rate()
-    BENCHMARK_LINE(ode.backward_rate(T);, 100000);
+    BENCHMARK_LINE(ode.backward_rate(T);, 10000);
+
+// production_rate()
+    BENCHMARK_LINE(ode.production_rate(T, p, M);, 10000);
 }
 
 #endif // BENCHMARK_ODE_FUN_H
