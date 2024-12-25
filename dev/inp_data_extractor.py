@@ -14,6 +14,7 @@ import argparse   # command line arguments
 import molecular_data as data
 
 comment = '!'
+invalid_index = 65535
 
 """________________________________Functions________________________________"""
 
@@ -80,16 +81,18 @@ def print_array(array, width=0, comments=[], columns=[], max_len=0):
 
     # empty array
     if len(array) == 0:
-        return arr_opener + arr_opener + arr_closer + arr_closer
+        return '/*TODO: empty array, use nullptr instead.*/'
     if type(array) == np.ndarray:
         array = list(array)
     if type(array[0]) == np.ndarray:
         for i, x in enumerate(array):
             array[i] = list(x)
+    if isinstance(array[0], list) and len(array[0]) == 0:
+        return '/*TODO: empty array, use nullptr instead.*/'
 
     if isinstance(array[0], list):
     # 2D array
-        text += arr_opener + arr_opener + '\n'
+        text += arr_opener + '\n'
         if columns != []:
             text += f'\t{remark}'
             for col in columns:
@@ -114,7 +117,7 @@ def print_array(array, width=0, comments=[], columns=[], max_len=0):
             if len(comments) == len(array):
                 text += f'    {remark} {comments[i]}'
             text += '\n'
-        text += arr_closer + arr_closer
+        text += arr_closer
     # 1D array in 1 line
     elif max_len==0:
         if len(comments) == len(array):
@@ -122,7 +125,7 @@ def print_array(array, width=0, comments=[], columns=[], max_len=0):
             for i, comment in enumerate(comments):
                 text += f'{comment: >{width}} '
             text += '\n'
-        text += arr_opener + arr_opener
+        text += arr_opener
         for i, x in enumerate(array):
             if type(x) == str:
                 x = '"' + x + '"'
@@ -130,10 +133,10 @@ def print_array(array, width=0, comments=[], columns=[], max_len=0):
                 x = str(x).lower()
             text += f'{x: >{width}}' + separator
         text = text[:-1]
-        text += arr_closer + arr_closer
+        text += arr_closer
     # 1D array in multiple lines
     else:
-        text += arr_opener + arr_opener + '\n\t'
+        text += arr_opener + '\n\t'
         i = 0
         while i < len(array):
             if len(comments) == len(array):
@@ -157,7 +160,7 @@ def print_array(array, width=0, comments=[], columns=[], max_len=0):
             else:
                 text = text[:-1]
             
-        text += '\n' + arr_closer + arr_closer
+        text += '\n' + arr_closer
         
     return text
         
@@ -629,7 +632,7 @@ def _get_nu(reactions, species, W):
         loc_nu =          np.pad(np.array(loc_nu,          dtype=np.int32), (0, max_participants - len(loc_nu)),          'constant', constant_values=(0))
         loc_nu_forward =  np.pad(np.array(loc_nu_forward,  dtype=np.int32), (0, max_participants - len(loc_nu_forward)),  'constant', constant_values=(0))
         loc_nu_backward = np.pad(np.array(loc_nu_backward, dtype=np.int32), (0, max_participants - len(loc_nu_backward)), 'constant', constant_values=(0))
-        indexes =         np.pad(np.array(indexes,         dtype=np.int32), (0, max_participants - len(indexes)),         'constant', constant_values=(len(species)))
+        indexes =         np.pad(np.array(indexes,         dtype=np.int32), (0, max_participants - len(indexes)),         'constant', constant_values=(invalid_index))
         nu_indexes[i] = indexes
         nu_forward_small[i] = loc_nu_forward
         nu_backward_small[i] = loc_nu_backward
@@ -674,114 +677,120 @@ def extract(path, name=''):
 
     
   # Create parameters.py
-    line_start = '\n\n/*________________________________'
-    line_end = '________________________________*/\n\n'
+    line_start = '\n// '
+    line_end = '\n\n'
     text = ''
+    header = ''
     
     # Physical constants, Elements and Species data
-    text += f'#ifndef {define}\n#define {define}\n'
-    text += '#include <array>\n#include <string>\n#include "parameters.h"\n\nusing std::array;\nusing std::string;\n\n'
-    text += 'namespace par{\n'
-    text += f'const string model = "{name}";\n'
-    text += f'const string input_file = "{model}.inp";\n'
+    header += f'#ifndef {define}\n#define {define}\n\n#include "parameters.h"\n\n'
+    header += f'struct {name}_struct' + '{\n\n'
+    text += f'static constexpr char model[] = "{name}";\n'
+    text += f'static constexpr char input_file[] = "{model}.inp";\n'
     
     # Species and elements
-    text += line_start + 'Species' + line_end
-    text += f'constexpr size_t num_elements = {len(elements)};    // Number of elements\n'
-    text += f'constexpr size_t num_species = {len(species)};    // Number of species\n'
-    text += f'constexpr size_t index_of_water = ' + ( str(len(species)) if not 'H2O' in species else str(species.index('H2O')) ) + ';    // INVALID if H2O is not in mechanism\n'
-    text += f'const array<string, {len(elements)}> elements = {print_array(elements, 5)};\n'
-    text += f'//                                     {print_array([i for i in range(len(species))], 12)[1:-1]}\n'
-    text += f'const array<string, {len(species)}> species =      {print_array(species, 12, max_len=0)};\n'
-    text += 'enum index                             {  ' + ''.join([f'{specie: >6} = {index: >2}, ' for index, specie in enumerate(species)]) + f'    INVALID = {len(species)} ' + '};\n'
-    text += f'// molar mass [g/mol]\n'
-    text += f'constexpr array<double, {len(species)}> W =        {print_array(W, 12, max_len=0)};\n'
-    text += f'// thermal conductivity [W / m / K]\n'
-    text += f'constexpr array<double, {len(species)}> lambdas =  {print_array(lambdas, 12, max_len=0)};\n\n'
+    text += line_start + 'SPECIES' + line_end
+    text += f'static constexpr index_t num_elements = {len(elements)};\n'
+    text += f'static constexpr index_t num_species = {len(species)};\n'
+    text += f'static constexpr index_t index_of_water = ' + ( str(len(species)) if not 'H2O' in species else str(species.index('H2O')) ) + ';\n'
+    text += f'static constexpr index_t invalid_index = {invalid_index};\n'
+    text += f'    // TODO: add elements and species\n'
+    #text += f'const array<string, {len(elements)}> elements = {print_array(elements, 5)};\n'
+    text += f'    //                                           {print_array([i for i in range(len(species))], 12)[1:-1]}\n'
+    #text += f'const array<string, {len(species)}> species =      {print_array(species, 12, max_len=0)};\n'
+    #text += 'enum index                             {  ' + ''.join([f'{specie: >6} = {index: >2}, ' for index, specie in enumerate(species)]) + f'    INVALID = {len(species)} ' + '};\n'
+    text += f'static constexpr double W[num_species] =        {print_array(W, 12, max_len=0)};\n'
+    text += f'static constexpr double lambdas[num_species] =  {print_array(lambdas, 12, max_len=0)};\n\n'
     
     # NASA polynomials
-    text += line_start + 'NASA polynomials' + line_end
-    text += f'// degree of NASA polynomials\nconstexpr size_t NASA_order = 5;\n\n'
-    text += f'// Temperature ranges for NASA polynomials [K]\n'
-    text += f'constexpr std::array<std::array<double, 3>, {len(species)}> temp_range = '+ print_array(TempRange, 8, species, ['T_low', 'T_high', 'T_mid']) + ';\n\n'
-    text += f'// LOW NASA coefficients\n'
-    text += f'constexpr std::array<std::array<double, 7>, {len(species)}> a_low = '+ print_array(a_low, 16, species, ['a_1', 'a_2', 'a_3', 'a_4', 'a_5', 'a_6', 'a_7']) + ';\n\n'
-    text += f'// HIGH NASA coefficients\n'
-    text += f'constexpr std::array<std::array<double, 7>, {len(species)}> a_high = '+ print_array(a_high, 16, species, ['a_1', 'a_2', 'a_3', 'a_4', 'a_5', 'a_6', 'a_7']) + ';\n\n'
+    text += line_start + 'NASA POLYNOMIALS' + line_end
+    text += f'static constexpr index_t NASA_order = 5;\n'
+    text += f'static constexpr double temp_range[num_species][3] = '+ print_array(TempRange, 8, species, ['T_low', 'T_high', 'T_mid']) + ';\n\n'
+    text += f'static constexpr double a_low[num_species][NASA_order+2] = '+ print_array(a_low, 16, species, ['a_1', 'a_2', 'a_3', 'a_4', 'a_5', 'a_6', 'a_7']) + ';\n\n'
+    text += f'static constexpr double a_high[num_species][NASA_order+2] = '+ print_array(a_high, 16, species, ['a_1', 'a_2', 'a_3', 'a_4', 'a_5', 'a_6', 'a_7']) + ';\n\n'
     
     # Reaction constants
-    text += line_start + 'Reaction constants' + line_end
-    text += f'constexpr size_t num_reactions = {len(reactions)};    // Number of reactions\n\n'
-    text += f'// Pre-exponential factors [cm^3/mol/s v 1/s]\n'
-    text += f'constexpr std::array<double, {len(reactions)}> A = '+ print_array(A, 20, max_len=5) + ';\n\n'
-    text += f'// Temperature exponent [-]\n'
-    text += f'constexpr std::array<double, {len(reactions)}> b = '+ print_array(B, 20, max_len=5) + ';\n\n'
-    text += f'// Activation energy [cal/mol]\n'
-    text += f'constexpr std::array<double, {len(reactions)}> E = '+ print_array(E, 20, max_len=5) + ';\n\n'
+    text += line_start + 'REACTION CONSTANTS' + line_end
+    text += f'static constexpr index_t num_reactions = {len(reactions)};\n'
+    text += f'static constexpr double A[num_reactions] = '+ print_array(A, 20, max_len=5) + ';\n\n'
+    text += f'static constexpr double b[num_reactions] = '+ print_array(B, 20, max_len=5) + ';\n\n'
+    text += f'static constexpr double E[num_reactions] = '+ print_array(E, 20, max_len=5) + ';\n\n'
     
     # Reaction matrixes
-    text += line_start + 'Reaction matrixes' + line_end
-    #text += f'// Forward reaction matrix\n'
-    #text += f'constexpr std::array<std::array<char, {len(species)}>, {len(reactions)}> nu_forward = '+ print_array(nu_forward, 3, [f'{x:>2}. {reaction}' for x, reaction in enumerate(reactions)], species) + ';\n\n'
-    #text += f'// Backward reaction matrix\n'
-    #text += f'constexpr std::array<std::array<char, {len(species)}>, {len(reactions)}> nu_backward = '+ print_array(nu_backward, 3, [f'{x:>2}. {reaction}' for x, reaction in enumerate(reactions)], species) + ';\n\n'
-    #text += f'// Reaction matrix (nu = nu_backward - nu_forward)\n'
-    #text += f'constexpr std::array<std::array<char, {len(species)}>, {len(reactions)}> nu = '+ print_array(nu, 3, [f'{x:>2}. {reaction}' for x, reaction in enumerate(reactions)], species) + ';\n\n'
-    text += f'constexpr size_t num_max_specie_per_reaction = {max_participants};    // Maximum number of species participating in a reaction\n'
-    text += f'// Indexes of species participating in reactions\n'
-    text += f'constexpr std::array<std::array<size_t, {max_participants}>, {len(reactions)}> nu_indexes = '+ print_array(nu_indexes, 4, [f'{x:>2}. {reaction}' for x, reaction in enumerate(reactions)]) + ';\n\n'
-    text += f'constexpr std::array<std::array<std::array<char, {max_participants}>, 3>, {len(reactions)}> nu = ' + '{{\n'
+    text += line_start + 'REACTION MATRIXES' + line_end
+    text += f'static constexpr index_t num_max_specie_per_reaction = {max_participants};\n'
+    text += f'static constexpr index_t nu_indexes[num_reactions][num_max_specie_per_reaction] = '+ print_array(nu_indexes, 6, [f'{x:>2}. {reaction}' for x, reaction in enumerate(reactions)]) + ';\n\n'
+    text += f'static constexpr stoich_t nu[num_reactions][3][num_max_specie_per_reaction] = ' + '{\n'
     text += f'    // {"nu_forward":>{4*max_participants}}      {"nu_backward":>{4*max_participants}}      {"nu":>{4*max_participants}}\n'
     for i, reaction in enumerate(reactions):
         comma = ',' if i < len(reactions)-1 else ' '
-        text += '    {{ ' + print_array(nu_forward_small[i], 3) + ',    ' + print_array(nu_backward_small[i], 3) + ',    ' + print_array(nu_small[i], 3) + ' }}' + comma + '    // ' + f'{i:>2}. {reaction}\n'
-    text += '}};\n\n'
+        text += '    { ' + print_array(nu_forward_small[i], 3) + ',    ' + print_array(nu_backward_small[i], 3) + ',    ' + print_array(nu_small[i], 3) + ' }' + comma + '    // ' + f'{i:>2}. {reaction}\n'
+    text += '};\n\n'
 
     # Three-body reactions
-    text += line_start + 'Third-body reactions' + line_end
-    text += f'constexpr size_t num_third_bodies = {len(ThirdBodyIndexes)};    // Number of third body reactions\n'
-    text += f'constexpr std::array<size_t, {len(ThirdBodyIndexes)}> third_body_indexes =  {print_array(ThirdBodyIndexes, 6)};\n'
-    text += f'constexpr std::array<bool, {len(ThirdBodyIndexes)}> is_pressure_dependent = {print_array([bool(i in PressureDependentIndexes) for i in ThirdBodyIndexes], 6)};\n\n'
-    text += f'// third-body efficiency factors\n'
-    text += f'constexpr std::array<std::array<double, {len(species)}>, {len(ThirdBodyIndexes)}> alfa = '+ print_array(alfa, 8, [f'{x:>2}. {reactions[x]}' for x in ThirdBodyIndexes], species) + ';\n\n'
-    
+    text += line_start + 'THIRD-BODY REACTIONS' + line_end
+    text += f'static constexpr index_t num_third_bodies = {len(ThirdBodyIndexes)};\n'
+    if len(ThirdBodyIndexes) != 0:
+        text += f'static constexpr index_t third_body_indexes[num_third_bodies] =  {print_array(ThirdBodyIndexes, 6)};\n'
+        text += f'static constexpr bool is_pressure_dependent[num_third_bodies] = {print_array([bool(i in PressureDependentIndexes) for i in ThirdBodyIndexes], 6)};\n\n'
+        text += f'static constexpr double alfa[num_third_bodies][num_species] = '+ print_array(alfa, 8, [f'{x:>2}. {reactions[x]}' for x in ThirdBodyIndexes], species) + ';\n\n'
+    else:
+        text += f'static constexpr index_t *third_body_indexes = nullptr;\n'
+        text += f'static constexpr bool *is_pressure_dependent = nullptr;\n'
+        text += f'static constexpr double *alfa = nullptr;\n\n'
+
     # Irreversible reactions
     text += line_start + 'Irreversible reactions' + line_end
-    text += f'constexpr size_t num_irreversible = {len(IrreversibleIndexes)};    // Number of irreversible reactions\n'
-    text += f'constexpr std::array<size_t, {len(IrreversibleIndexes)}> irreversible_indexes = {print_array(IrreversibleIndexes, 4)};\n\n'
-    
+    text += f'static constexpr index_t num_irreversible = {len(IrreversibleIndexes)};\n'
+    if len(IrreversibleIndexes) != 0:
+        text += f'static constexpr index_t irreversible_indexes[num_irreversible] = {print_array(IrreversibleIndexes, 4)};\n\n'
+    else:
+        text += f'static constexpr index_t *irreversible_indexes = nullptr;\n\n'
+
     # Pressure-dependent reactions
     text += line_start + 'Pressure-dependent reactions' + line_end
-    text += f'constexpr size_t num_pressure_dependent = {len(PressureDependentIndexes)};    // Number of pressure dependent reactions\n'
-    text += f'constexpr std::array<size_t, {len(PressureDependentIndexes)}> pressure_dependent_indexes = {print_array(PressureDependentIndexes, 4)};\n'
-    text += f'constexpr std::array<reac_type, {len(PressureDependentIndexes)}> pressure_dependent_reac_types = '
-    def reac_type(index):
-        if index in LindemannIndexes:
-            return 'LINDEMANN'
-        elif index in TroeIndexes:
-            return 'TROE'
-        elif index in SRIIndexes:
-            return 'SRI'
-        else:
-            print(colored(f'Error, reaction {index} is not in LindemannIndexes, TroeIndexes or SRIIndexes', 'red'))
-    text += '{' + ''.join([f'reac_type::{reac_type(index)}, ' for index in PressureDependentIndexes]) + '};\n'
-    isThirdBodyIndexes = []
+    text += f'static constexpr index_t num_pressure_dependent = {len(PressureDependentIndexes)};\n'
+    text += f'static constexpr index_t num_lindemann = {len(LindemannIndexes)};\n'
+    text += f'static constexpr index_t num_troe = {len(TroeIndexes)};\n'
+    text += f'static constexpr index_t num_sri = {len(SRIIndexes)};\n'
+    if len(PressureDependentIndexes) != 0:
+        text += f'static constexpr index_t pressure_dependent_indexes[num_pressure_dependent] = {print_array(PressureDependentIndexes, 4)};\n'
+        text += f'static constexpr Parameters::reac_type pressure_dependent_reac_types[num_pressure_dependent] = '
+        def reac_type(index):
+            if index in LindemannIndexes:
+                return 'lindemann_reac'
+            elif index in TroeIndexes:
+                return 'troe_reac'
+            elif index in SRIIndexes:
+                return 'sri_reac'
+            else:
+                print(colored(f'Error, reaction {index} is not in LindemannIndexes, TroeIndexes or SRIIndexes', 'red'))
+        text += '{' + ''.join([f'Parameters::reac_type::{reac_type(index)}, ' for index in PressureDependentIndexes])[:-2] + '};\n'
+        isThirdBodyIndexes = []
+    else:
+        text += f'static constexpr index_t *pressure_dependent_indexes = nullptr;\n'
+        text += f'static constexpr Parameters::reac_type *pressure_dependent_reac_types = nullptr;\n'
     ThirdBodyIndexes = np.array(ThirdBodyIndexes)
     for index in PressureDependentIndexes:
         if index in ThirdBodyIndexes:
             isThirdBodyIndexes.append(np.where(ThirdBodyIndexes == index)[0][0])
         else:
-            isThirdBodyIndexes.append(len(ThirdBodyIndexes))
-    text += f'constexpr std::array<size_t, {len(PressureDependentIndexes)}> is_third_body_indexes = {print_array(isThirdBodyIndexes, 4)};\n\n'
-    text += f'// Fall-off parameters\n'
-    text += f'constexpr std::array<std::array<double, 3>, {len(PressureDependentIndexes)}> reac_const = '+ print_array(ReacConst, 18, [f'{x:>2}. {reactions[x]}' for x in PressureDependentIndexes], ['A_0', 'b_0', 'E_0']) + ';\n\n'
-    
-    text += f'// Troe parameters\n'
-    text += f'constexpr std::array<std::array<double, 4>, {len(Troe)}> troe = '+ print_array(Troe, 18, [f'{x:>2}. {reactions[x]}' for x in TroeIndexes], ['alfa',  'T***',  'T*',  'T**']) + ';\n\n'
-    
-    text += f'// SRI parameters\n'
-    text += f'constexpr std::array<std::array<double, 5>, {len(SRI)}> sri = '+ print_array(SRI, 18, [f'{x:>2}. {reactions[x]}' for x in SRIIndexes], ['a',  'b',  'c',  'd', 'e']) + ';\n\n'
-    
+            isThirdBodyIndexes.append(invalid_index)
+    if len(PressureDependentIndexes) != 0:
+        text += f'static constexpr index_t is_third_body_indexes[num_pressure_dependent] = {print_array(isThirdBodyIndexes, 6)};\n\n'
+        text += f'static constexpr double reac_const[num_pressure_dependent][3] = '+ print_array(ReacConst, 18, [f'{x:>2}. {reactions[x]}' for x in PressureDependentIndexes], ['A_0', 'b_0', 'E_0']) + ';\n\n'
+    else:
+        text += f'static constexpr index_t *is_third_body_indexes = nullptr;\n'
+        text += f'static constexpr double *reac_const = nullptr;\n\n'
+    if len(Troe) != 0:
+        text += f'static constexpr double troe[{len(Troe)}][4] = '+ print_array(Troe, 18, [f'{x:>2}. {reactions[x]}' for x in TroeIndexes], ['alfa',  'T***',  'T*',  'T**']) + ';\n\n'
+    else:
+        text += f'static constexpr double *troe = nullptr;\n\n'
+    if len(SRI[0]) != 0:
+        text += f'static constexpr double sri[{len(SRI)}][5] = '+ print_array(SRI, 18, [f'{x:>2}. {reactions[x]}' for x in SRIIndexes], ['a',  'b',  'c',  'd', 'e']) + ';\n\n'
+    else:
+        text += f'static constexpr double *sri = nullptr;\n\n'
+
     PlogSperators = [0]
     PlogFlattened = []
     for i in range(len(Plog)):
@@ -789,19 +798,32 @@ def extract(path, name=''):
         for PlogLine in Plog[i]:
             PlogFlattened.append(PlogLine)
     PlogFlattened = np.array(PlogFlattened, dtype=np.float64)
-    text += f'constexpr size_t num_plog = {len(PlogIndexes)};    // Number of PLOG reactions\n'
-    text += f'constexpr std::array<size_t, {len(PlogIndexes)}> plog_indexes = {print_array(PlogIndexes, 4)};\n'
-    text += f'constexpr std::array<size_t, {max(len(PlogIndexes)+1, 2)}> plog_seperators = {print_array(PlogSperators, 4)};\n\n'
-    text += f'// PLOG parameters\n'
+    text += f'static constexpr index_t num_plog = {len(PlogIndexes)};\n'
+    text += f'static constexpr index_t num_plog_levels = {len(PlogFlattened) if len(PlogIndexes)!=0 else 0};\n'
+    if len(PlogIndexes) != 0:
+        text += f'static constexpr index_t plog_indexes[num_plog] = {print_array(PlogIndexes, 4)};\n'
+    else:
+        text += f'static constexpr index_t *plog_indexes = nullptr;\n'
+    text += f'static constexpr index_t plog_seperators[{"num_plog_levels+1" if len(PlogIndexes)!=0 else "2"}] = {print_array(PlogSperators, 4)};\n\n'
     PlogComments = [f'{x:>2}. {reactions[x]}' for x in PlogIndexes]
     PlogComments = sum([[comment] + (len(Plog[i])-1) * [''] for i, comment in enumerate(PlogComments)], [])
-    text += f'constexpr std::array<std::array<double, 4>, {len(PlogFlattened)}> plog = ' + print_array(PlogFlattened, 18, PlogComments, ['P_1',  'A_1',  'b_1',  'E_1']) + ';\n\n'
-    text += '}    // namespace par\n\n'
-    text += f'#endif   // {define}\n'
+    if len(PlogIndexes) != 0:
+        text += f'static constexpr double plog[num_plog_levels][4] = ' + print_array(PlogFlattened, 18, PlogComments, ['P_1',  'A_1',  'b_1',  'E_1']) + ';\n\n'
+    else:
+        text += f'static constexpr double *plog = nullptr;\n\n'
 
     text = text.replace('\t', '    ')
+    write_to_file = header
+    for line in text.split('\n'):
+        if not line.startswith('//'):
+            write_to_file += '    ' + line + '\n'
+        else:
+            write_to_file += line + '\n'
+    write_to_file += '}' + f';    // struct {name}_struct\n\n'
+    write_to_file += f'#endif   // {define}\n'
+
     file = open(f'./mechanism/{name}.h', 'w', encoding='utf8')
-    file.write(text)
+    file.write(write_to_file)
     file.close()
     
     print(f'model: {name}')

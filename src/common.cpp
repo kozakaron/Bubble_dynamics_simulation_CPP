@@ -62,6 +62,28 @@ std::string Timer::current_time()
     return ss.str();
 }
 
+std::string Timer::format_time(double time)
+{
+    std::stringstream ss;
+    if (time < 1e-6)
+    {
+        ss << std::setprecision(2) << std::fixed << time * 1e9 << " ns";
+    }
+    else if (time < 1e-3)
+    {
+        ss << std::setprecision(2) << std::fixed << time * 1e6 << " us";
+    }
+    else if (time < 1)
+    {
+        ss << std::setprecision(2) << std::fixed << time * 1e3 << " ms";
+    }
+    else
+    {
+        ss << std::setprecision(3) << std::fixed << time << " s";
+    }
+    return ss.str();
+}
+
 Error::Error()
 {
     this->message = "";
@@ -117,7 +139,7 @@ void ErrorHandler::set_log_file(const std::string &filename)
     ErrorHandler::log_file.open(filename, std::ios::out | std::ios::app);
     if (!ErrorHandler::log_file.is_open())
     {
-        LOG_ERROR("Could not open log file " + filename, 1);
+        LOG_ERROR("Could not open log file " + filename, 0);
     }
 }
 

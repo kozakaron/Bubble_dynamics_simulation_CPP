@@ -36,8 +36,7 @@ compiler_flags = [
 # Error handling flags: slight performance boost, harder error identification, might cause unexpected behavior
     #'-fno-exceptions',         # Disable exception handling
     #'-fno-math-errno',         # Do not set errno after math library functions
-    #'-ffinite-math-only',      # Assume that floating-point arithmetic arguments and results are finite numbers
-    
+    #'-ffinite-math-only',      # Assume that floating-point arithmetic arguments and results are finite numbers   
 ]
 linker_flags = [
     #'-flto',                  # Enable link-time optimization
@@ -49,6 +48,7 @@ common_flags = [
     '-fsanitize=address',     # Protect against memory errors (a.g. use after free)
     '-fsanitize=undefined',   # Protect against undefined behavior (e.g. integer overflow, invalid type casts)
     '-fno-omit-frame-pointer',# Keep frame pointer for better stack traces
+    #'-fomit-frame-pointer',    # Omit frame pointer for functions that don't need one
 ]
 
 
@@ -200,7 +200,8 @@ def main():
     linker_flags += common_flags
     os.makedirs(build_dir, exist_ok=True)
     for file in os.listdir(build_dir):
-        os.remove(os.path.join(build_dir, file))
+        if file != '.gitkeep':
+            os.remove(os.path.join(build_dir, file))
     cpp_files = []
     for src_dir in src_dirs:
         cpp_files += glob.glob(os.path.join(src_dir, '*.cpp'))  # Get all cpp files in the src directory
@@ -230,14 +231,6 @@ def main():
         compiler_flags.append('-O2')
     if args.optimize3 and not args.optimize2:
         compiler_flags.append('-O3')
-
-    # Choose reaction mechanism
-    mechanisms = [file for file in os.listdir('./mechanism') if file.endswith('.h') and not file.startswith('parameters')]
-    for i, mechanism in enumerate(mechanisms):
-        print(f'{blue}{i}{reset}: {mechanism}')
-    choice = int(input('Choose mechanism: ' + blue))
-    compiler_flags.append(f'-D{mechanisms[choice][:-2].upper()}')
-    print(f'{reset}Chosen mechanism: {bold}{blue}{mechanisms[choice]}{reset}')
 
     # Compile each source file in parallel using ThreadPoolExecutor
     start = time.time()
