@@ -11,36 +11,39 @@ void benchmark_ode_fun()
 {
 // Set up control parameters
     ODE ode = ODE();
-    cpar_t *cpar = ode.cpar;
+    cpar_t cpar;
 
-    cpar->ID = 0;
+    cpar.ID = 0;
+    cpar.par = Parameters::mechanism::chemkin_otomo2018;
     // Initial conditions:
-    cpar->R_E = 10e-6;
-    cpar->ratio = 1.0;
-    cpar->set_species({par::index::H2, par::index::N2}, {0.75, 0.25});
+    cpar.R_E = 10e-6;
+    cpar.ratio = 1.0;
+    cpar.set_species({2, 31}, {0.75, 0.25});  // TODO: change indexes
     // Ambient parameters:
-    cpar->P_amb = 101325.0;
-    cpar->T_inf = 293.15;
+    cpar.P_amb = 101325.0;
+    cpar.T_inf = 293.15;
     // Liquid parameters:
-    cpar->alfa_M = 0.35;
-    cpar->P_v = 2338.1;
-    cpar->mu_L = 0.001;
-    cpar->rho_L = 998.2;
-    cpar->c_L = 1483.0;
-    cpar->surfactant = 1.0;
+    cpar.alfa_M = 0.35;
+    cpar.P_v = 2338.1;
+    cpar.mu_L = 0.001;
+    cpar.rho_L = 998.2;
+    cpar.c_L = 1483.0;
+    cpar.surfactant = 1.0;
     // Simulation settings:
-    cpar->enable_heat_transfer = true;
-    cpar->enable_evaporation = true;
-    cpar->enable_reactions = true;
-    cpar->enable_dissipated_energy = true;
-    cpar->target_specie = par::index::NH3;
+    cpar.enable_heat_transfer = true;
+    cpar.enable_evaporation = true;
+    cpar.enable_reactions = true;
+    cpar.enable_dissipated_energy = true;
+    cpar.target_specie = 0;//TODO: par::index::NH3;
     // Excitation parameters:
-    cpar->set_excitation_params({-2.0e5, 30000.0, 1.0});
-    cpar->excitation_type = par::excitation::sin_impulse;
+    cpar.set_excitation_params({-2.0e5, 30000.0, 1.0});
+    cpar.excitation_type = Parameters::excitation::sin_impulse;
+
+    ode.init(cpar);
 
 // Setup inputs
     const double t = 0.0;
-    state_t x = {
+    std::array<double, 32+4> x = {
         4.35062207e-07, 4.87202821e+00, 4.06585821e+03, 3.04892226e-06,
         3.05074849e-04, 4.22341571e-01, 5.15008532e-07, 2.01019027e-03,
         2.06121865e-06, 8.22242270e-04, 4.39352481e-07, 2.71009207e-01,
@@ -72,7 +75,7 @@ void benchmark_ode_fun()
 
 // forward_rate()
     double M = 0.8363084533423445;
-    array<double, par::num_third_bodies> M_eff = {4.44204225, 4.44204225, 4.44204225, 1.55048452, 4.77157568,
+    array<double, 23> M_eff = {4.44204225, 4.44204225, 4.44204225, 1.55048452, 4.77157568,
     3.80254336, 0.83630845, 0.83630845, 3.26860315, 3.26860315,
     0.83630845, 3.26860315, 0.92062359, 0.83630845, 0.83630845,
     0.83630845, 0.83630845, 0.83630845, 0.83630845, 3.90748095,

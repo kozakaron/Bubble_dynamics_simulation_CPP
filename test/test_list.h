@@ -5,9 +5,6 @@
 
 
 #ifdef TEST
-#ifndef CHEMKIN_OTOMO2018
-#error CHEMKIN_OTOMO2018 must be defined for testing
-#endif
 void test_ode_fun();
 
 
@@ -16,9 +13,6 @@ void test_ode_fun();
 
 
 #ifdef BENCHMARK
-#ifndef CHEMKIN_OTOMO2018
-#error CHEMKIN_OTOMO2018 must be defined for benchmarking
-#endif
 void benchmark_ode_fun();
 
 

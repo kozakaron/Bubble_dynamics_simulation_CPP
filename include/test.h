@@ -8,11 +8,10 @@
 #include <cmath>
 
 #include "common.h"
-#include "parameters.h"
 
+namespace testing{
 using std::cout;
 using std::endl;
-namespace testing{
 
 // Test fixture class
 class Tester{

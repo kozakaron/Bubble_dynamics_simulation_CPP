@@ -43,6 +43,8 @@ public:
     double lap();
     // Get current time
     static std::string current_time();
+    // Format elapsed time (0.002 -> "2 ms", 0.000000002 -> "2 ns")
+    static std::string format_time(double time);
 
 private:
     std::chrono::high_resolution_clock::time_point start_time;
@@ -101,7 +103,6 @@ public:
 #endif
 
 // Benchmarking macro
-#ifdef BENCHMARK
 #define BENCHMARK_LINE(line, N) \
     { \
         Timer benchmark_timer; \
@@ -113,18 +114,7 @@ public:
         } \
         double benchmark_time = benchmark_timer.lap(); \
         double run_time = benchmark_time / N; \
-        std::cout << "Runtime of " << BLUE << #line << RESET << " is " << BOLD; \
-        if (run_time < 1e-6) \
-            std::cout << 1e9 * run_time << " ns" << RESET << std::endl; \
-        else if (run_time < 1e-3) \
-            std::cout << 1e6 * run_time << " us" << RESET << std::endl; \
-        else if (run_time < 1.0) \
-            std::cout << 1e3 * run_time << " ms" << RESET << std::endl; \
-        else \
-            std::cout  << run_time << " s" << RESET << std::endl; \
+        std::cout << "Runtime of " << BLUE << #line << RESET << " is " << BOLD << Timer::format_time(run_time) << RESET << std::endl; \
     }
-#else
-#define BENCHMARK_LINE(line, N)
-#endif
 
 #endif // COMMON_H
