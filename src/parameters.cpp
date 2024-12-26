@@ -21,14 +21,14 @@ const Parameters Parameters::chemkin_otomo2018_params            = Parameters(ch
 
 template <typename T>
 Parameters::Parameters(T dummy):
+    _elements(),
+    _species(),
     model(T::model),
     input_file(T::input_file),
     num_elements(T::num_elements),
     num_species(T::num_species),
     index_of_water(T::index_of_water),
     invalid_index(T::invalid_index),
-    _elements(),
-    _species(),
     species_names(),
     NASA_order(T::NASA_order),
     num_reactions(T::num_reactions),
@@ -62,7 +62,37 @@ Parameters::Parameters(T dummy):
         _species[T::species[i].first] = T::species[i].second;
         species_names.push_back(T::species[i].first);
     }
-    COPY_ARRAY(stoich_t, nu, T::num_reactions*T::num_max_specie_per_reaction*3);
+    stoich_t *temp_nu_forward = new stoich_t[T::num_reactions*T::num_max_specie_per_reaction];
+    stoich_t *temp_nu_backward = new stoich_t[T::num_reactions*T::num_max_specie_per_reaction];
+    stoich_t *temp_nu = new stoich_t[T::num_reactions*T::num_max_specie_per_reaction];
+    stoich_t *temp_sum_nu = new stoich_t[T::num_reactions];
+    for(index_t i = 0; i < T::num_reactions; i++)
+    {
+        std::copy(
+            (stoich_t*)T::nu[i][0],
+            (stoich_t*)T::nu[i][0] + T::num_max_specie_per_reaction,
+            temp_nu_forward + i*T::num_max_specie_per_reaction
+        );
+        std::copy(
+            (stoich_t*)T::nu[i][1],
+            (stoich_t*)T::nu[i][1] + T::num_max_specie_per_reaction,
+            temp_nu_backward + i*T::num_max_specie_per_reaction
+        );
+        std::copy(
+            (stoich_t*)T::nu[i][2],
+            (stoich_t*)T::nu[i][2] + T::num_max_specie_per_reaction,
+            temp_nu + i*T::num_max_specie_per_reaction
+        );
+        temp_sum_nu[i] = 0;
+        for(index_t j = 0; j < T::num_max_specie_per_reaction; j++)
+        {
+            temp_sum_nu[i] += T::nu[i][2][j];
+        }
+    }
+    this->nu_forward = (const stoich_t*)temp_nu_forward;
+    this->nu_backward = (const stoich_t*)temp_nu_backward;
+    this->nu = (const stoich_t*)temp_nu;
+    this->sum_nu = (const stoich_t*)temp_sum_nu;
     COPY_ARRAY(index_t, third_body_indexes, T::num_third_bodies);
     COPY_ARRAY(bool, is_pressure_dependent, T::num_third_bodies);
     COPY_ARRAY(double, alfa, T::num_third_bodies*T::num_species);
@@ -95,9 +125,10 @@ Parameters::~Parameters()
     if (b != nullptr) delete[] b;
     if (E != nullptr) delete[] E;
     if (nu_indexes != nullptr) delete[] nu_indexes;
-    //if (nu_forward != nullptr) delete[] nu_forward;
-    //if (nu_backward != nullptr) delete[] nu_backward;
+    if (nu_forward != nullptr) delete[] nu_forward;
+    if (nu_backward != nullptr) delete[] nu_backward;
     if (nu != nullptr) delete[] nu;
+    if (sum_nu != nullptr) delete[] sum_nu;
     if (third_body_indexes != nullptr) delete[] third_body_indexes;
     if (is_pressure_dependent != nullptr) delete[] is_pressure_dependent;
     if (alfa != nullptr) delete[] alfa;

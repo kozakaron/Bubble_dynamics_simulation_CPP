@@ -71,87 +71,87 @@ void test_ode_fun()
     ADD_TEST(tester, "Test ErrorHandler",
         LOG_ERROR("Test error message", 33);
         LOG_ERROR("Another test error message", 44);
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 2)
-        ASSERT_EQUAL(ErrorHandler::get_error(0).ID, 33)
-        ASSERT_EQUAL(ErrorHandler::get_error(1).ID, 44)
-        ASSERT_EQUAL(ErrorHandler::get_error(0).message, "Test error message")
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 2);
+        ASSERT_EQUAL(ErrorHandler::get_error(0).ID, 33);
+        ASSERT_EQUAL(ErrorHandler::get_error(1).ID, 44);
+        ASSERT_TRUE(ErrorHandler::get_error(0).message == "Test error message");
         ErrorHandler::clear_errors();
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
 
     ADD_TEST(tester, "Test long double exists",
         long double x = 1.0L;
-        ASSERT_TRUE(sizeof(x) > 8)    // long double is at least 80 bits
+        ASSERT_TRUE(sizeof(x) > 8);    // long double is at least 80 bits
         long double fact_200 = 1.0L;
         for (int i = 1; i <= 200; ++i)
         {
             fact_200 *= i;
         }
-        ASSERT_APPROX(fact_200, 7.88657867364790503383170119245e+374L, 1e-10)
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
+        ASSERT_APPROX(fact_200, 7.88657867364790503383170119245e+374L, 1e-10);
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
 
     ADD_TEST(tester, "Test parameter correctness",
-        ASSERT_EQUAL(tester.par->model, "chemkin_otomo2018")
-        ASSERT_EQUAL(tester.par->num_species, 32)
-        ASSERT_TRUE(tester.cpar->enable_heat_transfer)
-        ASSERT_TRUE(tester.cpar->enable_evaporation)
-        ASSERT_TRUE(tester.cpar->enable_reactions)
-        ASSERT_TRUE(tester.cpar->enable_dissipated_energy)
-        ASSERT_EQUAL(tester.cpar->target_specie, tester.par->get_species("NH3"))
-        ASSERT_EQUAL(tester.cpar->excitation_type, Parameters::excitation::sin_impulse)
-        ASSERT_EQUAL(tester.cpar->excitation_params[0], -2.0e5)
-        ASSERT_EQUAL(tester.cpar->excitation_params[1], 30000.0)
-        ASSERT_EQUAL(tester.cpar->excitation_params[2], 1.0)
-        ASSERT_EQUAL(tester.cpar->species[0], tester.par->get_species("H2"))
-        ASSERT_EQUAL(tester.cpar->species[1], tester.par->get_species("N2"))
-        ASSERT_EQUAL(tester.cpar->fractions[0], 0.75)
-        ASSERT_EQUAL(tester.cpar->fractions[1], 0.25)
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
+        ASSERT_TRUE(tester.par->model == "chemkin_otomo2018");
+        ASSERT_EQUAL(tester.par->num_species, 32);
+        ASSERT_TRUE(tester.cpar->enable_heat_transfer);
+        ASSERT_TRUE(tester.cpar->enable_evaporation);
+        ASSERT_TRUE(tester.cpar->enable_reactions);
+        ASSERT_TRUE(tester.cpar->enable_dissipated_energy);
+        ASSERT_EQUAL(tester.cpar->target_specie, tester.par->get_species("NH3"));
+        ASSERT_EQUAL(tester.cpar->excitation_type, Parameters::excitation::sin_impulse);
+        ASSERT_EQUAL(tester.cpar->excitation_params[0], -2.0e5);
+        ASSERT_EQUAL(tester.cpar->excitation_params[1], 30000.0);
+        ASSERT_EQUAL(tester.cpar->excitation_params[2], 1.0);
+        ASSERT_EQUAL(tester.cpar->species[0], tester.par->get_species("H2"));
+        ASSERT_EQUAL(tester.cpar->species[1], tester.par->get_species("N2"));
+        ASSERT_EQUAL(tester.cpar->fractions[0], 0.75);
+        ASSERT_EQUAL(tester.cpar->fractions[1], 0.25);
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
 
     ADD_TEST(tester, "Test ControlParameters",
         // set_species()
         tester.cpar->ID = 1;
         tester.cpar->set_species({tester.par->get_species("H2"), tester.par->get_species("N2"), tester.par->get_species("NH3")}, {0.5, 0.3, 0.2});
-        ASSERT_EQUAL(tester.cpar->n_species, 3)
-        ASSERT_EQUAL(tester.cpar->species[0], tester.par->get_species("H2"))
-        ASSERT_EQUAL(tester.cpar->species[1], tester.par->get_species("N2"))
-        ASSERT_EQUAL(tester.cpar->species[2], tester.par->get_species("NH3"))
-        ASSERT_EQUAL(tester.cpar->fractions[0], 0.5)
-        ASSERT_EQUAL(tester.cpar->fractions[1], 0.3)
-        ASSERT_EQUAL(tester.cpar->fractions[2], 0.2)
+        ASSERT_EQUAL(tester.cpar->n_species, 3);
+        ASSERT_EQUAL(tester.cpar->species[0], tester.par->get_species("H2"));
+        ASSERT_EQUAL(tester.cpar->species[1], tester.par->get_species("N2"));
+        ASSERT_EQUAL(tester.cpar->species[2], tester.par->get_species("NH3"));
+        ASSERT_EQUAL(tester.cpar->fractions[0], 0.5);
+        ASSERT_EQUAL(tester.cpar->fractions[1], 0.3);
+        ASSERT_EQUAL(tester.cpar->fractions[2], 0.2);
 
         // set_excitation_params()
         tester.cpar->excitation_type = Parameters::excitation::sin_impulse;
         tester.cpar->set_excitation_params({-1.0e5, 20000.0, 0.5});
-        ASSERT_EQUAL(tester.cpar->excitation_params[0], -1.0e5)
-        ASSERT_EQUAL(tester.cpar->excitation_params[1], 20000.0)
-        ASSERT_EQUAL(tester.cpar->excitation_params[2], 0.5)
+        ASSERT_EQUAL(tester.cpar->excitation_params[0], -1.0e5);
+        ASSERT_EQUAL(tester.cpar->excitation_params[1], 20000.0);
+        ASSERT_EQUAL(tester.cpar->excitation_params[2], 0.5);
 
         // copy()
         cpar_t cpar;
         cpar.copy(*tester.cpar);
-        ASSERT_EQUAL(cpar.ID, 1)
-        ASSERT_EQUAL(cpar.n_species, 3)
-        ASSERT_EQUAL(cpar.species[0], tester.par->get_species("H2"))
-        ASSERT_EQUAL(cpar.species[1], tester.par->get_species("N2"))
-        ASSERT_EQUAL(cpar.species[2], tester.par->get_species("NH3"))
-        ASSERT_EQUAL(cpar.fractions[0], 0.5)
-        ASSERT_EQUAL(cpar.fractions[1], 0.3)
-        ASSERT_EQUAL(cpar.fractions[2], 0.2)
-        ASSERT_EQUAL(cpar.excitation_type, Parameters::excitation::sin_impulse)
-        ASSERT_EQUAL(cpar.excitation_params[0], -1.0e5)
-        ASSERT_EQUAL(cpar.excitation_params[1], 20000.0)
-        ASSERT_EQUAL(cpar.excitation_params[2], 0.5)
+        ASSERT_EQUAL(cpar.ID, 1);
+        ASSERT_EQUAL(cpar.n_species, 3);
+        ASSERT_EQUAL(cpar.species[0], tester.par->get_species("H2"));
+        ASSERT_EQUAL(cpar.species[1], tester.par->get_species("N2"));
+        ASSERT_EQUAL(cpar.species[2], tester.par->get_species("NH3"));
+        ASSERT_EQUAL(cpar.fractions[0], 0.5);
+        ASSERT_EQUAL(cpar.fractions[1], 0.3);
+        ASSERT_EQUAL(cpar.fractions[2], 0.2);
+        ASSERT_EQUAL(cpar.excitation_type, Parameters::excitation::sin_impulse);
+        ASSERT_EQUAL(cpar.excitation_params[0], -1.0e5);
+        ASSERT_EQUAL(cpar.excitation_params[1], 20000.0);
+        ASSERT_EQUAL(cpar.excitation_params[2], 0.5);
 
         // error
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
         cpar.set_species({tester.par->get_species("H2"), tester.par->get_species("N2")}, {0.75, 0.25, 0.0});
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 1)
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 1);
         cpar.excitation_type = Parameters::excitation::no_excitation;
         cpar.set_excitation_params({-1.0e5, 20000.0, 0.5});
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 2)
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 2);
         ErrorHandler::clear_errors();
     );
 
@@ -171,8 +171,8 @@ void test_ode_fun()
         double p=115718.99999999997, p_dot=1.4057234685268682e-05;
         std::copy(x.begin(), x.end(), tester.ode->x);
         auto result = tester.ode->pressures(t, p, p_dot);
-        ASSERT_NEAR(result.first, -2.915631181800611e-14, 1e-30)
-        ASSERT_NEAR(result.second, 37767092.609775126, 1e-30)
+        ASSERT_NEAR(result.first, -2.915631181800611e-14, 1e-30);
+        ASSERT_NEAR(result.second, 37767092.609775126, 1e-30);
 
         // test mid solution
         t = 2.5275786980147761e-05;
@@ -189,23 +189,23 @@ void test_ode_fun()
         p=2.8245762183248737e+10; p_dot=-3.7031375516170371e+19;
         std::copy(x.begin(), x.end(), tester.ode->x);
         result = tester.ode->pressures(t, p, p_dot);
-        ASSERT_APPROX(result.first, 2.8295277691386059e+07, 1e-30)
-        ASSERT_APPROX(result.second, -3.7098063137087264e+16, 1e-30)
+        ASSERT_APPROX(result.first, 2.8295277691386059e+07, 1e-30);
+        ASSERT_APPROX(result.second, -3.7098063137087264e+16, 1e-30);
         
         // test no excitation
         tester.cpar->excitation_type = Parameters::excitation::no_excitation;
         tester.cpar->set_excitation_params({});
         result = tester.ode->pressures(t, p, p_dot);
-        ASSERT_APPROX(result.first, 2.8295477781368800e+07, 1e-30)  // TODO: fix
-        ASSERT_APPROX(result.second, -3.7098063139049688e+16, 1e-30)
+        ASSERT_APPROX(result.first, 2.8295477781368800e+07, 1e-30);  // TODO: fix
+        ASSERT_APPROX(result.second, -3.7098063139049688e+16, 1e-30);
 
         // test sin_impulse_logf
         tester.cpar->excitation_type = Parameters::excitation::sin_impulse_logf;
         tester.cpar->set_excitation_params({-2.0e5, 4.5, 1.0});
         result = tester.ode->pressures(t, p, p_dot);
-        ASSERT_APPROX(result.first, 2.8295477781368800e+07, 1e-30)  // TODO: fix
-        ASSERT_APPROX(result.second, -3.7098063139049688e+16, 1e-30)
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
+        ASSERT_APPROX(result.first, 2.8295477781368800e+07, 1e-30);  // TODO: fix
+        ASSERT_APPROX(result.second, -3.7098063139049688e+16, 1e-30);
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
 
     ADD_TEST(tester, "Test thermodynamic()",
@@ -248,10 +248,10 @@ void test_ode_fun()
         };
 
         tester.ode->thermodynamic(T);
-        ASSERT_APPROX_ARRAY(tester.ode->C_p, C_p, tester.par->num_species, 1e-15)
-        ASSERT_APPROX_ARRAY(tester.ode->H,   H,   tester.par->num_species, 1e-15)
-        ASSERT_APPROX_ARRAY(tester.ode->S,   S,   tester.par->num_species, 1e-15)
-        ASSERT_APPROX_ARRAY(tester.ode->C_v, C_v, tester.par->num_species, 1e-15)
+        ASSERT_APPROX_ARRAY(tester.ode->C_p, C_p, tester.par->num_species, 1e-15);
+        ASSERT_APPROX_ARRAY(tester.ode->H,   H,   tester.par->num_species, 1e-15);
+        ASSERT_APPROX_ARRAY(tester.ode->S,   S,   tester.par->num_species, 1e-15);
+        ASSERT_APPROX_ARRAY(tester.ode->C_v, C_v, tester.par->num_species, 1e-15);
 
         T = 2000.0;
         C_p = {
@@ -292,10 +292,10 @@ void test_ode_fun()
         };
 
         tester.ode->thermodynamic(T);
-        ASSERT_APPROX_ARRAY(tester.ode->C_p, C_p, tester.par->num_species, 1e-15)
-        ASSERT_APPROX_ARRAY(tester.ode->H,   H,   tester.par->num_species, 1e-15)
-        ASSERT_APPROX_ARRAY(tester.ode->S,   S,   tester.par->num_species, 1e-15)
-        ASSERT_APPROX_ARRAY(tester.ode->C_v, C_v, tester.par->num_species, 1e-15)
+        ASSERT_APPROX_ARRAY(tester.ode->C_p, C_p, tester.par->num_species, 1e-15);
+        ASSERT_APPROX_ARRAY(tester.ode->H,   H,   tester.par->num_species, 1e-15);
+        ASSERT_APPROX_ARRAY(tester.ode->S,   S,   tester.par->num_species, 1e-15);
+        ASSERT_APPROX_ARRAY(tester.ode->C_v, C_v, tester.par->num_species, 1e-15);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
     );
 
@@ -307,10 +307,10 @@ void test_ode_fun()
         double evap_energy_expected = -10739121722177.816;
 
         auto result = tester.ode->evaporation(p, T, X_H2O);
-        ASSERT_APPROX(result.first, n_net_dot_expected, 1e-30)
-        ASSERT_APPROX(result.second, evap_energy_expected, 1e-30)
+        ASSERT_APPROX(result.first, n_net_dot_expected, 1e-30);
+        ASSERT_APPROX(result.second, evap_energy_expected, 1e-30);
 
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
 
     ADD_TEST(tester, "Test forward_rate()",
@@ -371,8 +371,8 @@ void test_ode_fun()
         std::copy(M_eff.begin(), M_eff.end(), tester.ode->M_eff);
 
         tester.ode->forward_rate(T, M, p);
-        ASSERT_APPROX_ARRAY(tester.ode->k_forward, expected, tester.par->num_reactions, 1e-14)
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
+        ASSERT_APPROX_ARRAY(tester.ode->k_forward, expected, tester.par->num_reactions, 1e-14);
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
 
 
@@ -495,8 +495,8 @@ void test_ode_fun()
 
 
         tester.ode->backward_rate(T);
-        ASSERT_APPROX_ARRAY(tester.ode->k_backward, expected, tester.par->num_reactions, 1e-15)
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
+        ASSERT_APPROX_ARRAY(tester.ode->k_backward, expected, tester.par->num_reactions, 1e-15);
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
         
 
@@ -553,12 +553,17 @@ void test_ode_fun()
 
 
         tester.ode->production_rate(T, M, p);
-        ASSERT_APPROX_ARRAY(tester.ode->M_eff, M_eff_expected, tester.par->num_third_bodies, 1e-15)
-        ASSERT_APPROX_ARRAY(tester.ode->omega_dot, omega_dot_expected, tester.par->num_species, 1e-12)
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
+        ASSERT_APPROX_ARRAY(tester.ode->M_eff, M_eff_expected, tester.par->num_third_bodies, 1e-15);
+        ASSERT_APPROX_ARRAY(tester.ode->omega_dot, omega_dot_expected, tester.par->num_species, 1e-12);
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
 
     tester.run_tests();
+}
+
+void print_test_summary()
+{
+    testing::Tester::print_summary();
 }
 
 
