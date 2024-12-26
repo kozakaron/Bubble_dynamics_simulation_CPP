@@ -13,6 +13,7 @@ int main(int argc, char **argv)
 
 #ifdef TEST
     test_ode_fun();
+    print_test_summary();
 #endif  // TEST
 
 #ifdef BENCHMARK

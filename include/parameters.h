@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_map>
 
-typedef long long unsigned int index_t;   // Type for indexes (like size_t)
+typedef short unsigned int index_t;   // Type for indexes (like size_t)
 typedef char stoich_t;                    // Type for stoichiometric coefficients (type of constants in reactions: 2*H2 + O2 -> 2*H2O)
 
 namespace {
@@ -101,6 +101,7 @@ public:
     const stoich_t *nu_forward;                     // Stoichiometric coefficients left hand side (num_reactions, num_max_specie_per_reaction)
     const stoich_t *nu_backward;                    // Stoichiometric coefficients right hand side (num_reactions, num_max_specie_per_reaction)
     const stoich_t *nu;                             // Stoichiometric coefficients nu = nu_backward - nu_forward (num_reactions, num_max_specie_per_reaction)
+    const stoich_t *sum_nu;                         // Sum of stoichiometric coefficients for each reaction (num_reactions)
 // Third body reactions
     const index_t num_third_bodies;                 // Number of third body reactions
     const index_t *third_body_indexes;              // Indexes of third body species (num_third_bodies)

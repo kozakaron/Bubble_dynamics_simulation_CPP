@@ -348,7 +348,8 @@ void ODE::forward_rate(
     {
         index_t index = par->pressure_dependent_indexes[j];
         double k_inf = this->k_forward[index];
-        double k_0 = par->reac_const[j*3+0] * std::pow(T, par->reac_const[j*3+1]) * std::exp(-par->reac_const[j*3+2] / (par->R_cal * T));
+        const double *reac_const = &(par->reac_const[j*3]);
+        double k_0 = reac_const[0] * std::pow(T, reac_const[1]) * std::exp(-reac_const[2] / (par->R_cal * T));
         
     // Third body reactions
         double M_eff_loc = M;
@@ -370,7 +371,8 @@ void ODE::forward_rate(
             }
         case Parameters::reac_type::troe_reac:
             {
-                double F_cent = (1.0 - par->troe[troe_index*4+0]) * std::exp(-T / par->troe[troe_index*4+1]) + par->troe[troe_index*4+0] * std::exp(-T / par->troe[troe_index*4+2]) + std::exp(-par->troe[troe_index*4+3] / T);
+                const double *troe = &(par->troe[troe_index*4]);
+                double F_cent = (1.0 - troe[0]) * std::exp(-T / troe[1]) + troe[0] * std::exp(-T / troe[2]) + std::exp(-troe[3] / T);
                 double logF_cent = std::log10(F_cent);
                 double c2 = -0.4 - 0.67 * logF_cent;
                 double n = 0.75 - 1.27 * logF_cent;
@@ -384,7 +386,8 @@ void ODE::forward_rate(
         case Parameters::reac_type::sri_reac:   // TODO: We don't have any SRI reactions in the current mechanisms
             {
                 double X = 1.0 / (1.0 + std::pow(std::log10(P_r), 2));
-                F = par->sri[sri_index*5+3] * std::pow(par->sri[sri_index*5+0] * std::exp(-par->sri[sri_index*5+1] / T) + std::exp(-T / par->sri[sri_index*5+2]), X) * std::pow(T, par->sri[sri_index*5+4]);
+                const double *sri = &(par->sri[sri_index*5]);
+                F = sri[3] * std::pow(sri[0] * std::exp(-sri[1] / T) + std::exp(-T / sri[2]), X) * std::pow(T, sri[4]);
                 ++sri_index;
                 break;
             }
@@ -441,20 +444,18 @@ void ODE::backward_rate(
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
         double Delta_S = 0.0, Delta_H = 0.0;
-        char sum_nu_i = 0.0;
-        for(index_t k = 0; k < par->num_max_specie_per_reaction; ++k)
+        for (index_t k = index * par->num_max_specie_per_reaction; k < (index + 1) * par->num_max_specie_per_reaction; ++k)
         {
-            index_t nu_index = par->nu_indexes[index*par->num_max_specie_per_reaction+k];
+            index_t nu_index = par->nu_indexes[k];
             if (nu_index == par->invalid_index) continue;
 
-            stoich_t nu = par->nu[(index*3+2)*par->num_max_specie_per_reaction+k];
+            stoich_t nu = par->nu[k];
             Delta_S += nu * this->S[nu_index];
             Delta_H += nu * this->H[nu_index];
-            sum_nu_i += nu;
         }
         // TODO: fix long double overflow thing
         /*long*/ double K_p = std::exp(Delta_S / par->R_erg - Delta_H / (par->R_erg * T));
-        /*long*/ double K_c = K_p * std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), sum_nu_i);
+        /*long*/ double K_c = K_p * std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), par->sum_nu[index]);
         this->k_backward[index] = /*static_cast<double>*/(this->k_forward[index] / K_c);
     }
     for(index_t j = 0; j < par->num_irreversible; ++j)
@@ -490,15 +491,13 @@ void ODE::production_rate(
     {
         double forward = 1.0;
         double backward = 1.0;
-        for (index_t k = 0; k < par->num_max_specie_per_reaction; ++k)
+        for (index_t k = index * par->num_max_specie_per_reaction; k < (index + 1) * par->num_max_specie_per_reaction; ++k)
         {
-            index_t nu_index = par->nu_indexes[index*par->num_max_specie_per_reaction+k];
+            index_t nu_index = par->nu_indexes[k];
             if (nu_index == par->invalid_index) continue;
 
-            index_t idx_forward  = (index*3+0)*par->num_max_specie_per_reaction+k;
-            index_t idx_backward = (index*3+1)*par->num_max_specie_per_reaction+k;
-            forward  *= std::pow(c[nu_index], par->nu[idx_forward]);
-            backward *= std::pow(c[nu_index], par->nu[idx_backward]);
+            forward  *= std::pow(c[nu_index], par->nu_forward[k]);
+            backward *= std::pow(c[nu_index], par->nu_backward[k]);
         }
         this->net_rates[index] = this->k_forward[index] * forward - this->k_backward[index] * backward;
     }
@@ -515,13 +514,12 @@ void ODE::production_rate(
    std::fill(this->omega_dot, this->omega_dot + par->num_species, 0.0);
    for (index_t index = 0; index < par->num_reactions; ++index)
    {
-        for(index_t k = 0; k < par->num_max_specie_per_reaction; ++k)
+        for (index_t k = index * par->num_max_specie_per_reaction; k < (index + 1) * par->num_max_specie_per_reaction; ++k)
         {
-            index_t nu_index = par->nu_indexes[index*par->num_max_specie_per_reaction+k];
+            index_t nu_index = par->nu_indexes[k];
             if (nu_index == par->invalid_index) continue;
 
-            index_t idx_nu = (index*3+2)*par->num_max_specie_per_reaction+k;
-            this->omega_dot[nu_index] += par->nu[idx_nu] * this->net_rates[index];
+            this->omega_dot[nu_index] += par->nu[k] * this->net_rates[index];
         }
    }
 }
@@ -531,7 +529,6 @@ TODO:
     - fix pressure tests
     - add evap calcs to init
     - fix TODOs elsewhere
-    - test.h add test group name
     - seperate tests
     - add test+benchmark for other mechanisms
     - improve performances

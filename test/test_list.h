@@ -1,14 +1,12 @@
 #ifndef TEST_LIST_H
 #define TEST_LIST_H
 
-#include "test.h"
-
 
 #ifdef TEST
 void test_ode_fun();
 
 
-
+void print_test_summary();
 #endif  // TEST
 
 

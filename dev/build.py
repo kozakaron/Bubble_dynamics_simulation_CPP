@@ -17,11 +17,13 @@ import time
 import re
 from concurrent.futures import ThreadPoolExecutor
 
+
 # Define the source directory and output binary
 src_dirs = ['./src', './test']
 build_dir = './bin'
 include_dirs = ['./include', './test', './src', './mechanism']
 output_binary = 'main'
+
 
 # Other settings
 compiler = 'clang++'
@@ -66,6 +68,9 @@ reset = '\033[0m'
 white = '\033[97m'
 bold = '\033[1m'
 italic = '\033[3m'
+# dict to save compile time
+compile_times = {}
+
 
 def syntax_highlight_cpp(code_line):
     """Apply syntax highlighting to a single line of C++ code."""
@@ -153,12 +158,16 @@ def compile_source_file(args):
     """Compile a single source file into an object file."""
 
     global compiler
+    global compile_times
+    start = time.time()
     cpp_file, include_dirs, compiler_flags = args
     obj_file = os.path.join(build_dir, os.path.basename(cpp_file).replace('.cpp', '.o'))
     command_list = [compiler, '-c'] + include_dirs + compiler_flags + [cpp_file, '-o', obj_file]
     result = subprocess.run(command_list, capture_output=True, text=True)
     if result.returncode != 0:
         print(light_red + f'Error compiling ' + bold + f'{cpp_file}:\n' + reset + syntax_coloring(result.stderr))
+    end = time.time()
+    compile_times[cpp_file] = end - start
     return result.returncode
 
 
@@ -168,10 +177,14 @@ def link_object_files(obj_files, output_binary):
 
     global linker_flags
     global compiler
+    global compile_times
+    start = time.time()
     command_list = [compiler] + obj_files + ['-o', output_binary] + linker_flags
     result = subprocess.run(command_list, capture_output=True, text=True)
     if result.returncode != 0:
         print(red + f'Error linking:\n' + reset + syntax_coloring(result.stderr, linker=True))
+    end = time.time()
+    compile_times["linking"] = end - start
     return result.returncode
 
 
@@ -251,6 +264,13 @@ def main():
     end = time.time()
     compile_time = end - start
     print(green + 'Build succeeded in' + bold + f'{compile_time: .2f}' + reset + green + ' seconds' + reset)
+    output_file = os.path.join(build_dir, 'compile_times.txt')
+    with open(output_file, 'w') as f:
+        f.write(f'Build time: {compile_time:5.2f} s\n')
+        f.write('Compile times:\n')
+        for cpp_file, compile_time in compile_times.items():
+            cpp_file = cpp_file.replace('\\\\', '/').replace('\\', '/')
+            f.write(f'{cpp_file: >40}: {compile_time:5.2f} s\n')
 
     if args.run and not args.shared:
         if args.debug:
