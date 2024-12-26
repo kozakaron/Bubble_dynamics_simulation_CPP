@@ -1,6 +1,7 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 #include <array>
+#include <vector>
 #include <string>
 #include <unordered_map>
 
@@ -9,6 +10,7 @@ typedef char stoich_t;                    // Type for stoichiometric coefficient
 
 namespace {
     using std::array;
+    using std::vector;
     using std::string;
     using std::unordered_map;
 }
@@ -21,6 +23,8 @@ private:
     static const Parameters chemkin_otomo2018_without_o_params;
     static const Parameters chemkin_otomo2018_params;
 
+    unordered_map<string, index_t> _elements;       // Names of elements (num_elements)
+    unordered_map<string, index_t> _species;        // Names of species (num_species)
 public:
 // MECHANISM, EXCITATION AND REACTION TYPES
 
@@ -76,8 +80,9 @@ public:
     const index_t num_species;                      // Number of species
     const index_t index_of_water;                   // Index of water in arrays, INVALID if H2O is not in mechanism
     const index_t invalid_index;                    // Invalid index
-    //const unordered_map<string, index_t> elements;  // Names of elements (num_species)
-    //const unordered_map<string, index_t> species;   // Names of species (num_species)
+    vector<string> species_names;                   // Names of species (num_species)
+    index_t get_element(const string &name) const;  // Get index of element by name
+    index_t get_species(const string &name) const;  // Get index of species by name
     const double *W;                                // Molar masses [g/mol] (num_species)
     const double *lambdas;                          // Thermal conductivities [W/m/K] (num_species)
 // NASA polynomials
