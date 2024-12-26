@@ -81,14 +81,14 @@ def print_array(array, width=0, comments=[], columns=[], max_len=0):
 
     # empty array
     if len(array) == 0:
-        return '/*TODO: empty array, use nullptr instead.*/'
+        return '/*TO' + 'DO: empty array, use nullptr instead.*/'
     if type(array) == np.ndarray:
         array = list(array)
     if type(array[0]) == np.ndarray:
         for i, x in enumerate(array):
             array[i] = list(x)
     if isinstance(array[0], list) and len(array[0]) == 0:
-        return '/*TODO: empty array, use nullptr instead.*/'
+        return '/*TO' + 'DO: empty array, use nullptr instead.*/'
 
     if isinstance(array[0], list):
     # 2D array
@@ -694,11 +694,10 @@ def extract(path, name=''):
     text += f'static constexpr index_t num_species = {len(species)};\n'
     text += f'static constexpr index_t index_of_water = ' + ( str(len(species)) if not 'H2O' in species else str(species.index('H2O')) ) + ';\n'
     text += f'static constexpr index_t invalid_index = {invalid_index};\n'
-    text += f'    // TODO: add elements and species\n'
-    #text += f'const array<string, {len(elements)}> elements = {print_array(elements, 5)};\n'
-    text += f'    //                                           {print_array([i for i in range(len(species))], 12)[1:-1]}\n'
-    #text += f'const array<string, {len(species)}> species =      {print_array(species, 12, max_len=0)};\n'
-    #text += 'enum index                             {  ' + ''.join([f'{specie: >6} = {index: >2}, ' for index, specie in enumerate(species)]) + f'    INVALID = {len(species)} ' + '};\n'
+    text += f'static constexpr std::pair<const char*, index_t> elements[{len(elements)}] = ' + '{' + ''.join(['{'+f'"{element}", {i}'+'}, ' for i, element in enumerate(elements)])[:-2] + '};\n'
+    text += f'static constexpr std::pair<const char*, index_t> species[{len(species)}] = ' + '{' + ''.join(['{'+f'"{specie}", {i}'+'}, ' for i, specie in enumerate(species)])[:-2] + '};\n'
+    text += f'static constexpr const char *species_names[] = ' + '{' + ''.join(['"'+f'{specie}'+'", ' for specie in species])[:-2] + '};\n'
+    text += f'    //                                           ' + (print_array([species[i] for i in range(len(species))], 12)[1:-1]).replace('",', ' ').replace('"', '  ') + '\n'
     text += f'static constexpr double W[num_species] =        {print_array(W, 12, max_len=0)};\n'
     text += f'static constexpr double lambdas[num_species] =  {print_array(lambdas, 12, max_len=0)};\n\n'
     

@@ -14,8 +14,10 @@ struct chemkin_otomo2018_without_o_struct{
     static constexpr index_t num_species = 12;
     static constexpr index_t index_of_water = 12;
     static constexpr index_t invalid_index = 65535;
-        // TODO: add elements and species
-        //                                                      0,           1,           2,           3,           4,           5,           6,           7,           8,           9,          10,          11
+    static constexpr std::pair<const char*, index_t> elements[5] = {{"O", 0}, {"H", 1}, {"N", 2}, {"HE", 3}, {"AR", 4}};
+    static constexpr std::pair<const char*, index_t> species[12] = {{"NH3", 0}, {"H2", 1}, {"H", 2}, {"NH2", 3}, {"NH", 4}, {"N", 5}, {"NNH", 6}, {"N2H4", 7}, {"N2H3", 8}, {"N2H2", 9}, {"H2NN", 10}, {"N2", 11}};
+    static constexpr const char *species_names[] = {"NH3", "H2", "H", "NH2", "NH", "N", "NNH", "N2H4", "N2H3", "N2H2", "H2NN", "N2"};
+        //                                                    NH3           H2            H          NH2           NH            N          NNH         N2H4         N2H3         N2H2         H2NN           N2  
     static constexpr double W[num_species] =        {    17.03061,     2.01594,     1.00797,    16.02264,    15.01467,     14.0067,    29.02137,    32.04528,    31.03731,    30.02934,    30.02934,     28.0134};
     static constexpr double lambdas[num_species] =  {     0.00244,      0.1805,         0.0,         0.0,         0.0,         0.0,         0.0,         0.0,         0.0,         0.0,         0.0,     0.02583};
     

@@ -14,8 +14,10 @@ struct chemkin_ar_he_struct{
     static constexpr index_t num_species = 12;
     static constexpr index_t index_of_water = 5;
     static constexpr index_t invalid_index = 65535;
-        // TODO: add elements and species
-        //                                                      0,           1,           2,           3,           4,           5,           6,           7,           8,           9,          10,          11
+    static constexpr std::pair<const char*, index_t> elements[6] = {{"C", 0}, {"H", 1}, {"N", 2}, {"O", 3}, {"AR", 4}, {"HE", 5}};
+    static constexpr std::pair<const char*, index_t> species[12] = {{"H", 0}, {"H2", 1}, {"O", 2}, {"O2", 3}, {"OH", 4}, {"H2O", 5}, {"N2", 6}, {"HO2", 7}, {"H2O2", 8}, {"AR", 9}, {"HE", 10}, {"OHEX", 11}};
+    static constexpr const char *species_names[] = {"H", "H2", "O", "O2", "OH", "H2O", "N2", "HO2", "H2O2", "AR", "HE", "OHEX"};
+        //                                                      H           H2            O           O2           OH          H2O           N2          HO2         H2O2           AR           HE         OHEX  
     static constexpr double W[num_species] =        {     1.00797,     2.01594,     15.9994,     31.9988,    17.00737,    18.01534,     28.0134,    33.00677,    34.01474,      39.948,      4.0026,    17.00737};
     static constexpr double lambdas[num_species] =  {         0.0,      0.1805,         0.0,     0.02658,         0.0,       0.016,     0.02583,         0.0,      0.5863,      0.0177,       0.151,         0.0};
     

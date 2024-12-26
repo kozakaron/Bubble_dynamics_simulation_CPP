@@ -12,13 +12,14 @@ void benchmark_ode_fun()
 // Set up control parameters
     ODE ode = ODE();
     cpar_t cpar;
+    const Parameters *par = Parameters::get_parameters(Parameters::mechanism::chemkin_otomo2018);
 
     cpar.ID = 0;
-    cpar.par = Parameters::mechanism::chemkin_otomo2018;
+    cpar.mechanism = Parameters::mechanism::chemkin_otomo2018;
     // Initial conditions:
     cpar.R_E = 10e-6;
     cpar.ratio = 1.0;
-    cpar.set_species({2, 31}, {0.75, 0.25});  // TODO: change indexes
+    cpar.set_species({par->get_species("H2"), par->get_species("N2")}, {0.75, 0.25});
     // Ambient parameters:
     cpar.P_amb = 101325.0;
     cpar.T_inf = 293.15;
@@ -34,7 +35,7 @@ void benchmark_ode_fun()
     cpar.enable_evaporation = true;
     cpar.enable_reactions = true;
     cpar.enable_dissipated_energy = true;
-    cpar.target_specie = 0;//TODO: par::index::NH3;
+    cpar.target_specie = par->get_species("NH3");
     // Excitation parameters:
     cpar.set_excitation_params({-2.0e5, 30000.0, 1.0});
     cpar.excitation_type = Parameters::excitation::sin_impulse;

@@ -4,7 +4,7 @@
 
 ControlParameters::ControlParameters():
     ID(0),
-    par(Parameters::mechanism::chemkin_ar_he),
+    mechanism(Parameters::mechanism::chemkin_ar_he),
     R_E(10.0e-06),
     ratio(1.00),
     species(nullptr),
@@ -39,7 +39,10 @@ ControlParameters::~ControlParameters()
 
 void ControlParameters::set_species(const std::initializer_list<index_t> species_list, const std::initializer_list<double> fractions_list)
 {
-    // TODO: extra check: index in bound
+    const Parameters* par = Parameters::get_parameters(this->mechanism);
+    for (const auto& species: species_list)
+        if (species >= par->num_species)
+            LOG_ERROR("Species index " + std::to_string(species) + " out of bound", this->ID);
     if (fractions_list.size() != species_list.size())
         LOG_ERROR("The number of species and fractions must be equal", this->ID);
     if (this->species != nullptr) delete[] this->species;
@@ -65,7 +68,7 @@ void ControlParameters::set_excitation_params(const std::initializer_list<double
 void ControlParameters::copy(const ControlParameters& cpar)
 {
     this->ID = cpar.ID;
-    this->par = cpar.par;
+    this->mechanism = cpar.mechanism;
     this->R_E = cpar.R_E;
     this->ratio = cpar.ratio;
     this->n_species = cpar.n_species;
@@ -140,7 +143,7 @@ void ODE::init(const cpar_t& cpar)
 {
     this->delete_memory();
     this->cpar       = new cpar_t();
-    this->par = Parameters::get_parameters(cpar.par);
+    this->par = Parameters::get_parameters(cpar.mechanism);
     this->cpar->copy(cpar);
     
     this->x          = new double[par->num_species+4];
@@ -525,6 +528,12 @@ void ODE::production_rate(
 
 /*
 TODO:
-    - implement and test check_cpar()
+    - fix pressure tests
+    - add evap calcs to init
+    - fix TODOs elsewhere
+    - test.h add test group name
+    - seperate tests
+    - add test+benchmark for other mechanisms
+    - improve performances
     - do something with the long doubles
 */

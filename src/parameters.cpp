@@ -27,6 +27,9 @@ Parameters::Parameters(T dummy):
     num_species(T::num_species),
     index_of_water(T::index_of_water),
     invalid_index(T::invalid_index),
+    _elements(),
+    _species(),
+    species_names(),
     NASA_order(T::NASA_order),
     num_reactions(T::num_reactions),
     num_max_specie_per_reaction(T::num_max_specie_per_reaction),
@@ -50,8 +53,15 @@ Parameters::Parameters(T dummy):
     COPY_ARRAY(double, b, T::num_reactions);
     COPY_ARRAY(double, E, T::num_reactions);
     COPY_ARRAY(index_t, nu_indexes, T::num_reactions*T::num_max_specie_per_reaction);
-    //COPY_ARRAY(stoich_t, nu_forward, T::num_reactions*T::num_max_specie_per_reaction);
-    //COPY_ARRAY(stoich_t, nu_backward, T::num_reactions*T::num_max_specie_per_reaction);
+    for(index_t i = 0; i < T::num_elements; i++)
+    {
+        _elements[T::elements[i].first] = T::elements[i].second;
+    }
+    for(index_t i = 0; i < T::num_species; i++)
+    {
+        _species[T::species[i].first] = T::species[i].second;
+        species_names.push_back(T::species[i].first);
+    }
     COPY_ARRAY(stoich_t, nu, T::num_reactions*T::num_max_specie_per_reaction*3);
     COPY_ARRAY(index_t, third_body_indexes, T::num_third_bodies);
     COPY_ARRAY(bool, is_pressure_dependent, T::num_third_bodies);
@@ -119,4 +129,26 @@ const Parameters *Parameters::get_parameters(const Parameters::mechanism mech)
             LOG_ERROR("Unknown mechanisms", 0);
             return nullptr;
     }
+}
+
+index_t Parameters::get_element(const string &name) const
+{
+    auto it = _elements.find(name);
+    if (it == _elements.end())
+    {
+        LOG_ERROR("Element \"" + name + "\" not in " + this->model, 0);
+        return invalid_index;
+    }
+    return it->second;
+}
+
+index_t Parameters::get_species(const string &name) const
+{
+    auto it = _species.find(name);
+    if (it == _species.end())
+    {
+        LOG_ERROR("Species \"" + name + "\" not in " + this->model, 0);
+        return invalid_index;
+    }
+    return it->second;
 }
