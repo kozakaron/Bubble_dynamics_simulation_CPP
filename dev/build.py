@@ -209,8 +209,6 @@ def main():
     global linker_flags
     global common_flags
     global compiler
-    compiler_flags += common_flags
-    linker_flags += common_flags
     os.makedirs(build_dir, exist_ok=True)
     for file in os.listdir(build_dir):
         if file != '.gitkeep':
@@ -232,9 +230,9 @@ def main():
     if args.benchmark:
         compiler_flags.append('-DBENCHMARK')
     if args.warning:
-        compiler_flags.extend(['-Wall', '-Wextra', '-Werror'])
+        common_flags.extend(['-Wall', '-Wextra', '-Werror'])
     if args.debug:
-        compiler_flags.append('-g')
+        common_flags.append('-g')
     if args.shared:
         if os.name == 'nt':
             output_binary = output_binary + '.dll'
@@ -244,6 +242,9 @@ def main():
         compiler_flags.append('-O2')
     if args.optimize3 and not args.optimize2:
         compiler_flags.append('-O3')
+
+    compiler_flags += common_flags
+    linker_flags += common_flags
 
     # Compile each source file in parallel using ThreadPoolExecutor
     start = time.time()

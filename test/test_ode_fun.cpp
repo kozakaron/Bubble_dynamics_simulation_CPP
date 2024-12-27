@@ -195,16 +195,23 @@ void test_ode_fun()
         // test no excitation
         tester.cpar->excitation_type = Parameters::excitation::no_excitation;
         tester.cpar->set_excitation_params({});
+        tester.ode->init(*tester.cpar);
+        std::copy(x.begin(), x.end(), tester.ode->x);
         result = tester.ode->pressures(t, p, p_dot);
-        ASSERT_APPROX(result.first, 2.8295477781368800e+07, 1e-30);  // TODO: fix
+        ASSERT_EQUAL(tester.ode->cpar->excitation_type, Parameters::excitation::no_excitation);
+        ASSERT_APPROX(result.first, 2.8295477781368800e+07, 1e-30);
         ASSERT_APPROX(result.second, -3.7098063139049688e+16, 1e-30);
 
         // test sin_impulse_logf
         tester.cpar->excitation_type = Parameters::excitation::sin_impulse_logf;
         tester.cpar->set_excitation_params({-2.0e5, 4.5, 1.0});
+        tester.ode->init(*tester.cpar);
+        std::copy(x.begin(), x.end(), tester.ode->x);
         result = tester.ode->pressures(t, p, p_dot);
-        ASSERT_APPROX(result.first, 2.8295477781368800e+07, 1e-30);  // TODO: fix
-        ASSERT_APPROX(result.second, -3.7098063139049688e+16, 1e-30);
+        ASSERT_EQUAL(tester.ode->cpar->excitation_type, Parameters::excitation::sin_impulse_logf);
+        ASSERT_APPROX(tester.ode->cpar->excitation_params[1], 4.5, 1e-30);
+        ASSERT_APPROX(result.first, 2.8295286952975709e+07, 1e-30);
+        ASSERT_APPROX(result.second, -3.7098063126916608e+16, 1e-30);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
 

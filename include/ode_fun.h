@@ -70,6 +70,8 @@ class ODE
     const Parameters* par;              // reaction mechanism
     cpar_t* cpar;                       // control parameters
     double* x;                          // state vector (length: Parameters::num_species+4)
+    // evaporation
+    double C_v_inf;                     // molar heat capacity at constant volume of ambient temperature [erg/mol/K]
     // thermodynamic
     double* C_p;                        // molar heat capacities at constant pressure (length: Parameters::num_species)
     double* H;                          // enthalpies (length: Parameters::num_species)

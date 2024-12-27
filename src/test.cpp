@@ -16,6 +16,14 @@ testing::Tester::Tester(std::string test_group_name){
     this->test_case_names = {};
 }
 
+void testing::Tester::set_up(){
+    // Do nothing
+}
+
+void testing::Tester::tear_down(){
+    // Do nothing
+}
+
 void testing::Tester::run_tests(){
     size_t passed = 0;
     size_t failed = 0;

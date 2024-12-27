@@ -20,8 +20,8 @@ public:
     Tester();
     Tester(std::string test_group_name);
     ~Tester() {};
-    virtual void set_up() = 0;
-    virtual void tear_down() = 0;
+    virtual void set_up();
+    virtual void tear_down();
     // Run all tests
     void run_tests();
     // Add a test case
