@@ -4,6 +4,7 @@
 #include <cfloat>
 
 #include "parameters.h"
+#include "control_parameters.h"
 #include "ode_fun.h"
 #include "test.h"
 #include "test_list.h"
