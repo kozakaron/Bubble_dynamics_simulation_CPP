@@ -17,11 +17,15 @@ testing::Tester::Tester(std::string test_group_name){
 }
 
 void testing::Tester::set_up(){
-    // Do nothing
+    if (ErrorHandler::get_error_count() != 0) ErrorHandler::print_errors();
+    ErrorHandler::clear_errors();
+    ErrorHandler::print_when_log = false;
 }
 
 void testing::Tester::tear_down(){
-    // Do nothing
+    if (ErrorHandler::get_error_count() != 0) ErrorHandler::print_errors();
+    ErrorHandler::clear_errors();
+    ErrorHandler::print_when_log = true;
 }
 
 void testing::Tester::run_tests(){

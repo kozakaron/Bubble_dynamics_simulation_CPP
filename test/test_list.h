@@ -3,6 +3,8 @@
 
 
 #ifdef TEST
+void test_common();
+void test_par_cpar();
 void test_ode_fun();
 
 
