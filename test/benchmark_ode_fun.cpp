@@ -2,6 +2,8 @@
 #ifndef BENCHMARK_ODE_FUN_H
 #define BENCHMARK_ODE_FUN_H
 
+#include "parameters.h"
+#include "control_parameters.h"
 #include "ode_fun.h"
 #include "test.h"
 #include "test_list.h"
