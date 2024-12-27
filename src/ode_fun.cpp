@@ -4,7 +4,7 @@
 
 ControlParameters::ControlParameters():
     ID(0),
-    mechanism(Parameters::mechanism::chemkin_ar_he),
+    mechanism(Parameters::mechanism::chemkin_otomo2018),
     R_E(10.0e-06),
     ratio(1.00),
     species(nullptr),
@@ -24,8 +24,9 @@ ControlParameters::ControlParameters():
     enable_dissipated_energy(true),
     excitation_params(nullptr)
 {
-    //this->target_specie = index::H2;
-    //this->set_species({index::AR}, {1.0});
+    const Parameters* par = Parameters::get_parameters(Parameters::mechanism::chemkin_otomo2018);
+    this->target_specie = par->get_species("NH3");
+    this->set_species({par->get_species("H2"), par->get_species("N2")}, {0.75, 0.25});
     this->excitation_type = Parameters::excitation::sin_impulse;
     this->set_excitation_params({-2.0e5, 30000.0, 1.0});
 }
@@ -156,7 +157,26 @@ void ODE::init(const cpar_t& cpar)
     this->k_backward = new double[par->num_reactions];
     this->net_rates  = new double[par->num_reactions];
     this->omega_dot  = new double[par->num_species];
-    // TODO: evaporation calculations
+    // Evaporation calculations
+    // get coefficients for T_inf
+    const double *a;  // NASA coefficients (length: Parameters::NASA_order+2)
+    if (this->cpar->T_inf <= par->temp_range[par->index_of_water*3+2]) // T_inf <= T_mid
+    {
+        a = &(par->a_low[par->index_of_water*(par->NASA_order+2)]);
+    }
+    else
+    {
+        a = &(par->a_high[par->index_of_water*(par->NASA_order+2)]);
+    }
+    // calculate sum
+    this->C_v_inf = 0.0;
+    double T_pow = 1.0;
+    for (index_t n = 0; n < par->NASA_order; ++n)
+    {
+        this->C_v_inf += a[n] * T_pow;
+        T_pow *= this->cpar->T_inf;
+    }
+    this->C_v_inf = par->R_erg * (this->C_v_inf - 1.0);
 }
 
 
@@ -216,6 +236,7 @@ std::pair<double, double> ODE::pressures(
                 p_Inf = cpar->P_amb + p_A * sin(insin * t);
                 p_Inf_dot = p_A * insin * cos(insin * t);
             }
+            break;
         }
     default: // no_excitation
         {
@@ -303,26 +324,8 @@ std::pair<double, double> ODE::evaporation(
         T_pow *= T;
     }
     C_v = par->R_erg * (C_v - 1.0);
-    // TODO: remember C_V_inf
-    // get coefficients for T_inf
-    if (cpar->T_inf <= par->temp_range[par->index_of_water*3+2]) // T_inf <= T_mid
-    {
-        a = &(par->a_low[par->index_of_water*(par->NASA_order+2)]);
-    }
-    else
-    {
-        a = &(par->a_high[par->index_of_water*(par->NASA_order+2)]);
-    }
-    // calculate sum
-    double C_v_inf = 0.0; T_pow = 1.0;
-    for (index_t n = 0; n < par->NASA_order; ++n)
-    {
-        C_v_inf += a[n] * T_pow;
-        T_pow *= cpar->T_inf;
-    }
-    C_v_inf = par->R_erg * (C_v_inf - 1.0);
 // Evaporation energy [J/mol]
-    double e_eva = C_v_inf * cpar->T_inf * 1.0e-7;
+    double e_eva = this->C_v_inf * cpar->T_inf * 1.0e-7;
     double e_con = C_v * T * 1.0e-7;
     double evap_energy = n_eva_dot * e_eva - n_con_dot * e_con;    // [W/m^2]
 
@@ -527,10 +530,7 @@ void ODE::production_rate(
 /*
 TODO:
     - fix pressure tests
-    - add evap calcs to init
-    - fix TODOs elsewhere
     - seperate tests
     - add test+benchmark for other mechanisms
-    - improve performances
     - do something with the long doubles
 */
