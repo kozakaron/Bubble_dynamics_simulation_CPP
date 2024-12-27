@@ -12,6 +12,8 @@ int main(int argc, char **argv)
     //ErrorHandler::set_log_file("log.txt");
 
 #ifdef TEST
+    test_common();
+    test_par_cpar();
     test_ode_fun();
     print_test_summary();
 #endif  // TEST

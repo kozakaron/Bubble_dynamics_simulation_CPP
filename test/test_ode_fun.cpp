@@ -17,6 +17,8 @@ public:
     cpar_t* cpar;
     const Parameters *par;
 
+    OdeFunTester(std::string test_group_name): testing::Tester(test_group_name) {}
+
     void set_up() override
     {
         ErrorHandler::print_when_log = false;
@@ -67,94 +69,7 @@ public:
 
 void test_ode_fun()
 {
-    OdeFunTester tester = OdeFunTester();
-
-    ADD_TEST(tester, "Test ErrorHandler",
-        LOG_ERROR("Test error message", 33);
-        LOG_ERROR("Another test error message", 44);
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 2);
-        ASSERT_EQUAL(ErrorHandler::get_error(0).ID, 33);
-        ASSERT_EQUAL(ErrorHandler::get_error(1).ID, 44);
-        ASSERT_TRUE(ErrorHandler::get_error(0).message == "Test error message");
-        ErrorHandler::clear_errors();
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
-    );
-
-    ADD_TEST(tester, "Test long double exists",
-        long double x = 1.0L;
-        ASSERT_TRUE(sizeof(x) > 8);    // long double is at least 80 bits
-        long double fact_200 = 1.0L;
-        for (int i = 1; i <= 200; ++i)
-        {
-            fact_200 *= i;
-        }
-        ASSERT_APPROX(fact_200, 7.88657867364790503383170119245e+374L, 1e-10);
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
-    );
-
-    ADD_TEST(tester, "Test parameter correctness",
-        ASSERT_TRUE(tester.par->model == "chemkin_otomo2018");
-        ASSERT_EQUAL(tester.par->num_species, 32);
-        ASSERT_TRUE(tester.cpar->enable_heat_transfer);
-        ASSERT_TRUE(tester.cpar->enable_evaporation);
-        ASSERT_TRUE(tester.cpar->enable_reactions);
-        ASSERT_TRUE(tester.cpar->enable_dissipated_energy);
-        ASSERT_EQUAL(tester.cpar->target_specie, tester.par->get_species("NH3"));
-        ASSERT_EQUAL(tester.cpar->excitation_type, Parameters::excitation::sin_impulse);
-        ASSERT_EQUAL(tester.cpar->excitation_params[0], -2.0e5);
-        ASSERT_EQUAL(tester.cpar->excitation_params[1], 30000.0);
-        ASSERT_EQUAL(tester.cpar->excitation_params[2], 1.0);
-        ASSERT_EQUAL(tester.cpar->species[0], tester.par->get_species("H2"));
-        ASSERT_EQUAL(tester.cpar->species[1], tester.par->get_species("N2"));
-        ASSERT_EQUAL(tester.cpar->fractions[0], 0.75);
-        ASSERT_EQUAL(tester.cpar->fractions[1], 0.25);
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
-    );
-
-    ADD_TEST(tester, "Test ControlParameters",
-        // set_species()
-        tester.cpar->ID = 1;
-        tester.cpar->set_species({tester.par->get_species("H2"), tester.par->get_species("N2"), tester.par->get_species("NH3")}, {0.5, 0.3, 0.2});
-        ASSERT_EQUAL(tester.cpar->n_species, 3);
-        ASSERT_EQUAL(tester.cpar->species[0], tester.par->get_species("H2"));
-        ASSERT_EQUAL(tester.cpar->species[1], tester.par->get_species("N2"));
-        ASSERT_EQUAL(tester.cpar->species[2], tester.par->get_species("NH3"));
-        ASSERT_EQUAL(tester.cpar->fractions[0], 0.5);
-        ASSERT_EQUAL(tester.cpar->fractions[1], 0.3);
-        ASSERT_EQUAL(tester.cpar->fractions[2], 0.2);
-
-        // set_excitation_params()
-        tester.cpar->excitation_type = Parameters::excitation::sin_impulse;
-        tester.cpar->set_excitation_params({-1.0e5, 20000.0, 0.5});
-        ASSERT_EQUAL(tester.cpar->excitation_params[0], -1.0e5);
-        ASSERT_EQUAL(tester.cpar->excitation_params[1], 20000.0);
-        ASSERT_EQUAL(tester.cpar->excitation_params[2], 0.5);
-
-        // copy()
-        cpar_t cpar;
-        cpar.copy(*tester.cpar);
-        ASSERT_EQUAL(cpar.ID, 1);
-        ASSERT_EQUAL(cpar.n_species, 3);
-        ASSERT_EQUAL(cpar.species[0], tester.par->get_species("H2"));
-        ASSERT_EQUAL(cpar.species[1], tester.par->get_species("N2"));
-        ASSERT_EQUAL(cpar.species[2], tester.par->get_species("NH3"));
-        ASSERT_EQUAL(cpar.fractions[0], 0.5);
-        ASSERT_EQUAL(cpar.fractions[1], 0.3);
-        ASSERT_EQUAL(cpar.fractions[2], 0.2);
-        ASSERT_EQUAL(cpar.excitation_type, Parameters::excitation::sin_impulse);
-        ASSERT_EQUAL(cpar.excitation_params[0], -1.0e5);
-        ASSERT_EQUAL(cpar.excitation_params[1], 20000.0);
-        ASSERT_EQUAL(cpar.excitation_params[2], 0.5);
-
-        // error
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
-        cpar.set_species({tester.par->get_species("H2"), tester.par->get_species("N2")}, {0.75, 0.25, 0.0});
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 1);
-        cpar.excitation_type = Parameters::excitation::no_excitation;
-        cpar.set_excitation_params({-1.0e5, 20000.0, 0.5});
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 2);
-        ErrorHandler::clear_errors();
-    );
+    OdeFunTester tester = OdeFunTester("Test ode_fun_cpp.h's ODE class with chemkin_otomo2018");
 
     ADD_TEST(tester, "Test pressure()",
         // test with IC

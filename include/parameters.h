@@ -133,7 +133,6 @@ public:
     Parameters(Parameters_struct dummy);
     ~Parameters();
     static const Parameters *get_parameters(const Parameters::mechanism mech);
-    // TODO: setup tests
 };
 
 #endif // PARAMETERS_H
