@@ -5,7 +5,6 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include <exception>
 #include <cmath>
 
 #include "common.h"

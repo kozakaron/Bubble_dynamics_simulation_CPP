@@ -1,3 +1,8 @@
+#define _USE_MATH_DEFINES
+#include <cmath>
+#include <algorithm>
+
+#include "common.h"
 #include "ode_fun.h"
 
 
@@ -5,6 +10,7 @@ ODE::ODE():
     par(nullptr),
     cpar(nullptr),
     x(nullptr),
+    dxdt(nullptr),
     C_p(nullptr),
     H(nullptr),
     S(nullptr),
@@ -27,6 +33,7 @@ void ODE::delete_memory()
 {
     if (this->cpar != nullptr)       delete this->cpar;
     if (this->x != nullptr)          delete[] this->x;
+    if (this->dxdt != nullptr)       delete[] this->dxdt;
     if (this->C_p != nullptr)        delete[] this->C_p;
     if (this->H != nullptr)          delete[] this->H;
     if (this->S != nullptr)          delete[] this->S;
@@ -41,21 +48,27 @@ void ODE::delete_memory()
 
 void ODE::init(const cpar_t& cpar)
 {
-    this->delete_memory();
-    this->cpar       = new cpar_t();
+    const Parameters *old_par = this->par;
     this->par = Parameters::get_parameters(cpar.mechanism);
+    
+    if (old_par != this->par || this->x == nullptr)
+    {
+        this->delete_memory();
+        this->cpar       = new cpar_t();
+        this->x          = new double[par->num_species+4];
+        this->dxdt       = new double[par->num_species+4];
+        this->C_p        = new double[par->num_species];
+        this->H          = new double[par->num_species];
+        this->S          = new double[par->num_species];
+        this->C_v        = new double[par->num_species];
+        this->M_eff      = new double[par->num_third_bodies];
+        this->k_forward  = new double[par->num_reactions];
+        this->k_backward = new double[par->num_reactions];
+        this->net_rates  = new double[par->num_reactions];
+        this->omega_dot  = new double[par->num_species];
+    }
     this->cpar->copy(cpar);
     
-    this->x          = new double[par->num_species+4];
-    this->C_p        = new double[par->num_species];
-    this->H          = new double[par->num_species];
-    this->S          = new double[par->num_species];
-    this->C_v        = new double[par->num_species];
-    this->M_eff      = new double[par->num_third_bodies];
-    this->k_forward  = new double[par->num_reactions];
-    this->k_backward = new double[par->num_reactions];
-    this->net_rates  = new double[par->num_reactions];
-    this->omega_dot  = new double[par->num_species];
     // Evaporation calculations
     // get coefficients for T_inf
     const double *a;  // NASA coefficients (length: Parameters::NASA_order+2)

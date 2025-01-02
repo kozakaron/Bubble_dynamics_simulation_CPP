@@ -13,7 +13,7 @@ const Parameters Parameters::chemkin_otomo2018_params            = Parameters(ch
 
 
 #define COPY_ARRAY(type, name, size) { \
-    type* temp = new type[size]; \
+    type* temp = size ? new type[size] : nullptr; \
     this->name = (const type*)temp; \
     std::copy((type*)(T::name), (type*)(T::name) + size, temp); \
 }

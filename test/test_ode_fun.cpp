@@ -3,12 +3,14 @@
 #define TEST_ODE_FUN_H
 #include <cfloat>
 
+#include "common.h"
 #include "parameters.h"
 #include "control_parameters.h"
 #include "ode_fun.h"
 #include "test.h"
 #include "test_list.h"
 
+NO_OPTIMIZATION
 
 class OdeFunTester : public testing::Tester
 {
