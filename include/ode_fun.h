@@ -6,8 +6,6 @@
 
 class ODE
 {
-private:
-    double* memory_block;               // a single allocation for all memory needs
 #if defined TEST || defined BENCHMARK
     // WARNING: ODE class manages it's own memory.
     //          These are public for ease of use, however it is not recommended to modify them directly.
@@ -78,6 +76,10 @@ public:
     ODE();
     ~ODE();
     void init(const cpar_t& cpar);
+    const double* operator()(   // <----- CALL OPERATOR
+        const double t,
+        const double* x
+    ) ; //noexcept
 
 private:
     void delete_memory();

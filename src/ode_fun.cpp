@@ -439,10 +439,126 @@ void ODE::production_rate(
    }
 }
 
+
+const double* ODE::operator()(
+        const double t,
+        const double* x
+    ) //noexcept
+{
+// Thermodynamics
+    this->thermodynamic(x[2]);    // set C_p, H, S, C_v
+
+// Common variables
+    const double R = x[0];                      // bubble radius [m]
+    const double R_dot = x[1];                  // bubble radius derivative [m/s]
+    const double T = x[2];                      // temperature [K]
+    const double* c = x + 3;                    // molar concentrations [mol/cm^3]
+    double* c_dot = this->dxdt + 3;       // molar concentrations derivative [mol/cm^3/s]
+    double M = 0.0;                             // sum of molar concentrations [mol/cm^3]
+    const double p = 0.1 * M * par->R_erg * T;  // Partial pressure of the gases [Pa]
+    double W_avg = 0.0;                         // average molecular weight [g/mol]
+    double C_p_avg = 0.0;                       // average molar heat capacity at constant pressure [erg/mol/K]
+    double C_v_avg = 0.0;                       // average molar heat capacity at constant volume [erg/mol/K]
+    double lambda_avg = 0.0;                    // average thermal conductivity [W/m/K]
+    double sum_omega_dot = 0.0;                 // sum of production rates [mol/cm^3/s]
+    
+    for (index_t k = 0; k < par->num_species; ++k)
+    {
+        M += c[k];
+        const double X_k = c[k] / M;
+        W_avg += par->W[k] * X_k;
+        C_p_avg += C_p[k] * X_k;
+        C_v_avg += C_v[k] * X_k;
+        lambda_avg += par->lambdas[k] * X_k;
+    }
+
+// Heat transfer
+    double Q_th_dot = 0.0;
+    if (cpar->enable_heat_transfer)
+    {
+        const double rho_avg = W_avg * M;
+        const double chi_avg = 10.0 * lambda_avg * W_avg / (C_p_avg * rho_avg);
+        double l_th = (double)INFINITY;
+        if (R_dot != 0.0)
+        {
+            l_th = std::sqrt(R * chi_avg / std::abs(R_dot));
+        }
+        l_th = std::min(l_th, R * M_1_PI);
+        Q_th_dot = lambda_avg * (cpar->T_inf - T) / l_th;
+    }
+
+// d/dt R
+    this->dxdt[0] = R_dot;
+
+// d/dt c
+    if (cpar->enable_reactions)
+    {
+        this->production_rate(T, M, p);   // set omega_dot
+    }
+    else
+    {
+        std::fill(this->omega_dot, this->omega_dot + par->num_species + 3, 0.0);
+    }
+    for (index_t k = 0; k < par->num_species; ++k)
+    {
+        c_dot[k] = this->omega_dot[k] - c[k] * 3.0 * R_dot / R;
+        sum_omega_dot += this->omega_dot[k];
+    }
+
+// Evaporation
+    double n_net_dot = 0.0;
+    double evap_energy = 0.0;
+    if (cpar->enable_evaporation)
+    {
+        std::pair<double, double> _evap = this->evaporation(p, T, c[par->index_of_water]);
+        n_net_dot = _evap.first;
+        evap_energy = _evap.second;
+        c_dot[par->index_of_water] += 1.0e-6 * n_net_dot * 3.0 / R;
+    }
+
+// d/dt T
+    double Q_r_dot = 0.0;
+    for (index_t k = 0; k < par->num_species; ++k)
+    {
+        Q_r_dot -= this->omega_dot[k] * this->H[k];
+    }
+    Q_r_dot += sum_omega_dot * par->R_erg * T;
+    const double T_dot = (Q_r_dot + 30.0 / R * (-p * R_dot + Q_th_dot + evap_energy)) / (M * C_v_avg);
+    const double p_dot = p * (sum_omega_dot / M + T_dot / T - 3.0 * R_dot / R);
+    this->dxdt[2] = T_dot;
+
+// d/dt R_dot
+    std::pair<double, double> _pres = this->pressures(t, p, p_dot);
+    const double delta     = _pres.first;
+    const double delta_dot = _pres.second;
+
+    const double nom   = (1.0 + R_dot / cpar->c_L) * delta + R / cpar->c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar->c_L) * R_dot * R_dot;
+    const double denom = (1.0 - R_dot / cpar->c_L) * R + 4.0 * cpar->mu_L / (cpar->c_L * cpar->rho_L);
+
+    this->dxdt[1] = nom / denom;
+
+// Dissipated energy
+    if (cpar->enable_dissipated_energy)
+    {
+        const double V_dot = 4.0 * R * R * R_dot * M_PI;
+        const double integrand_th = -(p * (1 + R_dot / cpar->c_L) + R / cpar->c_L * p_dot) * V_dot;
+        const double integrand_v = 16.0 * M_PI * cpar->mu_L * (R * R_dot*R_dot + R * R * R_dot * dxdt[1] / cpar->c_L);
+        const double integrand_r = 4.0 * M_PI / cpar->c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar->rho_L * R_dot * R_dot * R_dot - cpar->rho_L * R * R_dot * dxdt[1]);
+
+        this->dxdt[par->num_species+3] = integrand_th + integrand_v + integrand_r;
+    } else {
+        this->dxdt[par->num_species+3] = 0.0;
+    }
+
+    return this->dxdt;
+}
+
 /*
 TODO:
-    - fix pressure tests
-    - seperate tests
     - add test+benchmark for other mechanisms
     - do something with the long doubles
+    - check for overflow, zero division, etc.
+    - add python interface
+    - OdeSolution class
+    - simple RKCK45
 */
