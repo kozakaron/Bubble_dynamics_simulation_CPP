@@ -1,3 +1,8 @@
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <algorithm>
+
 #include "common.h"
 
 template <typename T, size_t N>

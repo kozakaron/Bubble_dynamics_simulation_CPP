@@ -7,6 +7,8 @@
 #include "control_parameters.h"
 #include "test.h"
 
+NO_OPTIMIZATION
+
 void test_common()
 {
     testing::Tester tester = testing::Tester("General tests");

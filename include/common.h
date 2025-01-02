@@ -1,14 +1,10 @@
 #ifndef COMMON_H
 #define COMMON_H
 #include <iostream>
-#include <fstream>
-#include <sstream>
-#include <iomanip>
 #include <string>
 #include <chrono>
 #include <array>
 #include <vector>
-#include <algorithm>
 #include <mutex>
 
 #define WHITE "\033[0m"
@@ -93,13 +89,16 @@ public:
 #define ERROR(message, ID) Error(message, __FUNCTION__, __FILE__, __LINE__, ID)
 #define LOG_ERROR(message, ID) ErrorHandler::log_error(ERROR(message, ID))
 
-// Unrolling macro
-#if defined GCC
+// Unrolling macro, optimization off macro
+#if defined(__GNUC__) && !defined(__clang__)
 #define LOOP_UNROLL(n) _Pragma("GCC unroll " #n)
-#elif defined CLANG
+#define NO_OPTIMIZATION _Pragma("GCC optimize(\"O0\")")
+#elif defined(__clang__)
 #define LOOP_UNROLL(n) _Pragma("clang loop unroll_count(" #n ")")
+#define NO_OPTIMIZATION _Pragma("clang optimize off")
 #else
 #define LOOP_UNROLL(n)
+#define NO_OPTIMIZATION
 #endif
 
 // Benchmarking macro

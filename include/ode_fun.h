@@ -1,15 +1,13 @@
 #ifndef ODE_FUN_H
 #define ODE_FUN_H
-#define _USE_MATH_DEFINES
-#include <cmath>
-#include <algorithm>
 
-#include "common.h"
 #include "parameters.h"
 #include "control_parameters.h"
 
 class ODE
 {
+private:
+    double* memory_block;               // a single allocation for all memory needs
 #if defined TEST || defined BENCHMARK
     // WARNING: ODE class manages it's own memory.
     //          These are public for ease of use, however it is not recommended to modify them directly.
@@ -23,6 +21,7 @@ class ODE
     const Parameters* par;              // reaction mechanism
     cpar_t* cpar;                       // control parameters
     double* x;                          // state vector (length: Parameters::num_species+4)
+    double* dxdt;                       // time derivative of state vector (length: Parameters::num_species+4)
     // evaporation
     double C_v_inf;                     // molar heat capacity at constant volume of ambient temperature [erg/mol/K]
     // thermodynamic
