@@ -128,6 +128,8 @@ def syntax_coloring(text, indent=True, linker=False):
             skip_next_line = False
         elif 'errors generated.' in line or 'error generated.' in line:
             line = bold + line + reset
+        elif not linker and len(line.strip(' '))>0 and line.strip(' ')[0].isdigit():
+            line = syntax_highlight_cpp(line)
         elif '~~~~~^~~~~' in line or '^' in line:
             if line[:line.find('^')].isspace() or line[:line.find('^')].strip() == '':
                 line = bold + line + reset
@@ -138,13 +140,12 @@ def syntax_coloring(text, indent=True, linker=False):
             error_type = next(keyword for keyword in [' error: ', ' warning: ', ' note: '] if keyword in line)
             color = light_red if ' error: ' in line else yellow
             sections = line.split(error_type)
-            line = re.sub(r"'(.*?)'", lambda m: ('\x1B[3m' + m.group() + '\x1B[0m'), ''.join(sections[1:])) # italic
+            line = re.sub(r"'(.*?)'", lambda m: (italic + m.group() + reset), ''.join(sections[1:]))
             line = bold + sections[0] + reset + color + error_type + reset + line
         elif 'In file ' in line:
             pass
         else:
-            if not linker:
-                line = syntax_highlight_cpp(line)
+            pass
 
 
         if indent:
