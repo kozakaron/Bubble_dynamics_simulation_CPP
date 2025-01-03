@@ -61,8 +61,8 @@ private:
     if ((a) == (b)) return "Assert not equal failed: " #a " == " #b " (" + std::to_string(a) + " == " + std::to_string(b) + ")";
 
 #define ASSERT_NEAR(a, b, tol) \
-    if (!std::isfinite((a))) return "Assert equal failed: " #a " is not a number (" + std::to_string(a) + ")"; \
-    if (!std::isfinite((b))) return "Assert equal failed: " #b " is not a number (" + std::to_string(b) + ")"; \
+    if (!std::isfinite((a))) return "Assert near failed: " #a " is not a number (" + std::to_string(a) + ")"; \
+    if (!std::isfinite((b))) return "Assert near failed: " #b " is not a number (" + std::to_string(b) + ")"; \
     if (std::abs((a) - (b)) > (tol)) \
         return "Assert near failed: " #a " != " #b " (" + std::to_string(a) + " != " + std::to_string(b) + ")";
 

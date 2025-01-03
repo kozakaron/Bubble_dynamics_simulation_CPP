@@ -60,13 +60,12 @@ void benchmark_ode_fun()
     //const double R = x[0];
     //const double R_dot = x[1];
     const double T = x[2];
-    std::copy(x.begin(), x.end(), ode.x);
 
 // pressure()
     const double p = 115718.99999999997;
     const double p_dot = 1.4057234685268682e-05;
     std::pair<double, double> result_pressure;
-    BENCHMARK_LINE(result_pressure = ode.pressures(t, p, p_dot);, 1000000);
+    BENCHMARK_LINE(result_pressure = ode.pressures(t, x[0], x[1], p, p_dot);, 1000000);
 
 // thermodynamic()
     BENCHMARK_LINE(ode.thermodynamic(T);, 100000);
@@ -91,7 +90,10 @@ void benchmark_ode_fun()
     BENCHMARK_LINE(ode.backward_rate(T);, 10000);
 
 // production_rate()
-    BENCHMARK_LINE(ode.production_rate(T, p, M);, 10000);
+    BENCHMARK_LINE(ode.production_rate(T, p, M, x.data()+3);, 10000);
+
+// operator()
+    BENCHMARK_LINE(ode(t, x.data());, 10000);
 }
 
 #endif // BENCHMARK_ODE_FUN_H
