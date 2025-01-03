@@ -1,6 +1,7 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <algorithm>
+#include <cfenv>    // TODO: error handling
 
 #include "common.h"
 #include "ode_fun.h"
@@ -9,7 +10,7 @@
 ODE::ODE():
     par(nullptr),
     cpar(nullptr),
-    x(nullptr),
+    //x(nullptr),
     dxdt(nullptr),
     C_p(nullptr),
     H(nullptr),
@@ -32,7 +33,7 @@ ODE::~ODE()
 void ODE::delete_memory()
 {
     if (this->cpar != nullptr)       delete this->cpar;
-    if (this->x != nullptr)          delete[] this->x;
+    //if (this->x != nullptr)          delete[] this->x;
     if (this->dxdt != nullptr)       delete[] this->dxdt;
     if (this->C_p != nullptr)        delete[] this->C_p;
     if (this->H != nullptr)          delete[] this->H;
@@ -51,11 +52,11 @@ void ODE::init(const cpar_t& cpar)
     const Parameters *old_par = this->par;
     this->par = Parameters::get_parameters(cpar.mechanism);
     
-    if (old_par != this->par || this->x == nullptr)
+    if (old_par != this->par || this->omega_dot == nullptr)
     {
         this->delete_memory();
         this->cpar       = new cpar_t();
-        this->x          = new double[par->num_species+4];
+        //this->x          = new double[par->num_species+4];
         this->dxdt       = new double[par->num_species+4];
         this->C_p        = new double[par->num_species];
         this->H          = new double[par->num_species];
@@ -94,6 +95,8 @@ void ODE::init(const cpar_t& cpar)
 
 std::pair<double, double> ODE::pressures(
     const double t,
+    const double R,
+    const double R_dot,
     const double p,
     const double p_dot) //noexcept
 {
@@ -158,8 +161,8 @@ std::pair<double, double> ODE::pressures(
         }
     }
     
-    double p_L = p - (2.0 * cpar->surfactant * par->sigma + 4.0 * cpar->mu_L * this->x[1]) / this->x[0];
-    double p_L_dot = p_dot + (-2.0 * cpar->surfactant * par->sigma * this->x[1] + 4.0 * cpar->mu_L * this->x[1] * this->x[1]) / (this->x[0] * this->x[0]);
+    double p_L = p - (2.0 * cpar->surfactant * par->sigma + 4.0 * cpar->mu_L * R_dot) / R;
+    double p_L_dot = p_dot + (-2.0 * cpar->surfactant * par->sigma * R_dot + 4.0 * cpar->mu_L * R_dot * R_dot) / (R * R);
     double delta = (p_L - p_Inf) / cpar->rho_L;
     double delta_dot = (p_L_dot - p_Inf_dot) / cpar->rho_L;
 
@@ -384,11 +387,11 @@ void ODE::backward_rate(
 void ODE::production_rate(
     const double T,
     const double M,
-    const double p
+    const double p,
+    const double* c
 ) //noexcept
 {
 // Third body correction factors
-    double *c = this->x + 3;
     for (index_t j = 0; j < par->num_third_bodies; ++j)
     {
         double M_eff_j = 0.0;
@@ -453,9 +456,9 @@ const double* ODE::operator()(
     const double R_dot = x[1];                  // bubble radius derivative [m/s]
     const double T = x[2];                      // temperature [K]
     const double* c = x + 3;                    // molar concentrations [mol/cm^3]
-    double* c_dot = this->dxdt + 3;       // molar concentrations derivative [mol/cm^3/s]
+    double* c_dot = this->dxdt + 3;             // molar concentrations derivative [mol/cm^3/s]
     double M = 0.0;                             // sum of molar concentrations [mol/cm^3]
-    const double p = 0.1 * M * par->R_erg * T;  // Partial pressure of the gases [Pa]
+    double p = 0.0;                             // Partial pressure of the gases [Pa]
     double W_avg = 0.0;                         // average molecular weight [g/mol]
     double C_p_avg = 0.0;                       // average molar heat capacity at constant pressure [erg/mol/K]
     double C_v_avg = 0.0;                       // average molar heat capacity at constant volume [erg/mol/K]
@@ -465,6 +468,10 @@ const double* ODE::operator()(
     for (index_t k = 0; k < par->num_species; ++k)
     {
         M += c[k];
+    }
+    p = 0.1 * M * par->R_erg * T;
+    for (index_t k = 0; k < par->num_species; ++k)
+    {
         const double X_k = c[k] / M;
         W_avg += par->W[k] * X_k;
         C_p_avg += C_p[k] * X_k;
@@ -493,24 +500,25 @@ const double* ODE::operator()(
 // d/dt c
     if (cpar->enable_reactions)
     {
-        this->production_rate(T, M, p);   // set omega_dot
+        this->production_rate(T, M, p, c);   // set omega_dot
     }
     else
     {
-        std::fill(this->omega_dot, this->omega_dot + par->num_species + 3, 0.0);
+        std::fill(this->omega_dot, this->omega_dot + par->num_species, 0.0);
     }
     for (index_t k = 0; k < par->num_species; ++k)
     {
         c_dot[k] = this->omega_dot[k] - c[k] * 3.0 * R_dot / R;
         sum_omega_dot += this->omega_dot[k];
     }
+    std::clog << "sum_omega_dot: " << sum_omega_dot << std::endl;
 
 // Evaporation
     double n_net_dot = 0.0;
     double evap_energy = 0.0;
     if (cpar->enable_evaporation)
     {
-        std::pair<double, double> _evap = this->evaporation(p, T, c[par->index_of_water]);
+        std::pair<double, double> _evap = this->evaporation(p, T, c[par->index_of_water]/M);
         n_net_dot = _evap.first;
         evap_energy = _evap.second;
         c_dot[par->index_of_water] += 1.0e-6 * n_net_dot * 3.0 / R;
@@ -528,7 +536,7 @@ const double* ODE::operator()(
     this->dxdt[2] = T_dot;
 
 // d/dt R_dot
-    std::pair<double, double> _pres = this->pressures(t, p, p_dot);
+    std::pair<double, double> _pres = this->pressures(t, R, R_dot, p, p_dot);
     const double delta     = _pres.first;
     const double delta_dot = _pres.second;
 
@@ -555,6 +563,7 @@ const double* ODE::operator()(
 
 /*
 TODO:
+    - remove ODE::x
     - add test+benchmark for other mechanisms
     - do something with the long doubles
     - check for overflow, zero division, etc.
