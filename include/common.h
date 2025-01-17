@@ -7,18 +7,21 @@
 #include <vector>
 #include <mutex>
 
-#define WHITE "\033[0m"
-#define RED "\033[31m"
-#define GREEN "\033[32m"
-#define YELLOW "\033[33m"
-#define BLUE "\033[94m"
-#define MAGENTA "\033[35m"
-#define CYAN "\033[36m"
-#define BOLD "\033[1m"
-#define ITALIC "\033[3m"
-#define UNDERLINE "\033[4m"
-#define REVERSED "\033[7m"
-#define RESET "\033[0m"
+namespace colors
+{
+    const std::string white =       "\033[0m";
+    const std::string red =         "\033[31m";
+    const std::string green =       "\033[32m";
+    const std::string yellow =      "\033[33m";
+    const std::string blue =        "\033[94m";
+    const std::string magenta =     "\033[35m";
+    const std::string cyan =        "\033[36m";
+    const std::string bold =        "\033[1m";
+    const std::string italic =      "\033[3m";
+    const std::string underline =   "\033[4m";
+    const std::string reversed =    "\033[7m";
+    const std::string reset =       "\033[0m";
+}
 
 // cout overload for 1D std::array
 template <typename T, size_t N>
@@ -113,7 +116,7 @@ public:
         } \
         double benchmark_time = benchmark_timer.lap(); \
         double run_time = benchmark_time / N; \
-        std::cout << "Runtime of " << BLUE << #line << RESET << " is " << BOLD << Timer::format_time(run_time) << RESET << std::endl; \
+        std::cout << "Runtime of " << colors::blue << #line << colors::reset << " is " << colors::bold << Timer::format_time(run_time) << colors::reset << std::endl; \
     }
 
 #endif // COMMON_H

@@ -373,10 +373,10 @@ def _get_reactions(lines, species):
         isThirdBody = isPressureDependent = isTroe = isSRI = isPLOG = False
         isManualThirdBodyCoefficients = False
         
-        if '(+M)' in line.replace(' ',''):
+        if '(+M)' in line.replace(' ','').replace('<=>', '=').replace('=>', '>').replace('>', '=>'):
             isPressureDependent = True
             isThirdBody = True
-        elif '+M' in line.replace(' ',''): 
+        elif '+M' in line.replace(' ','').replace('<=>', '=').replace('=>', '>').replace('>', '=>'): 
             isThirdBody = True
         
         if not any([keyword in lines[i] for keyword in keywords+['END']]):
@@ -387,7 +387,6 @@ def _get_reactions(lines, species):
             if 'END' in line:
                 break
             elif 'LOW' in line:
-                isThirdBody = True
                 isPressureDependent = True
                 line = line.replace('LOW', '')
                 line = line.replace('/', '')

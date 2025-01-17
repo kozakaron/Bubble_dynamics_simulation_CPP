@@ -9,6 +9,8 @@
 
 NO_OPTIMIZATION
 
+namespace testing{
+
 void test_common()
 {
     testing::Tester tester = testing::Tester("General tests");
@@ -205,6 +207,8 @@ void test_par_cpar()
     par_tester.run_tests();
     cpar_tester.run_tests();
 }
+
+}   // namespace testing
 
 #endif  // TEST_PAR_CPAR_H
 #endif  // TEST

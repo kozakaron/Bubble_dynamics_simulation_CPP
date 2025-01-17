@@ -15,6 +15,7 @@ import subprocess
 import glob
 import time
 import re
+import shutil
 from concurrent.futures import ThreadPoolExecutor
 
 
@@ -220,7 +221,10 @@ def main():
     include_dirs = [f'-I{d}' for d in include_dirs]
     output_binary = os.path.join(build_dir, output_binary)
     if 'clang++' not in compiler and 'g++' not in compiler:
-        print(red + bold + 'Unsupported compiler: ' + reset + compiler)
+        print(red + bold + 'unsupported compiler: ' + reset + compiler)
+        exit(1)
+    if shutil.which(compiler) is None:
+        print(red + bold + 'compiler not found: ' + reset + compiler)
         exit(1)
 
     # Compiler flags
@@ -276,10 +280,10 @@ def main():
 
     if args.run and not args.shared:
         if args.debug:
-            print(f'{bold}GDB (gnu debugger) help:{reset}')
+            print(f'{bold}Debugger help:{reset}')
             print(f'    {bold}run{reset}       start/restart the program (r)')
             print(f'    {bold}continue{reset}  continue execution (c)')
-            print(f'    {bold}quit{reset}      quit gdb (q)')
+            print(f'    {bold}quit{reset}      quit debugger (q)')
             print(f'  {bold}Breakpoints:{reset}')
             print(f'    {bold}break{reset}     set a breakpoint (b): {italic}break function_name{reset} or {italic}break file.h:22{reset}')
             print(f'    {bold}info{reset}      show information (i): {italic}info locals{reset} or {italic}info breakpoints{reset}')
@@ -292,7 +296,23 @@ def main():
             print(f'    {bold}print{reset}     print variable (p): {italic}print variable_name{reset}')
             print(f'    {bold}backtrace{reset} show stack trace (bt)')
             print(f'    {bold}list{reset}      show source code (l): {italic}list{reset} or {italic}list 1, 10{reset}')
-            result = subprocess.run(['gdb', output_binary])
+            if 'clang++' in compiler:
+                if not shutil.which('lldb'):
+                    print(red + bold + 'lldb not found' + reset)
+                    if shutil.which('gdb'):
+                        result = subprocess.run(['gdb', output_binary])
+                else:
+                    result = subprocess.run(['lldb', output_binary])
+            elif 'g++' in compiler:
+                if not shutil.which('gdb'):
+                    print(red + bold + 'gdb not found' + reset)
+                    if shutil.which('lldb'):
+                        result = subprocess.run(['lldb', output_binary])
+                else:
+                    result = subprocess.run(['gdb', output_binary])
+            else:
+                print(red + bold + f'unsupported compiler: {compiler}' + reset)
+                exit(1)
             exit(0)
 
         result = subprocess.run([output_binary])

@@ -7,9 +7,6 @@
 class ODE
 {
 #if defined TEST || defined BENCHMARK
-    // WARNING: ODE class manages it's own memory.
-    //          These are public for ease of use, however it is not recommended to modify them directly.
-    //          Do not modify these pointers directly, use std::copy() instead.
     public:
 #else
     private:
@@ -18,7 +15,6 @@ class ODE
     // generic
     const Parameters* par;              // reaction mechanism
     cpar_t* cpar;                       // control parameters
-    //double* x;                          // state vector (length: Parameters::num_species+4)
     double* dxdt;                       // time derivative of state vector (length: Parameters::num_species+4)
     // evaporation
     double C_v_inf;                     // molar heat capacity at constant volume of ambient temperature [erg/mol/K]

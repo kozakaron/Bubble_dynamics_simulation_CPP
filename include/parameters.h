@@ -6,14 +6,7 @@
 #include <unordered_map>
 
 typedef short unsigned int index_t;   // Type for indexes (like size_t)
-typedef char stoich_t;                    // Type for stoichiometric coefficients (type of constants in reactions: 2*H2 + O2 -> 2*H2O)
-
-namespace {
-    using std::array;
-    using std::vector;
-    using std::string;
-    using std::unordered_map;
-}
+typedef char stoich_t;                // Type for stoichiometric coefficients (type of constants in reactions: 2*H2 + O2 -> 2*H2O)
 
 class Parameters
 {
@@ -23,27 +16,27 @@ private:
     static const Parameters chemkin_otomo2018_without_o_params;
     static const Parameters chemkin_otomo2018_params;
 
-    unordered_map<string, index_t> _elements;       // Names of elements (num_elements)
-    unordered_map<string, index_t> _species;        // Names of species (num_species)
+    std::unordered_map<std::string, index_t> _elements;       // Names of elements (num_elements)
+    std::unordered_map<std::string, index_t> _species;        // Names of species (num_species)
 public:
 // MECHANISM, EXCITATION AND REACTION TYPES
 
     enum mechanism: index_t {chemkin_ar_he, chemkin_kaust2023_n2, chemkin_otomo2018_without_o, chemkin_otomo2018};
     enum reac_type: index_t {lindemann_reac, troe_reac, sri_reac};
     enum excitation: index_t {no_excitation=0, two_sinusoids=1, sin_impulse=2, sin_impulse_logf=3};
-    static constexpr array<index_t, 4> excitation_arg_nums = {
+    static constexpr std::array<index_t, 4> excitation_arg_nums = {
         0, // no_excitation
         5, // two_sinusoids
         3, // sin_impulse
         3  // sin_impulse_logf
     };
-    static constexpr array<const char*, 4> excitation_arg_names = {
+    static constexpr std::array<const char*, 4> excitation_arg_names = {
         "",                                     // no_excitation
         "p_A1 p_A2 freq1 freq2 theta_pahse",    // two_sinusoids
         "p_A freq n",                           // sin_impulse
         "p_A log_f n"                           // sin_impulse_logf
     };
-    static constexpr array<const char*, 4> excitation_arg_units = {
+    static constexpr std::array<const char*, 4> excitation_arg_units = {
         "",                                     // no_excitation
         "Pa Pa Hz Hz rad",                      // two_sinusoids
         "Pa Hz -",                              // sin_impulse
@@ -73,16 +66,16 @@ public:
 // MECHANISM DEPENDENT PARAMETERS
 
 // Common mechanism data
-    const string model;                             // Name of the mechanism
-    const string input_file;                        // Original input (.inp) file's name
+    const std::string model;                             // Name of the mechanism
+    const std::string input_file;                        // Original input (.inp) file's name
 // Species
     const index_t num_elements;                     // Number of elements
     const index_t num_species;                      // Number of species
     const index_t index_of_water;                   // Index of water in arrays, INVALID if H2O is not in mechanism
     const index_t invalid_index;                    // Invalid index
-    vector<string> species_names;                   // Names of species (num_species)
-    index_t get_element(const string &name) const;  // Get index of element by name
-    index_t get_species(const string &name) const;  // Get index of species by name
+    std::vector<std::string> species_names;         // Names of species (num_species)
+    index_t get_element(const std::string &name) const;  // Get index of element by name
+    index_t get_species(const std::string &name) const;  // Get index of species by name
     const double *W;                                // Molar masses [g/mol] (num_species)
     const double *lambdas;                          // Thermal conductivities [W/m/K] (num_species)
 // NASA polynomials

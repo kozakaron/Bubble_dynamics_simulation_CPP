@@ -162,7 +162,7 @@ const Parameters *Parameters::get_parameters(const Parameters::mechanism mech)
     }
 }
 
-index_t Parameters::get_element(const string &name) const
+index_t Parameters::get_element(const std::string &name) const
 {
     auto it = _elements.find(name);
     if (it == _elements.end())
@@ -173,7 +173,7 @@ index_t Parameters::get_element(const string &name) const
     return it->second;
 }
 
-index_t Parameters::get_species(const string &name) const
+index_t Parameters::get_species(const std::string &name) const
 {
     auto it = _species.find(name);
     if (it == _species.end())

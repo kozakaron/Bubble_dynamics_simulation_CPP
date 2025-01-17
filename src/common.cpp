@@ -120,9 +120,9 @@ std::string Error::to_string(const bool color) const
 {
     std::stringstream ss;
     ss << this->time << ": ";
-    if (color) ss << RED;
+    if (color) ss << colors::red;
     ss << this->message;
-    if (color) ss << RESET;
+    if (color) ss << colors::reset;
     ss << " in " << this->file << ":" << this->line << ": " << this->function << "();";
     if (this->ID != 0) ss << " ID=" << this->ID << ";";
     return ss.str();
@@ -167,10 +167,10 @@ void ErrorHandler::print_errors()
     std::lock_guard<std::mutex> lock(ErrorHandler::mutex);
     if (ErrorHandler::errors.empty())
     {
-        std::cout << BOLD << GREEN << "No errors." << RESET << std::endl;
+        std::cout << colors::bold << colors::green << "No errors." << colors::reset << std::endl;
         return;
     }
-    std::cout << BOLD << RED << "Errors:" << RESET << std::endl;
+    std::cout << colors::bold << colors::red << "Errors:" << colors::reset << std::endl;
     for (const auto &err : errors)
     {
         std::cout << "    " << err.to_string(true) << std::endl;
