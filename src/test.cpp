@@ -31,7 +31,7 @@ void testing::Tester::tear_down(){
 void testing::Tester::run_tests(){
     size_t passed = 0;
     size_t failed = 0;
-    std::cout << BOLD << this->test_group_name << RESET << std::endl;
+    std::cout << colors::bold << this->test_group_name << colors::reset << std::endl;
 
     for (size_t i = 0; i < this->test_cases.size(); i++){
         set_up();
@@ -41,10 +41,10 @@ void testing::Tester::run_tests(){
         std::string ret = test_case();
 
         if (ret.empty()){
-            std::cout << BOLD << GREEN << "    PASSED: " << RESET << test_name << std::endl;
+            std::cout << colors::bold << colors::green << "    PASSED: " << colors::reset << test_name << std::endl;
             passed++;
         } else {
-            std::cout << BOLD << RED <<   "    FAILED: " << RESET << test_name << std::endl;
+            std::cout << colors::bold << colors::red <<   "    FAILED: " << colors::reset << test_name << std::endl;
             std::cout << "            " << ret << std::endl;
             failed++;
         }
@@ -63,8 +63,8 @@ void testing::Tester::add_test(const std::string& test_name, TestCase test_case)
 
 void testing::Tester::print_summary(){
     std::cout << "_____________________________________________" << std::endl;
-    std::cout << BOLD << GREEN << "TOTAL PASSED: " << RESET << testing::Tester::total_passed << std::endl;
-    std::cout << BOLD << RED << "TOTAL FAILED: " << RESET << testing::Tester::total_failed << std::endl;
+    std::cout << colors::bold << colors::green << "TOTAL PASSED: " << colors::reset << testing::Tester::total_passed << std::endl;
+    std::cout << colors::bold << colors::red   << "TOTAL FAILED: " << colors::reset << testing::Tester::total_failed << std::endl;
 }
 
 #endif // TEST

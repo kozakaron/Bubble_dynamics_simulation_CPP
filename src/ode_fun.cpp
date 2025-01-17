@@ -258,6 +258,12 @@ void ODE::forward_rate(
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
         this->k_forward[index] = par->A[index] * std::pow(T, par->b[index]) * std::exp(-par->E[index] / (par->R_cal * T));
+        // TODO: limit reaction rates:
+        /*
+        k_max = par.k_B * T / par.h
+        k_forward = par.A * T ** par.b * np.exp(-par.E / (par.R_cal * T))
+        k_forward = np.minimum(k_forward, k_max)
+        */
     }
 
 // Pressure dependent reactions
@@ -429,7 +435,11 @@ void ODE::production_rate(
         }
     }
 // Production rates
-   std::fill(this->omega_dot, this->omega_dot + par->num_species, 0.0);
+    for (index_t k = 0; k < par->num_species; ++k)
+    {
+        this->omega_dot[k] = 0.0;
+    }
+
    for (index_t index = 0; index < par->num_reactions; ++index)
    {
         for (index_t k = index * par->num_max_specie_per_reaction; k < (index + 1) * par->num_max_specie_per_reaction; ++k)
@@ -511,7 +521,6 @@ const double* ODE::operator()(
         c_dot[k] = this->omega_dot[k] - c[k] * 3.0 * R_dot / R;
         sum_omega_dot += this->omega_dot[k];
     }
-    std::clog << "sum_omega_dot: " << sum_omega_dot << std::endl;
 
 // Evaporation
     double n_net_dot = 0.0;
@@ -563,8 +572,6 @@ const double* ODE::operator()(
 
 /*
 TODO:
-    - remove ODE::x
-    - add test+benchmark for other mechanisms
     - do something with the long doubles
     - check for overflow, zero division, etc.
     - add python interface
