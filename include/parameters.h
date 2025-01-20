@@ -7,7 +7,6 @@
 
 typedef short unsigned int index_t;   // Type for indexes (like size_t)
 typedef char stoich_t;                // Type for stoichiometric coefficients (type of constants in reactions: 2*H2 + O2 -> 2*H2O)
-typedef bool is_success;              // Type for success flags (true/false)
 
 class Parameters
 {
