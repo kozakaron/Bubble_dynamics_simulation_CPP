@@ -157,7 +157,7 @@ const Parameters *Parameters::get_parameters(const Parameters::mechanism mech)
         case mechanism::chemkin_otomo2018:
             return &Parameters::chemkin_otomo2018_params;
         default:
-            LOG_ERROR("Unknown mechanisms", 0);
+            (void)LOG_ERROR("Unknown mechanisms: " + std::to_string(mech), 0);
             return nullptr;
     }
 }
@@ -167,7 +167,7 @@ index_t Parameters::get_element(const std::string &name) const
     auto it = _elements.find(name);
     if (it == _elements.end())
     {
-        LOG_ERROR("Element \"" + name + "\" not in " + this->model, 0);
+        (void)LOG_ERROR("Element \"" + name + "\" not in " + this->model, 0);
         return invalid_index;
     }
     return it->second;
@@ -178,7 +178,7 @@ index_t Parameters::get_species(const std::string &name) const
     auto it = _species.find(name);
     if (it == _species.end())
     {
-        LOG_ERROR("Species \"" + name + "\" not in " + this->model, 0);
+        (void)LOG_ERROR("Species \"" + name + "\" not in " + this->model, 0);
         return invalid_index;
     }
     return it->second;

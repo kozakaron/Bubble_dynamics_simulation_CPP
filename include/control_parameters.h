@@ -12,6 +12,7 @@ public:
 // Members
     index_t ID;                         // ID of control parameter
     Parameters::mechanism mechanism;    // rection mechanism
+    size_t error_ID;                    // ID of error in ErrorHandler (ErrorHandler::no_error if no error occured)
     // Initial conditions:
     double R_E;                         // bubble equilibrium radius [m]
     double ratio;                       // R_0/R_E [-]

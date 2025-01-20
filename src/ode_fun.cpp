@@ -1,7 +1,8 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <algorithm>
-#include <cfenv>    // TODO: error handling
+#include <sstream>
+#include <iomanip>
 
 #include "common.h"
 #include "ode_fun.h"
@@ -10,8 +11,8 @@
 ODE::ODE():
     par(nullptr),
     cpar(nullptr),
-    //x(nullptr),
-    dxdt(nullptr),
+    error_ID(ErrorHandler::no_error),
+    num_species(0),
     C_p(nullptr),
     H(nullptr),
     S(nullptr),
@@ -33,8 +34,6 @@ ODE::~ODE()
 void ODE::delete_memory()
 {
     if (this->cpar != nullptr)       delete this->cpar;
-    //if (this->x != nullptr)          delete[] this->x;
-    if (this->dxdt != nullptr)       delete[] this->dxdt;
     if (this->C_p != nullptr)        delete[] this->C_p;
     if (this->H != nullptr)          delete[] this->H;
     if (this->S != nullptr)          delete[] this->S;
@@ -46,18 +45,79 @@ void ODE::delete_memory()
     if (this->omega_dot != nullptr)  delete[] this->omega_dot;
 }
 
+is_success ODE::check_before_call()
+{
+    if (this->error_ID != ErrorHandler::no_error)
+    {
+        return false;
+    }
+    else if (this->par == nullptr || this->cpar == nullptr || this->omega_dot == nullptr)
+    {
+        this->error_ID = LOG_ERROR("Arrays/par/cpar were nullptr. Forgot to call ODE::init()?", 0);
+        return false;
+    }
+    else if(this->cpar->error_ID != ErrorHandler::no_error)
+    {
+        this->error_ID = this->cpar->error_ID;
+        return false;
+    }
+    else if (this->num_species != this->par->num_species)
+    {
+        this->error_ID = LOG_ERROR("Invalid array lengths. Expected num_species=" + std::to_string(this->par->num_species) +\
+                                   ", arrays are initialized with size " + std::to_string(this->num_species) + " instead. Forgot to call ODE::init()?", 0);
+        return false;
+    }
+    return true;
+}
 
-void ODE::init(const cpar_t& cpar)
+is_success ODE::check_after_call(
+    const double t,
+    const double* x,
+    double* dxdt
+) {
+    for (index_t k = 0; k < this->num_species+4; ++k)
+    {
+        if (!std::isfinite(dxdt[k]))
+        {
+            std::stringstream ss;
+            if (std::isinf(dxdt[k]))
+            {
+                ss << "dxdt[" << k << "] is infinite";
+            }
+            else if (std::isnan(dxdt[k]))
+            {
+                ss << "dxdt[" << k << "] is NaN";
+            } else
+            {
+                ss << "dxdt[" << k << "] is not finite";
+            }
+            ss << ". t = " << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10) << t;
+            ss << ";    x = " << to_string((double*)x, this->num_species+4);
+            ss << ";    dxdt = " << to_string((double*)dxdt, this->num_species+4);
+            this->error_ID = LOG_ERROR(ss.str(), this->cpar->ID);
+            return false;
+        }
+    }
+    return true;
+}
+
+
+is_success ODE::init(const cpar_t& cpar)
 {
     const Parameters *old_par = this->par;
     this->par = Parameters::get_parameters(cpar.mechanism);
+    this->error_ID = ErrorHandler::no_error;
+    if(this->par == nullptr)
+    {
+        this->error_ID = LOG_ERROR("Invalid mechanism: " + std::to_string(cpar.mechanism), cpar.ID);
+        return false;
+    }
+    this->num_species = this->par->num_species;
     
     if (old_par != this->par || this->omega_dot == nullptr)
     {
         this->delete_memory();
         this->cpar       = new cpar_t();
-        //this->x          = new double[par->num_species+4];
-        this->dxdt       = new double[par->num_species+4];
         this->C_p        = new double[par->num_species];
         this->H          = new double[par->num_species];
         this->S          = new double[par->num_species];
@@ -69,6 +129,11 @@ void ODE::init(const cpar_t& cpar)
         this->omega_dot  = new double[par->num_species];
     }
     this->cpar->copy(cpar);
+    if(this->cpar->error_ID != ErrorHandler::no_error)
+    {
+        this->error_ID = this->cpar->error_ID;
+        return false;
+    }
     
     // Evaporation calculations
     // get coefficients for T_inf
@@ -90,6 +155,8 @@ void ODE::init(const cpar_t& cpar)
         T_pow *= this->cpar->T_inf;
     }
     this->C_v_inf = par->R_erg * (this->C_v_inf - 1.0);
+
+    return true;
 }
 
 
@@ -453,11 +520,14 @@ void ODE::production_rate(
 }
 
 
-const double* ODE::operator()(
+is_success ODE::operator()(
         const double t,
-        const double* x
+        const double* x,
+        double* dxdt
     ) //noexcept
 {
+    if (!this->check_before_call())
+        return false;
 // Thermodynamics
     this->thermodynamic(x[2]);    // set C_p, H, S, C_v
 
@@ -466,7 +536,7 @@ const double* ODE::operator()(
     const double R_dot = x[1];                  // bubble radius derivative [m/s]
     const double T = x[2];                      // temperature [K]
     const double* c = x + 3;                    // molar concentrations [mol/cm^3]
-    double* c_dot = this->dxdt + 3;             // molar concentrations derivative [mol/cm^3/s]
+    double* c_dot = dxdt + 3;                   // molar concentrations derivative [mol/cm^3/s]
     double M = 0.0;                             // sum of molar concentrations [mol/cm^3]
     double p = 0.0;                             // Partial pressure of the gases [Pa]
     double W_avg = 0.0;                         // average molecular weight [g/mol]
@@ -495,7 +565,7 @@ const double* ODE::operator()(
     {
         const double rho_avg = W_avg * M;
         const double chi_avg = 10.0 * lambda_avg * W_avg / (C_p_avg * rho_avg);
-        double l_th = (double)INFINITY;
+        double l_th = std::numeric_limits<double>::max();
         if (R_dot != 0.0)
         {
             l_th = std::sqrt(R * chi_avg / std::abs(R_dot));
@@ -505,7 +575,7 @@ const double* ODE::operator()(
     }
 
 // d/dt R
-    this->dxdt[0] = R_dot;
+    dxdt[0] = R_dot;
 
 // d/dt c
     if (cpar->enable_reactions)
@@ -542,7 +612,7 @@ const double* ODE::operator()(
     Q_r_dot += sum_omega_dot * par->R_erg * T;
     const double T_dot = (Q_r_dot + 30.0 / R * (-p * R_dot + Q_th_dot + evap_energy)) / (M * C_v_avg);
     const double p_dot = p * (sum_omega_dot / M + T_dot / T - 3.0 * R_dot / R);
-    this->dxdt[2] = T_dot;
+    dxdt[2] = T_dot;
 
 // d/dt R_dot
     std::pair<double, double> _pres = this->pressures(t, R, R_dot, p, p_dot);
@@ -552,7 +622,7 @@ const double* ODE::operator()(
     const double nom   = (1.0 + R_dot / cpar->c_L) * delta + R / cpar->c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar->c_L) * R_dot * R_dot;
     const double denom = (1.0 - R_dot / cpar->c_L) * R + 4.0 * cpar->mu_L / (cpar->c_L * cpar->rho_L);
 
-    this->dxdt[1] = nom / denom;
+    dxdt[1] = nom / denom;
 
 // Dissipated energy
     if (cpar->enable_dissipated_energy)
@@ -562,12 +632,14 @@ const double* ODE::operator()(
         const double integrand_v = 16.0 * M_PI * cpar->mu_L * (R * R_dot*R_dot + R * R * R_dot * dxdt[1] / cpar->c_L);
         const double integrand_r = 4.0 * M_PI / cpar->c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar->rho_L * R_dot * R_dot * R_dot - cpar->rho_L * R * R_dot * dxdt[1]);
 
-        this->dxdt[par->num_species+3] = integrand_th + integrand_v + integrand_r;
+        dxdt[par->num_species+3] = integrand_th + integrand_v + integrand_r;
     } else {
-        this->dxdt[par->num_species+3] = 0.0;
+        dxdt[par->num_species+3] = 0.0;
     }
 
-    return this->dxdt;
+    if (!this->check_after_call(t, x, dxdt))
+        return false;
+    return true;
 }
 
 /*

@@ -73,7 +73,7 @@ private:
         return "Assert approx failed: " #a " != " #b " (" + std::to_string(a) + " != " + std::to_string(b) + ")";
 
 #define ASSERT_APPROX_ARRAY(a, b, size, tol) \
-    for (size_t i = 0; i < size; i++) \
+    for (size_t i = 0; i < (size_t)size; i++) \
     { \
         if (!std::isfinite((a[i]))) return "Assert approx failed: " #a "[" + std::to_string(i) + "] is not a number (" + std::to_string(a[i]) + ")"; \
         if (!std::isfinite((b[i]))) return "Assert approx failed: " #b "[" + std::to_string(i) + "] is not a number (" + std::to_string(b[i]) + ")"; \

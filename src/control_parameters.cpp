@@ -1,9 +1,13 @@
+#include <sstream>
+#include <numeric>
+
 #include "control_parameters.h"
 
 
 ControlParameters::ControlParameters():
     ID(0),
     mechanism(Parameters::mechanism::chemkin_otomo2018),
+    error_ID(ErrorHandler::no_error),
     R_E(10.0e-06),
     ratio(1.00),
     species(nullptr),
@@ -42,14 +46,46 @@ ControlParameters::~ControlParameters()
 void ControlParameters::set_species(const std::initializer_list<index_t> species_list, const std::initializer_list<double> fractions_list)
 {
     const Parameters* par = Parameters::get_parameters(this->mechanism);
+    if (par == nullptr)
+    {
+        this->error_ID = LOG_ERROR("Invalid mechanism: " + std::to_string(this->mechanism), this->ID);
+        return;
+    }
     for (const auto& species: species_list)
-        if (species >= par->num_species)
-            LOG_ERROR("Species index " + std::to_string(species) + " out of bound", this->ID);
+        if (species == par->invalid_index)
+        {
+            this->error_ID = LOG_ERROR("Invalid species (" + std::to_string(species) + ") for mechanism " + par->model, this->ID);
+            return;
+        }
+        else if (species >= par->num_species)
+        {
+            this->error_ID = LOG_ERROR("Species index " + std::to_string(species) + " out of bound for mechanism " + par->model, this->ID);
+            return;
+        }
     if (fractions_list.size() != species_list.size())
-        LOG_ERROR("The number of species and fractions must be equal", this->ID);
+    {
+        std::stringstream ss;
+        ss << "The number of species and fractions must be equal: species_list=[ ";
+        for (const auto& species: species_list) ss << species << " ";
+        ss << "], fractions_list=[ ";
+        for (const auto& fraction: fractions_list) ss << fraction << " ";
+        ss << "]";
+        this->error_ID = LOG_ERROR(ss.str(), this->ID);
+        return;
+    }
+    double sum_fraction = std::accumulate(fractions_list.begin(), fractions_list.end(), 0.0);
+    if (std::abs(sum_fraction - 1.0) > 1.0e-10)
+    {
+        std::stringstream ss;
+        ss << "The sum of fractions must be equal to 1.0, instead it is " << sum_fraction << ": fractions_list=[ ";
+        for (const auto& fraction: fractions_list) ss << fraction << " ";
+        ss << "]";
+        this->error_ID = LOG_ERROR(ss.str(), this->ID);
+        return;
+    }
+
     if (this->species != nullptr) delete[] this->species;
     if (this->fractions != nullptr) delete[] this->fractions;
-
     this->species = new index_t[species_list.size()];
     this->fractions = new double[fractions_list.size()];
     this->n_species = species_list.size();
@@ -61,9 +97,16 @@ void ControlParameters::set_species(const std::initializer_list<index_t> species
 
 void ControlParameters::set_excitation_params(const std::initializer_list<double> params_list)
 {
-    if (this->excitation_params != nullptr) delete[] this->excitation_params;
     if (params_list.size() != Parameters::excitation_arg_nums[this->excitation_type])
-        LOG_ERROR("The number of excitation parameters must be equal to " + std::to_string(Parameters::excitation_arg_nums[this->excitation_type]), this->ID);
+    {
+        std::stringstream ss;
+        ss << "The number of excitation parameters must be equal to " << Parameters::excitation_arg_nums[this->excitation_type] << ": params_list=[ ";
+        for (const auto& param: params_list) ss << param << " ";
+        ss << "]";
+        this->error_ID = LOG_ERROR(ss.str(), this->ID);
+        return;
+    }
+    if (this->excitation_params != nullptr) delete[] this->excitation_params;
     this->excitation_params = new double[params_list.size()];
     std::copy(params_list.begin(), params_list.end(), excitation_params);
 }

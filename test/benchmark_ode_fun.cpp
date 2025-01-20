@@ -45,7 +45,7 @@ void benchmark_ode_fun()
         cpar.set_excitation_params({-2.0e5, 30000.0, 1.0});
         cpar.excitation_type = Parameters::excitation::sin_impulse;
 
-        ode.init(cpar);
+        (void)ode.init(cpar);
 
     // Setup inputs
         const double t = 2.5275786980147761e-05;
@@ -60,6 +60,7 @@ void benchmark_ode_fun()
             7.70016174e-06, 4.84341261e-05, 2.50989113e-05, 2.41829246e-06,
             0.00000000e+00, 0.00000000e+00, 1.40656155e-01, 1.14395306e-06
         };
+        std::array<double, 32+4> dxdt;
         const double T = x[2];
 
     // pressure()
@@ -94,7 +95,7 @@ void benchmark_ode_fun()
         BENCHMARK_LINE(ode.production_rate(T, p, M, x.data()+3);, 10000);
 
     // operator()
-        BENCHMARK_LINE(ode(t, x.data());, 10000);
+        BENCHMARK_LINE(ode(t, x.data(), dxdt.data());, 10000);
     }
 
     std::cout << colors::bold << "OdeFun() with chemkin_ar_he (12 species, 30 reactions)" << colors::reset << std::endl;
@@ -130,7 +131,7 @@ void benchmark_ode_fun()
         cpar.set_excitation_params({-2.0e5, 30000.0, 1.0});
         cpar.excitation_type = Parameters::excitation::sin_impulse;
 
-        ode.init(cpar);
+        (void)ode.init(cpar);
 
     // Setup inputs
         const double t = 2.5255799280947053e-05;
@@ -140,6 +141,7 @@ void benchmark_ode_fun()
             1.1445537293517848e-02,  5.5500381673767307e-03,  0.0000000000000000e+00,  0.0000000000000000e+00,  7.2195229829469272e-08,
             1.1381442517029756e-06
         };
+        std::array<double, 12+4> dxdt;
         const double T = x[2];
 
     // pressure()
@@ -173,7 +175,7 @@ void benchmark_ode_fun()
         BENCHMARK_LINE(ode.production_rate(T, p, M, x.data()+3);, 10000);
 
     // operator()
-        BENCHMARK_LINE(ode(t, x.data());, 10000);
+        BENCHMARK_LINE(ode(t, x.data(), dxdt.data());, 10000);
     }
 }
 

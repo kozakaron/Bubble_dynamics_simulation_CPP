@@ -3,7 +3,6 @@
 #include <iostream>
 #include <string>
 #include <chrono>
-#include <array>
 #include <vector>
 #include <mutex>
 
@@ -23,13 +22,11 @@ namespace colors
     const std::string reset =       "\033[0m";
 }
 
-// cout overload for 1D std::array
-template <typename T, size_t N>
-std::ostream &operator<<(std::ostream &os, const std::array<T, N> &arr);
+template <typename T>
+std::string to_string(T* arr, size_t len);
 
-// cout overload for 2D std::array
-template <typename T, size_t N, size_t M>
-std::ostream &operator<<(std::ostream &os, const std::array<std::array<T, M>, N> &arr);
+template <typename T>
+std::string to_string(T* arr, size_t len1, size_t len2);
 
 // Timer class for benchmarking
 class Timer
@@ -79,9 +76,10 @@ private:
     static std::ofstream log_file;
 public:
     static bool print_when_log;
+    static constexpr size_t no_error = std::numeric_limits<size_t>::max();
 
     static void set_log_file(const std::string &filename);
-    static void log_error(const Error &err);
+    static size_t log_error(const Error &err);
     static void print_errors();
     static size_t get_error_count();
     static void clear_errors();
