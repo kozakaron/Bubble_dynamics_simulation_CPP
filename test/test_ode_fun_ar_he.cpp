@@ -61,7 +61,7 @@ public:
         cpar->set_excitation_params({-2.0e5, 30000.0, 1.0});
 
         // Init the ODE object
-        ode->init(*cpar);
+        (void)ode->init(*cpar);
     }
 
     void tear_down() override
@@ -84,6 +84,7 @@ void test_ode_fun_ar_he()
         1.1445537293517848e-02,  5.5500381673767307e-03,  0.0000000000000000e+00,  0.0000000000000000e+00,  7.2195229829469272e-08,
         1.1381442517029756e-06
     };
+    std::array<double, 12+4> dxdt;
 
     ADD_TEST(tester, "Test production_rate()",
         double T = 3734.580835839046;
@@ -130,8 +131,9 @@ void test_ode_fun_ar_he()
         tester.ode->cpar->enable_reactions = true;
         tester.ode->cpar->enable_dissipated_energy = true;
 
-        const double* dxdt = tester.ode->operator()(t, (const double*)x.data());
+        const bool success = tester.ode->operator()(t, (const double*)x.data(), (double*)dxdt.data());
         ASSERT_APPROX_ARRAY(dxdt, dxdt_expected, tester.par->num_species+4, 1e-10);
+        ASSERT_TRUE(success);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
 

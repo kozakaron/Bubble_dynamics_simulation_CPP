@@ -1,43 +1,72 @@
 #include <fstream>
-#include <sstream>
-#include <iomanip>
 #include <algorithm>
+#include <sstream>
+#include <type_traits>
+#include <iomanip>
 
 #include "common.h"
 
-template <typename T, size_t N>
-std::ostream  &operator<<(std::ostream  &os, const std::array<T, N> &arr)
+template <typename T>
+std::string to_string(T* arr, size_t len)
 {
-    os << std::setfill(' ') << "[";
-    for (size_t i = 0; i < N; ++i)
+    std::stringstream ss;
+    ss << "{";
+    using ElementType = typename std::decay<decltype(arr[0])>::type;
+    bool is_float = std::is_floating_point<ElementType>::value;
+    for (size_t i = 0; i < len; ++i)
     {
-        os << std::setw(8) << arr[i];
-        if (i < N - 1)
-        {
-            os << ",";
-        }
+        if (is_float)
+            ss << std::scientific << std::setprecision(std::numeric_limits<ElementType>::max_digits10);
+        ss << arr[i];
+        if (i < len - 1)
+            ss << ", ";
     }
-    os << "]";
-    return os;
+    ss << "}";
+    return ss.str();
 }
 
+template std::string to_string(float* arr, size_t len);
+template std::string to_string(double* arr, size_t len);
+template std::string to_string(char* arr, size_t len);
+template std::string to_string(short* arr, size_t len);
+template std::string to_string(int* arr, size_t len);
+template std::string to_string(long* arr, size_t len);
+template std::string to_string(long long* arr, size_t len);
+template std::string to_string(unsigned short* arr, size_t len);
+template std::string to_string(unsigned* arr, size_t len);
+template std::string to_string(unsigned long* arr, size_t len);
+template std::string to_string(unsigned long long* arr, size_t len);
+template std::string to_string(std::string* arr, size_t len);
 
-template <typename T, size_t N, size_t M>
-std::ostream  &operator<<(std::ostream  &os, const std::array<std::array<T, M>, N> &arr)
+
+template <typename T>
+std::string to_string(T &arr, size_t len1, size_t len2)
 {
-    os << "[";
-    for (size_t i = 0; i < N; ++i)
+    std::stringstream ss;
+    ss << "{";
+    for(size_t i = 0; i < len1; ++i)
     {
-        os << "\n  ";
-        os << arr[i];
-        if (i < N - 1)
-        {
-            os << ", ";
-        }
+        ss << to_string(arr[i], len2);
+        if (i < len1 - 1)
+            ss << ", ";
     }
-    os << "\n]";
-    return os;
+    ss << "}";
+    return ss.str();
 }
+
+template std::string to_string(float** &arr, size_t len1, size_t len2);
+template std::string to_string(double** &arr, size_t len1, size_t len2);
+template std::string to_string(char** &arr, size_t len1, size_t len2);
+template std::string to_string(short** &arr, size_t len1, size_t len2);
+template std::string to_string(int** &arr, size_t len1, size_t len2);
+template std::string to_string(long** &arr, size_t len1, size_t len2);
+template std::string to_string(long long** &arr, size_t len1, size_t len2);
+template std::string to_string(unsigned short** &arr, size_t len1, size_t len2);
+template std::string to_string(unsigned** &arr, size_t len1, size_t len2);
+template std::string to_string(unsigned long** &arr, size_t len1, size_t len2);
+template std::string to_string(unsigned long long** &arr, size_t len1, size_t len2);
+template std::string to_string(std::string** &arr, size_t len1, size_t len2);
+
 
 void Timer::start()
 {
@@ -148,10 +177,8 @@ void ErrorHandler::set_log_file(const std::string &filename)
     }
 }
 
-void ErrorHandler::log_error(const Error &err)
+size_t ErrorHandler::log_error(const Error &err)
 {
-    std::lock_guard<std::mutex> lock(ErrorHandler::mutex);
-    ErrorHandler::errors.push_back(err);
     if (ErrorHandler::print_when_log)
     {
         std::cerr << err << std::endl;
@@ -160,6 +187,9 @@ void ErrorHandler::log_error(const Error &err)
     {
         ErrorHandler::log_file << err.to_string(false) << std::endl;
     }
+    std::lock_guard<std::mutex> lock(ErrorHandler::mutex);
+    ErrorHandler::errors.push_back(err);
+    return ErrorHandler::errors.size() - 1;
 }
 
 void ErrorHandler::print_errors()
@@ -185,12 +215,21 @@ size_t ErrorHandler::get_error_count()
 
 void ErrorHandler::clear_errors()
 {
+#ifndef TEST
+    std::cerr << colors::bold << colors::red << "It is not recommended to clear errors outside test mode. " << colors::reset << std::endl;
+    // Why? becouse error_ID is used to point to certain errors
+#endif
     std::lock_guard<std::mutex> lock(ErrorHandler::mutex);
     ErrorHandler::errors.clear();
 }
 
 Error ErrorHandler::get_error(size_t index)
 {
+    if (index == ErrorHandler::no_error)
+        return ERROR("No error occured", 0);
+    if (index >= ErrorHandler::errors.size())
+        return ERROR("Error index " + std::to_string(index) + " out of bounds, number of errors: " + std::to_string(ErrorHandler::errors.size()) +\
+                     " (Perhaps you used ErrorHandler::clear_errors)", 0);
     std::lock_guard<std::mutex> lock(ErrorHandler::mutex);
     return ErrorHandler::errors[index];
 }

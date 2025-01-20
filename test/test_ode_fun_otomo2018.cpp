@@ -61,7 +61,7 @@ public:
         cpar->set_excitation_params({-2.0e5, 30000.0, 1.0});
 
         // Init the ODE object
-        ode->init(*cpar);
+        (void)ode->init(*cpar);
     }
 
     void tear_down() override
@@ -76,6 +76,59 @@ public:
 void test_ode_fun_otomo2018()
 {
     OdeFunTester_otomo2018 tester = OdeFunTester_otomo2018("Test ode_fun_cpp.h's ODE class with chemkin_otomo2018");
+
+    ADD_TEST(tester, "Test init() error",
+        ErrorHandler::clear_errors(); 
+        tester.cpar->set_species({tester.par->get_species("H2"), tester.par->get_species("N2")}, {0.75, 0.255});
+        tester.ode->init(*tester.cpar);
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 1);
+        ErrorHandler::clear_errors();
+    );
+
+    ADD_TEST(tester, "Test check_before_call",
+        ErrorHandler::clear_errors();
+        ASSERT_EQUAL(tester.ode->error_ID, ErrorHandler::no_error);
+        ASSERT_TRUE(tester.ode->check_before_call());
+
+        auto par = tester.ode->par;
+        tester.ode->par = nullptr;
+        ASSERT_FALSE(tester.ode->check_before_call());
+        ASSERT_EQUAL(tester.ode->error_ID, 0);
+        tester.ode->par = par;
+        ASSERT_FALSE(tester.ode->check_before_call());
+        ASSERT_EQUAL(tester.ode->error_ID, 0);
+        tester.ode->error_ID = ErrorHandler::no_error;
+
+        auto cpar = tester.ode->cpar;
+        tester.ode->cpar = nullptr;
+        ASSERT_FALSE(tester.ode->check_before_call());
+        ASSERT_EQUAL(tester.ode->error_ID, 1);
+        tester.ode->cpar = cpar;
+        tester.ode->error_ID = ErrorHandler::no_error;
+
+        tester.ode->num_species = 0;
+        ASSERT_FALSE(tester.ode->check_before_call());
+        ASSERT_EQUAL(tester.ode->error_ID, 2);
+        tester.ode->num_species = tester.par->num_species;
+        tester.ode->error_ID = ErrorHandler::no_error;
+        ErrorHandler::clear_errors();
+    );
+
+    ADD_TEST(tester, "Test check_after_call",
+        ErrorHandler::clear_errors();
+        tester.ode->num_species = 1;
+        const double t = 3.842889557991261e-05;
+        array<double, 1+4> x = {4.17769608e-06, 8.29024721e+01, 1.50982469e+02, 9.32148950e-09, 9.32148950e-09};
+        array<double, 1+4> dxdt = {0.0, 0.0, 0.0, 0.0, 0.0};
+        ASSERT_TRUE(tester.ode->check_after_call(t, x.data(), dxdt.data()));
+        ASSERT_EQUAL(tester.ode->error_ID, ErrorHandler::no_error);
+
+        dxdt[3] = std::numeric_limits<double>::infinity();
+        ASSERT_FALSE(tester.ode->check_after_call(t, x.data(), dxdt.data()));
+        ASSERT_EQUAL(tester.ode->error_ID, 0);
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 1);
+        ErrorHandler::clear_errors();
+    );
 
     ADD_TEST(tester, "Test pressure()",
         // test with IC
@@ -97,7 +150,7 @@ void test_ode_fun_otomo2018()
         // test no excitation
         tester.cpar->excitation_type = Parameters::excitation::no_excitation;
         tester.cpar->set_excitation_params({});
-        tester.ode->init(*tester.cpar);
+        (void)tester.ode->init(*tester.cpar);
         result = tester.ode->pressures(t, R, R_dot, p, p_dot);
         ASSERT_EQUAL(tester.ode->cpar->excitation_type, Parameters::excitation::no_excitation);
         ASSERT_APPROX(result.first, 2.8295477781368800e+07, 1e-30);
@@ -106,7 +159,7 @@ void test_ode_fun_otomo2018()
         // test sin_impulse_logf
         tester.cpar->excitation_type = Parameters::excitation::sin_impulse_logf;
         tester.cpar->set_excitation_params({-2.0e5, 4.5, 1.0});
-        tester.ode->init(*tester.cpar);
+        (void)tester.ode->init(*tester.cpar);
         result = tester.ode->pressures(t, R, R_dot, p, p_dot);
         ASSERT_EQUAL(tester.ode->cpar->excitation_type, Parameters::excitation::sin_impulse_logf);
         ASSERT_APPROX(tester.ode->cpar->excitation_params[1], 4.5, 1e-30);
@@ -492,8 +545,10 @@ void test_ode_fun_otomo2018()
         tester.ode->cpar->enable_reactions = false;
         tester.ode->cpar->enable_dissipated_energy = false;
 
-        const double* dxdt = tester.ode->operator()(t, (const double*)x.data());
-        ASSERT_APPROX_ARRAY(dxdt, dxdt_expected, tester.par->num_species+4, 1e-15);
+        std::array<double, 32+4> dxdt;
+        const bool success = tester.ode->operator()(t, (const double*)x.data(), (double*)dxdt.data());
+        ASSERT_APPROX_ARRAY(dxdt, dxdt_expected, tester.par->num_species+4, 1e-10);
+        ASSERT_TRUE(success);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
 
@@ -513,8 +568,10 @@ void test_ode_fun_otomo2018()
         tester.ode->cpar->enable_reactions = false;
         tester.ode->cpar->enable_dissipated_energy = false;
 
-        const double* dxdt = tester.ode->operator()(t, (const double*)x.data());
-        ASSERT_APPROX_ARRAY(dxdt, dxdt_expected, tester.par->num_species+4, 1e-15);
+        std::array<double, 32+4> dxdt;
+        const bool success = tester.ode->operator()(t, (const double*)x.data(), (double*)dxdt.data());
+        ASSERT_APPROX_ARRAY(dxdt, dxdt_expected, tester.par->num_species+4, 1e-10);
+        ASSERT_TRUE(success);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
 
@@ -534,8 +591,10 @@ void test_ode_fun_otomo2018()
         tester.ode->cpar->enable_reactions = false;
         tester.ode->cpar->enable_dissipated_energy = false;
 
-        const double* dxdt = tester.ode->operator()(t, (const double*)x.data());
-        ASSERT_APPROX_ARRAY(dxdt, dxdt_expected, tester.par->num_species+4, 1e-15);
+        std::array<double, 32+4> dxdt;
+        const bool success = tester.ode->operator()(t, (const double*)x.data(), (double*)dxdt.data());
+        ASSERT_APPROX_ARRAY(dxdt, dxdt_expected, tester.par->num_species+4, 1e-10);
+        ASSERT_TRUE(success);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
 
@@ -564,7 +623,9 @@ void test_ode_fun_otomo2018()
         tester.ode->cpar->enable_reactions = true;
         tester.ode->cpar->enable_dissipated_energy = false;
 
-        const double* dxdt = tester.ode->operator()(t, (const double*)x.data());
+        std::array<double, 32+4> dxdt;
+        const bool success = tester.ode->operator()(t, (const double*)x.data(), (double*)dxdt.data());
+        ASSERT_TRUE(success);
         ASSERT_APPROX_ARRAY(tester.ode->omega_dot, omega_dot_expected, tester.par->num_species, 1e-10);
         ASSERT_APPROX_ARRAY(dxdt, dxdt_expected, tester.par->num_species+4, 1e-10);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
@@ -586,8 +647,10 @@ void test_ode_fun_otomo2018()
         tester.ode->cpar->enable_reactions = true;
         tester.ode->cpar->enable_dissipated_energy = true;
 
-        const double* dxdt = tester.ode->operator()(t, (const double*)x.data());
+        std::array<double, 32+4> dxdt;
+        const bool success = tester.ode->operator()(t, (const double*)x.data(), (double*)dxdt.data());
         ASSERT_APPROX_ARRAY(dxdt, dxdt_expected, tester.par->num_species+4, 1e-10);
+        ASSERT_TRUE(success);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
 

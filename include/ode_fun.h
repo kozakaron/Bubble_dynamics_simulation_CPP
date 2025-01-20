@@ -7,15 +7,16 @@
 class ODE
 {
 #if defined TEST || defined BENCHMARK
-    public:
+public:
 #else
-    private:
+private:
 #endif
 // Members
     // generic
     const Parameters* par;              // reaction mechanism
     cpar_t* cpar;                       // control parameters
-    double* dxdt;                       // time derivative of state vector (length: Parameters::num_species+4)
+    size_t error_ID;                    // ID of error in ErrorHandler (ErrorHandler::no_error if no error occured)
+    size_t num_species;                 // number of species (to check if init was called properly)
     // evaporation
     double C_v_inf;                     // molar heat capacity at constant volume of ambient temperature [erg/mol/K]
     // thermodynamic
@@ -74,14 +75,25 @@ class ODE
 public:
     ODE();
     ~ODE();
-    void init(const cpar_t& cpar);
-    const double* operator()(   // <----- CALL OPERATOR
+    is_success init(const cpar_t& cpar);
+    is_success operator()(   // <----- CALL OPERATOR
         const double t,
-        const double* x
+        const double* x,
+        double* dxdt
     ) ; //noexcept
 
+#if defined TEST || defined BENCHMARK
+public:
+#else
 private:
+#endif
     void delete_memory();
+    is_success check_before_call();
+    is_success check_after_call(
+        const double t,
+        const double* x,
+        double* dxdt
+    );
 
 };  // class ODE
 
