@@ -6,6 +6,8 @@
 #include <vector>
 #include <mutex>
 
+typedef bool is_success;
+
 namespace colors
 {
     const std::string white =       "\033[0m";

@@ -645,7 +645,6 @@ is_success ODE::operator()(
 /*
 TODO:
     - do something with the long doubles
-    - check for overflow, zero division, etc.
     - add python interface
     - OdeSolution class
     - simple RKCK45
