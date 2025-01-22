@@ -40,32 +40,34 @@ template std::string to_string(std::string* arr, size_t len);
 
 
 template <typename T>
-std::string to_string(T &arr, size_t len1, size_t len2)
+std::string to_string(T** arr, size_t len1, size_t len2)
 {
     std::stringstream ss;
-    ss << "{";
+    ss << "{\n";
     for(size_t i = 0; i < len1; ++i)
     {
-        ss << to_string(arr[i], len2);
+        ss << "    " << to_string(arr[i], len2);
         if (i < len1 - 1)
-            ss << ", ";
+            ss << ",\n";
+        else
+            ss << "\n";
     }
     ss << "}";
     return ss.str();
 }
 
-template std::string to_string(float** &arr, size_t len1, size_t len2);
-template std::string to_string(double** &arr, size_t len1, size_t len2);
-template std::string to_string(char** &arr, size_t len1, size_t len2);
-template std::string to_string(short** &arr, size_t len1, size_t len2);
-template std::string to_string(int** &arr, size_t len1, size_t len2);
-template std::string to_string(long** &arr, size_t len1, size_t len2);
-template std::string to_string(long long** &arr, size_t len1, size_t len2);
-template std::string to_string(unsigned short** &arr, size_t len1, size_t len2);
-template std::string to_string(unsigned** &arr, size_t len1, size_t len2);
-template std::string to_string(unsigned long** &arr, size_t len1, size_t len2);
-template std::string to_string(unsigned long long** &arr, size_t len1, size_t len2);
-template std::string to_string(std::string** &arr, size_t len1, size_t len2);
+template std::string to_string(float** arr, size_t len1, size_t len2);
+template std::string to_string(double** arr, size_t len1, size_t len2);
+template std::string to_string(char** arr, size_t len1, size_t len2);
+template std::string to_string(short** arr, size_t len1, size_t len2);
+template std::string to_string(int** arr, size_t len1, size_t len2);
+template std::string to_string(long** arr, size_t len1, size_t len2);
+template std::string to_string(long long** arr, size_t len1, size_t len2);
+template std::string to_string(unsigned short** arr, size_t len1, size_t len2);
+template std::string to_string(unsigned** arr, size_t len1, size_t len2);
+template std::string to_string(unsigned long** arr, size_t len1, size_t len2);
+template std::string to_string(unsigned long long** arr, size_t len1, size_t len2);
+template std::string to_string(std::string** arr, size_t len1, size_t len2);
 
 
 void Timer::start()
