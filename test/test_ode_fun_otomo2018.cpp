@@ -38,7 +38,6 @@ public:
         cpar->mechanism = Parameters::mechanism::chemkin_otomo2018;
         // Initial conditions:
         cpar->R_E = 10e-6;
-        cpar->ratio = 1.0;
         cpar->set_species({par->get_species("H2"), par->get_species("N2")}, {0.75, 0.25});
         // Ambient parameters:
         cpar->P_amb = 101325.0;
@@ -76,6 +75,55 @@ public:
 void test_ode_fun_otomo2018()
 {
     OdeFunTester_otomo2018 tester = OdeFunTester_otomo2018("Test ode_fun_cpp.h's ODE class with chemkin_otomo2018");
+
+    ADD_TEST(tester, "Test vapour_pressure() and viscosity()",
+        ASSERT_APPROX(vapour_pressure(273.15), 611.21, 1e-3);
+        ASSERT_APPROX(vapour_pressure(373.15), 101307.78, 1e-3);
+        ASSERT_APPROX(vapour_pressure(323.15), 12349.40, 1e-3);
+        ASSERT_APPROX(viscosity(273.15), 0.0017258837501673671, 1e-3);
+        ASSERT_APPROX(viscosity(373.15), 0.00028977828661600933, 1e-3);
+        ASSERT_APPROX(viscosity(323.15), 0.0005590479674358306, 1e-3);
+    );
+
+    ADD_TEST(tester, "Test initial_conditions()",
+        array<double, 32+4> x_0;
+        array<double, 32+4> x_0_expected = {
+            1.0000000000000001e-05, 0.0000000000000000e+00, 2.9314999999999998e+02, 0.0000000000000000e+00, 0.0000000000000000e+00,
+            3.4888091814540781e-05, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+            0.0000000000000000e+00, 9.5926618412304955e-07, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+            0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+            0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+            0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+            0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 1.1629363938180262e-05,
+            0.0000000000000000e+00
+        };
+        is_success success = tester.ode->initial_conditions(x_0.data());
+        ASSERT_APPROX_ARRAY(x_0.data(), x_0_expected.data(), 32+4, 1e-15);
+        ASSERT_TRUE(success);
+
+        tester.ode->cpar->enable_evaporation = false;
+        x_0_expected = {
+            1.0000000000000001e-05, 0.0000000000000000e+00, 2.9314999999999998e+02, 0.0000000000000000e+00, 0.0000000000000000e+00,
+            3.5607541452633068e-05, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+            0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+            0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+            0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+            0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+            0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 1.1869180484211024e-05,
+            0.0000000000000000e+00
+        };
+        success = tester.ode->initial_conditions(x_0.data());
+        ASSERT_APPROX_ARRAY(x_0.data(), x_0_expected.data(), 32+4, 1e-15);
+        ASSERT_TRUE(success);
+
+        tester.ode->cpar->enable_evaporation = true;
+        tester.ode->cpar->P_amb = 0.0;
+        tester.ode->cpar->R_E = 100.0e-6;
+        success = tester.ode->initial_conditions(x_0.data());
+        ASSERT_FALSE(success);
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 1);
+        ErrorHandler::clear_errors();
+    );
 
     ADD_TEST(tester, "Test init() error",
         ErrorHandler::clear_errors(); 

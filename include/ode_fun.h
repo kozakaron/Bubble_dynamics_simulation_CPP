@@ -4,6 +4,12 @@
 #include "parameters.h"
 #include "control_parameters.h"
 
+// Calculate the vapour pressure of water [Pa] as a function of temperature [K]
+double vapour_pressure(const double T);
+
+// Calculate the dynamic viscosity of water [Pa*s] as a function of temperature [K] (Pressure dependence is neglected)
+double viscosity(const double T);
+
 class ODE
 {
 #if defined TEST || defined BENCHMARK
@@ -76,6 +82,10 @@ public:
     ODE();
     ~ODE();
     is_success init(const cpar_t& cpar);
+    // Calculates the initial condition of the bubble from the control parameters.
+    is_success initial_conditions(
+        double* x
+    ) ; //noexcept
     is_success operator()(   // <----- CALL OPERATOR
         const double t,
         const double* x,

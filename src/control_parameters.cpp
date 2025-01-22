@@ -9,10 +9,9 @@ ControlParameters::ControlParameters():
     mechanism(Parameters::mechanism::chemkin_otomo2018),
     error_ID(ErrorHandler::no_error),
     R_E(10.0e-06),
-    ratio(1.00),
     species(nullptr),
     fractions(nullptr),
-    n_species(0),
+    num_initial_species(0),
     P_amb(101325.00),
     T_inf(293.15),
     alfa_M(0.3500),
@@ -88,7 +87,7 @@ void ControlParameters::set_species(const std::initializer_list<index_t> species
     if (this->fractions != nullptr) delete[] this->fractions;
     this->species = new index_t[species_list.size()];
     this->fractions = new double[fractions_list.size()];
-    this->n_species = species_list.size();
+    this->num_initial_species = species_list.size();
 
     std::copy(species_list.begin(), species_list.end(), species);
     std::copy(fractions_list.begin(), fractions_list.end(), fractions);
@@ -117,8 +116,7 @@ void ControlParameters::copy(const ControlParameters& cpar)
     this->ID = cpar.ID;
     this->mechanism = cpar.mechanism;
     this->R_E = cpar.R_E;
-    this->ratio = cpar.ratio;
-    this->n_species = cpar.n_species;
+    this->num_initial_species = cpar.num_initial_species;
     this->P_amb = cpar.P_amb;
     this->T_inf = cpar.T_inf;
     this->alfa_M = cpar.alfa_M;
@@ -137,12 +135,12 @@ void ControlParameters::copy(const ControlParameters& cpar)
     if (this->fractions != nullptr) delete[] this->fractions;
     if (this->excitation_params != nullptr) delete[] this->excitation_params;
 
-    this->species = new index_t[cpar.n_species];
-    this->fractions = new double[cpar.n_species];
+    this->species = new index_t[cpar.num_initial_species];
+    this->fractions = new double[cpar.num_initial_species];
     this->excitation_params = new double[Parameters::excitation_arg_nums[cpar.excitation_type]];
 
-    std::copy(cpar.species, cpar.species + cpar.n_species, this->species);
-    std::copy(cpar.fractions, cpar.fractions + cpar.n_species, this->fractions);
+    std::copy(cpar.species, cpar.species + cpar.num_initial_species, this->species);
+    std::copy(cpar.fractions, cpar.fractions + cpar.num_initial_species, this->fractions);
     std::copy(cpar.excitation_params, cpar.excitation_params + Parameters::excitation_arg_nums[cpar.excitation_type], this->excitation_params);
     this->excitation_type = cpar.excitation_type;
 }

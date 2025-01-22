@@ -119,7 +119,6 @@ void test_par_cpar()
     cpar.mechanism = Parameters::mechanism::chemkin_otomo2018;
     // Initial conditions:
     cpar.R_E = 10e-6;
-    cpar.ratio = 1.0;
     cpar.set_species({par->get_species("H2"), par->get_species("N2")}, {0.75, 0.25});
     // Ambient parameters:
     cpar.P_amb = 101325.0;
@@ -164,7 +163,7 @@ void test_par_cpar()
         // set_species()
         cpar.ID = 1;
         cpar.set_species({par->get_species("H2"), par->get_species("N2"), par->get_species("NH3")}, {0.5, 0.3, 0.2});
-        ASSERT_EQUAL(cpar.n_species, 3);
+        ASSERT_EQUAL(cpar.num_initial_species, 3);
         ASSERT_EQUAL(cpar.species[0], par->get_species("H2"));
         ASSERT_EQUAL(cpar.species[1], par->get_species("N2"));
         ASSERT_EQUAL(cpar.species[2], par->get_species("NH3"));
@@ -183,7 +182,7 @@ void test_par_cpar()
         cpar_t cpar_copy;
         cpar_copy.copy(cpar);
         ASSERT_EQUAL(cpar_copy.ID, 1);
-        ASSERT_EQUAL(cpar_copy.n_species, 3);
+        ASSERT_EQUAL(cpar_copy.num_initial_species, 3);
         ASSERT_EQUAL(cpar_copy.species[0], par->get_species("H2"));
         ASSERT_EQUAL(cpar_copy.species[1], par->get_species("N2"));
         ASSERT_EQUAL(cpar_copy.species[2], par->get_species("NH3"));

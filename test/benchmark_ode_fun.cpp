@@ -23,7 +23,6 @@ void benchmark_ode_fun()
         cpar.mechanism = Parameters::mechanism::chemkin_otomo2018;
         // Initial conditions:
         cpar.R_E = 10e-6;
-        cpar.ratio = 1.0;
         cpar.set_species({par->get_species("H2"), par->get_species("N2")}, {0.75, 0.25});
         // Ambient parameters:
         cpar.P_amb = 101325.0;
@@ -109,7 +108,6 @@ void benchmark_ode_fun()
         cpar.mechanism = Parameters::mechanism::chemkin_ar_he;
         // Initial conditions:
         cpar.R_E = 10e-6;
-        cpar.ratio = 1.0;
         cpar.set_species({par->get_species("O2")}, {1.0});
         // Ambient parameters:
         cpar.P_amb = 101325.0;
