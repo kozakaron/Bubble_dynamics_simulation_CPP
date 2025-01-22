@@ -8,6 +8,19 @@
 #include "ode_fun.h"
 
 
+double vapour_pressure(const double T)
+{
+    double T_C = T - 273.15; // [°C]
+    return 611.21 * std::exp( (18.678 - T_C / 234.5) * (T_C / (257.14 + T_C)) ); // [Pa]
+}
+
+
+double viscosity(const double T)
+{
+    return 1.856e-14 * std::exp(4209.0/T + 0.04527*T - 3.376e-5*T*T); // [Pa*s]
+}
+
+
 ODE::ODE():
     par(nullptr),
     cpar(nullptr),
@@ -161,12 +174,52 @@ is_success ODE::init(const cpar_t& cpar)
 }
 
 
+is_success ODE::initial_conditions(
+    double* x
+) //noexcept
+{
+// Equilibrium state
+    const double p_E = cpar->P_amb + 2.0 * cpar->surfactant * par->sigma / cpar->R_E;   // [Pa]
+    const double V_E = 4.0 / 3.0 * M_PI * cpar->R_E * cpar->R_E * cpar->R_E;    // [m^3]
+    const double p_gas = cpar->enable_evaporation ? p_E - cpar->P_v : p_E;   // [Pa]
+    const double n_gas = p_gas * V_E / (par->R_g * cpar->T_inf);    // [mol]
+    const double n_H2O = cpar->enable_evaporation ? cpar->P_v * V_E / (par->R_g * cpar->T_inf) : 0.0;   // [mol]
+    const double c_gas = n_gas / V_E;   // [mol/m^3]
+    const double c_H2O = n_H2O / V_E;   // [mol/m^3]
+    
+// Initial conditions
+    x[0] = cpar->R_E;   // R_0 [m]
+    x[1] = 0.0;         // R_dot_0 [m/s]
+    x[2] = cpar->T_inf; // T_0 [K]
+    for (index_t k = 0; k < par->num_species; ++k)
+    {
+        x[3+k] = 0.0;  // c_k_0 [mol/cm^3]
+    }
+    x[3+par->num_species] = 0.0;   // dissipated energy [J]
+    x[3+par->index_of_water] = cpar->enable_evaporation ? 1.0e-6 * c_H2O : 0.0; // c_H2O_0 [mol/cm^3]
+    for (index_t k = 0; k < cpar->num_initial_species; ++k)
+    {
+        index_t index = cpar->species[k];
+        x[3+index] = 1.0e-6 * cpar->fractions[k] * c_gas;   // c_k_0 [mol/cm^3]
+    }
+
+// Errors
+    if (p_gas < 0.0)
+    {
+        this->error_ID = LOG_ERROR("Negative gas pressure: " + std::to_string(p_gas), cpar->ID);
+        return false;
+    }
+    return true;
+}
+
+
 std::pair<double, double> ODE::pressures(
     const double t,
     const double R,
     const double R_dot,
     const double p,
-    const double p_dot) //noexcept
+    const double p_dot
+) //noexcept
 {
     double p_Inf, p_Inf_dot;
     switch (cpar->excitation_type)
