@@ -28,7 +28,7 @@ template <typename T>
 std::string to_string(T* arr, size_t len);
 
 template <typename T>
-std::string to_string(T* arr, size_t len1, size_t len2);
+std::string to_string(T** arr, size_t len1, size_t len2);
 
 // Timer class for benchmarking
 class Timer

@@ -4,7 +4,6 @@
 #include "test_list.h"
 #include "ode_solver.h"
 
-
 using namespace std;
 
 int main(int argc, char **argv)
@@ -17,6 +16,7 @@ int main(int argc, char **argv)
     testing::test_par_cpar();
     testing::test_ode_fun_otomo2018();
     testing::test_ode_fun_ar_he();
+    testing::test_RKCK45();
     testing::print_test_summary();
 #endif  // TEST
 

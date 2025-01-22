@@ -10,6 +10,7 @@ void test_common();
 void test_par_cpar();
 void test_ode_fun_otomo2018();
 void test_ode_fun_ar_he();
+void test_RKCK45();
 
 
 void print_test_summary();

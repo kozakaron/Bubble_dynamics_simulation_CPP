@@ -70,6 +70,7 @@ is_success ODE::check_before_call()
     return true;
 }
 
+
 is_success ODE::check_after_call(
     const double t,
     const double* x,
