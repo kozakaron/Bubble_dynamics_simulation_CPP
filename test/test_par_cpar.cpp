@@ -1,6 +1,4 @@
 #ifdef TEST
-#ifndef TEST_PAR_CPAR_H
-#define TEST_PAR_CPAR_H
 
 #include "common.h"
 #include "parameters.h"
@@ -223,5 +221,4 @@ void test_par_cpar()
 
 }   // namespace testing
 
-#endif  // TEST_PAR_CPAR_H
 #endif  // TEST

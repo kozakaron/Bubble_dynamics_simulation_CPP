@@ -1,6 +1,4 @@
 #ifdef TEST
-#ifndef TEST_ODE_FUN_H
-#define TEST_ODE_FUN_H
 #include <array>
 
 #include "common.h"
@@ -59,5 +57,4 @@ void test_RKCK45()
 
 }   // namespace testing
 
-#endif // TEST_ODE_FUN_H
 #endif // TEST

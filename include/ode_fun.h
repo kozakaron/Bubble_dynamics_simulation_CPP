@@ -10,19 +10,20 @@ double vapour_pressure(const double T);
 // Calculate the dynamic viscosity of water [Pa*s] as a function of temperature [K] (Pressure dependence is neglected)
 double viscosity(const double T);
 
-class ODE
+class OdeFun
 {
-#if defined TEST || defined BENCHMARK
 public:
-#else
-private:
-#endif
 // Members
     // generic
     const Parameters* par;              // reaction mechanism
     cpar_t* cpar;                       // control parameters
     size_t error_ID;                    // ID of error in ErrorHandler (ErrorHandler::no_error if no error occured)
     size_t num_species;                 // number of species (to check if init was called properly)
+#if defined TEST || defined BENCHMARK
+public:
+#else
+private:
+#endif
     // evaporation
     double C_v_inf;                     // molar heat capacity at constant volume of ambient temperature [erg/mol/K]
     // thermodynamic
@@ -79,8 +80,8 @@ private:
     ) ; //noexcept
 
 public:
-    ODE();
-    ~ODE();
+    OdeFun();
+    ~OdeFun();
     is_success init(const cpar_t& cpar);
     // Calculates the initial condition of the bubble from the control parameters.
     is_success initial_conditions(
@@ -105,6 +106,6 @@ private:
         double* dxdt
     );
 
-};  // class ODE
+};  // class OdeFun
 
 #endif // ODE_FUN_H

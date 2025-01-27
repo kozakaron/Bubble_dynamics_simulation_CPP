@@ -133,7 +133,7 @@ OdeSolver::OdeSolver(
     const double abs_tol,
     const double dt_min,
     const double dt_max
-): 
+):
     error_ID(nullptr),
     x(nullptr),
     x_new(nullptr),
@@ -346,6 +346,7 @@ RKCK45::~RKCK45()
         if (this->k[i] != nullptr) delete[] this->k[i];
     }
     delete[] this->k;
+
     if (this->x_stage != nullptr) delete[] this->x_stage;
 }
 
