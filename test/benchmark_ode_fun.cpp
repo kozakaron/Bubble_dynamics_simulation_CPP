@@ -1,6 +1,4 @@
 #ifdef BENCHMARK
-#ifndef BENCHMARK_ODE_FUN_H
-#define BENCHMARK_ODE_FUN_H
 
 #include "common.h"
 #include "parameters.h"
@@ -15,7 +13,7 @@ void benchmark_ode_fun()
     std::cout << colors::bold << "OdeFun() with chemkin_otomo2018 (32 species, 213 reactions)" << colors::reset << std::endl;
     {
     // Set up control parameters
-        ODE ode = ODE();
+        OdeFun ode = OdeFun();
         cpar_t cpar;
         const Parameters *par = Parameters::get_parameters(Parameters::mechanism::chemkin_otomo2018);
 
@@ -100,7 +98,7 @@ void benchmark_ode_fun()
     std::cout << colors::bold << "OdeFun() with chemkin_ar_he (12 species, 30 reactions)" << colors::reset << std::endl;
     {
 // Set up control parameters
-        ODE ode = ODE();
+        OdeFun ode = OdeFun();
         cpar_t cpar;
         const Parameters *par = Parameters::get_parameters(Parameters::mechanism::chemkin_otomo2018);
 
@@ -177,5 +175,4 @@ void benchmark_ode_fun()
     }
 }
 
-#endif // BENCHMARK_ODE_FUN_H
 #endif // BENCHMARK

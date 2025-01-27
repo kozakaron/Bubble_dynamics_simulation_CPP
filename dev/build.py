@@ -29,13 +29,13 @@ output_binary = 'main'
 # Other settings
 compiler = 'clang++'
 compiler_flags = [
-    '-std=c++17',              # Use the C++17 standard
+    '-std=c++20',              # Use the C++17 standard
     '-march=native',           # Enable all instruction set extensions supported by the CPU
     '-ftree-vectorize',        # Enable tree vectorization
     #'-fvectorize',             # Enable auto-vectorization (only for clang)
     '-pedantic',               # Enforce strict standard compliance
     #'-funroll-loops',          # Enable loop unrolling
-    '-mlong-double-80',        # Use 80-bit long double. You may also try with -128, however it is less likely to work.
+    #'-mlong-double-80',        # Use 80-bit long double. You may also try with -128, however it is less likely to work. Fails with clang++ on win11 with c++20
 # Error handling flags: slight performance boost, harder error identification, might cause unexpected behavior
     #'-fno-exceptions',         # Disable exception handling
     #'-fno-math-errno',         # Do not set errno after math library functions
@@ -46,7 +46,6 @@ linker_flags = [
     #'-Wl,-O2',                # Linker optimization
 ]
 common_flags = [
-    #'-v',                     # Verbose output
 # Sanitizers: help identify issues in runtime, performance overhead
     '-fsanitize=address',     # Protect against memory errors (a.g. use after free)
     '-fsanitize=undefined',   # Protect against undefined behavior (e.g. integer overflow, invalid type casts)

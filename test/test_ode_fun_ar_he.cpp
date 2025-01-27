@@ -1,6 +1,4 @@
 #ifdef TEST
-#ifndef TEST_ODE_FUN_H
-#define TEST_ODE_FUN_H
 #include <cfloat>
 
 #include "common.h"
@@ -19,7 +17,7 @@ using std::array;
 class OdeFunTester_ar_he : public testing::Tester
 {
 public:
-    ODE *ode;
+    OdeFun *ode;
     cpar_t* cpar;
     const Parameters *par;
 
@@ -29,8 +27,8 @@ public:
     {
         ErrorHandler::print_when_log = false;
         ErrorHandler::clear_errors();
-        // Set up the ODE object
-        ode = new ODE();
+        // Set up the OdeFun object
+        ode = new OdeFun();
         cpar = new cpar_t();
         par = Parameters::get_parameters(Parameters::mechanism::chemkin_ar_he);
 
@@ -59,7 +57,7 @@ public:
         cpar->excitation_type = Parameters::excitation::sin_impulse;
         cpar->set_excitation_params({-2.0e5, 30000.0, 1.0});
 
-        // Init the ODE object
+        // Init the OdeFun object
         (void)ode->init(*cpar);
     }
 
@@ -74,7 +72,7 @@ public:
 
 void test_ode_fun_ar_he()
 {
-    OdeFunTester_ar_he tester = OdeFunTester_ar_he("Test ode_fun_cpp.h's ODE class with chemkin_ar_he");
+    OdeFunTester_ar_he tester = OdeFunTester_ar_he("Test ode_fun_cpp.h's OdeFun class with chemkin_ar_he");
 
     const double t = 2.5255799280947053e-05;
     array<double, 12+4> x = {
@@ -141,5 +139,4 @@ void test_ode_fun_ar_he()
 
 }   // namespace testing
 
-#endif // TEST_ODE_FUN_H
 #endif // TEST

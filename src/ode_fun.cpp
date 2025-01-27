@@ -1,8 +1,7 @@
-#define _USE_MATH_DEFINES
-#include <cmath>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <numbers>
 
 #include "common.h"
 #include "ode_fun.h"
@@ -21,7 +20,7 @@ double viscosity(const double T)
 }
 
 
-ODE::ODE():
+OdeFun::OdeFun():
     par(nullptr),
     cpar(nullptr),
     error_ID(ErrorHandler::no_error),
@@ -38,13 +37,13 @@ ODE::ODE():
 { }
 
 
-ODE::~ODE()
+OdeFun::~OdeFun()
 {
     this->delete_memory();
 }
 
 
-void ODE::delete_memory()
+void OdeFun::delete_memory()
 {
     if (this->cpar != nullptr)       delete this->cpar;
     if (this->C_p != nullptr)        delete[] this->C_p;
@@ -56,9 +55,20 @@ void ODE::delete_memory()
     if (this->k_backward != nullptr) delete[] this->k_backward;
     if (this->net_rates != nullptr)  delete[] this->net_rates;
     if (this->omega_dot != nullptr)  delete[] this->omega_dot;
+
+    this->cpar = nullptr;
+    this->C_p = nullptr;
+    this->H = nullptr;
+    this->S = nullptr;
+    this->C_v = nullptr;
+    this->M_eff = nullptr;
+    this->k_forward = nullptr;
+    this->k_backward = nullptr;
+    this->net_rates = nullptr;
+    this->omega_dot = nullptr;
 }
 
-is_success ODE::check_before_call()
+is_success OdeFun::check_before_call()
 {
     if (this->error_ID != ErrorHandler::no_error)
     {
@@ -66,7 +76,7 @@ is_success ODE::check_before_call()
     }
     else if (this->par == nullptr || this->cpar == nullptr || this->omega_dot == nullptr)
     {
-        this->error_ID = LOG_ERROR("Arrays/par/cpar were nullptr. Forgot to call ODE::init()?", 0);
+        this->error_ID = LOG_ERROR("Arrays/par/cpar were nullptr. Forgot to call OdeFun::init()?", 0);
         return false;
     }
     else if(this->cpar->error_ID != ErrorHandler::no_error)
@@ -77,14 +87,14 @@ is_success ODE::check_before_call()
     else if (this->num_species != this->par->num_species)
     {
         this->error_ID = LOG_ERROR("Invalid array lengths. Expected num_species=" + std::to_string(this->par->num_species) +\
-                                   ", arrays are initialized with size " + std::to_string(this->num_species) + " instead. Forgot to call ODE::init()?", 0);
+                                   ", arrays are initialized with size " + std::to_string(this->num_species) + " instead. Forgot to call OdeFun::init()?", 0);
         return false;
     }
     return true;
 }
 
 
-is_success ODE::check_after_call(
+is_success OdeFun::check_after_call(
     const double t,
     const double* x,
     double* dxdt
@@ -116,7 +126,7 @@ is_success ODE::check_after_call(
 }
 
 
-is_success ODE::init(const cpar_t& cpar)
+is_success OdeFun::init(const cpar_t& cpar)
 {
     const Parameters *old_par = this->par;
     this->par = Parameters::get_parameters(cpar.mechanism);
@@ -174,13 +184,13 @@ is_success ODE::init(const cpar_t& cpar)
 }
 
 
-is_success ODE::initial_conditions(
+is_success OdeFun::initial_conditions(
     double* x
 ) //noexcept
 {
 // Equilibrium state
     const double p_E = cpar->P_amb + 2.0 * cpar->surfactant * par->sigma / cpar->R_E;   // [Pa]
-    const double V_E = 4.0 / 3.0 * M_PI * cpar->R_E * cpar->R_E * cpar->R_E;    // [m^3]
+    const double V_E = 4.0 / 3.0 * std::numbers::pi * cpar->R_E * cpar->R_E * cpar->R_E;    // [m^3]
     const double p_gas = cpar->enable_evaporation ? p_E - cpar->P_v : p_E;   // [Pa]
     const double n_gas = p_gas * V_E / (par->R_g * cpar->T_inf);    // [mol]
     const double n_H2O = cpar->enable_evaporation ? cpar->P_v * V_E / (par->R_g * cpar->T_inf) : 0.0;   // [mol]
@@ -213,7 +223,7 @@ is_success ODE::initial_conditions(
 }
 
 
-std::pair<double, double> ODE::pressures(
+std::pair<double, double> OdeFun::pressures(
     const double t,
     const double R,
     const double R_dot,
@@ -232,8 +242,8 @@ std::pair<double, double> ODE::pressures(
             double freq2 = cpar->excitation_params[3];
             double theta_phase = cpar->excitation_params[4];
 
-            p_Inf = cpar->P_amb + p_A1 * sin(2.0 * M_PI * freq1 * t) + p_A2 * sin(2.0 * M_PI * freq2 * t + theta_phase);
-            p_Inf_dot = 2.0 * M_PI * (p_A1 * freq1 * cos(2.0 * M_PI * freq1 * t) + p_A2 * freq2 * cos(2.0 * M_PI * freq2 * t + theta_phase));
+            p_Inf = cpar->P_amb + p_A1 * sin(2.0 * std::numbers::pi * freq1 * t) + p_A2 * sin(2.0 * std::numbers::pi * freq2 * t + theta_phase);
+            p_Inf_dot = 2.0 * std::numbers::pi * (p_A1 * freq1 * cos(2.0 * std::numbers::pi * freq1 * t) + p_A2 * freq2 * cos(2.0 * std::numbers::pi * freq2 * t + theta_phase));
             break;
         }
     case Parameters::excitation::sin_impulse:
@@ -249,7 +259,7 @@ std::pair<double, double> ODE::pressures(
             }
             else
             {
-                double insin = 2.0 * M_PI * freq;
+                double insin = 2.0 * std::numbers::pi * freq;
                 p_Inf = cpar->P_amb + p_A * sin(insin * t);
                 p_Inf_dot = p_A * insin * cos(insin * t);
             }
@@ -268,7 +278,7 @@ std::pair<double, double> ODE::pressures(
             }
             else
             {
-                double insin = 2.0 * M_PI * freq;
+                double insin = 2.0 * std::numbers::pi * freq;
                 p_Inf = cpar->P_amb + p_A * sin(insin * t);
                 p_Inf_dot = p_A * insin * cos(insin * t);
             }
@@ -291,7 +301,7 @@ std::pair<double, double> ODE::pressures(
 }
 
 
-void ODE::thermodynamic(
+void OdeFun::thermodynamic(
     const double T
 ) //noexcept
 {
@@ -330,7 +340,7 @@ void ODE::thermodynamic(
 }
 
 
-std::pair<double, double> ODE::evaporation(
+std::pair<double, double> OdeFun::evaporation(
     const double p,
     const double T,
     const double X_H2O
@@ -338,8 +348,8 @@ std::pair<double, double> ODE::evaporation(
 {
 // condensation and evaporation
     double p_H2O = p * X_H2O;
-    double n_eva_dot = 1.0e3 * cpar->alfa_M * par->P_v / (par->W[par->index_of_water] * std::sqrt(2.0 * M_PI * par->R_v * cpar->T_inf));
-    double n_con_dot = 1.0e3 * cpar->alfa_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * M_PI * par->R_v * T));
+    double n_eva_dot = 1.0e3 * cpar->alfa_M * par->P_v / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * cpar->T_inf));
+    double n_con_dot = 1.0e3 * cpar->alfa_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
     double n_net_dot = n_eva_dot - n_con_dot;
 // Molar heat capacity of water at constant volume (isochoric) [J/mol/K]
     // get coefficients for T
@@ -369,7 +379,7 @@ std::pair<double, double> ODE::evaporation(
 }
 
 
-void ODE::forward_rate(
+void OdeFun::forward_rate(
     const double T,
     const double M,
     const double p
@@ -482,7 +492,7 @@ void ODE::forward_rate(
 }
 
 
-void ODE::backward_rate(
+void OdeFun::backward_rate(
     const double T
 ) //noexcept 
 {
@@ -499,6 +509,15 @@ void ODE::backward_rate(
             Delta_H += nu * this->H[nu_index];
         }
         // TODO: fix long double overflow thing
+        /*double DeltaS = 1065275813.332756, DeltaH = 9435227340892.568;
+        double K_c = 0.0, T = 150.982469, P_amb = 101325.0, k_forward = 0.0;
+
+        double K_p = exp(DeltaS / Parameters::R_erg - DeltaH / (Parameters::R_erg * T));    // K_p is very small
+        K_c = K_p * pow(P_amb * 10.0 / (Parameters::R_erg * T), 1);    // K_c is zero
+        K_c += (K_c == 0.0) * (k_forward / 1.0e308);
+        double k_backward = k_forward / K_c;    // error???
+        cout << "K_p = " << K_p << ";   K_c = " << K_c << endl;
+        cout << "k_backward = " << k_backward << endl;*/
         /*long*/ double K_p = std::exp(Delta_S / par->R_erg - Delta_H / (par->R_erg * T));
         /*long*/ double K_c = K_p * std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), par->sum_nu[index]);
         this->k_backward[index] = /*static_cast<double>*/(this->k_forward[index] / K_c);
@@ -511,7 +530,7 @@ void ODE::backward_rate(
 }
 
 
-void ODE::production_rate(
+void OdeFun::production_rate(
     const double T,
     const double M,
     const double p,
@@ -574,7 +593,7 @@ void ODE::production_rate(
 }
 
 
-is_success ODE::operator()(
+is_success OdeFun::operator()(
         const double t,
         const double* x,
         double* dxdt
@@ -624,7 +643,7 @@ is_success ODE::operator()(
         {
             l_th = std::sqrt(R * chi_avg / std::abs(R_dot));
         }
-        l_th = std::min(l_th, R * M_1_PI);
+        l_th = std::min(l_th, R * std::numbers::inv_pi);
         Q_th_dot = lambda_avg * (cpar->T_inf - T) / l_th;
     }
 
@@ -681,10 +700,10 @@ is_success ODE::operator()(
 // Dissipated energy
     if (cpar->enable_dissipated_energy)
     {
-        const double V_dot = 4.0 * R * R * R_dot * M_PI;
+        const double V_dot = 4.0 * R * R * R_dot * std::numbers::pi;
         const double integrand_th = -(p * (1 + R_dot / cpar->c_L) + R / cpar->c_L * p_dot) * V_dot;
-        const double integrand_v = 16.0 * M_PI * cpar->mu_L * (R * R_dot*R_dot + R * R * R_dot * dxdt[1] / cpar->c_L);
-        const double integrand_r = 4.0 * M_PI / cpar->c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar->rho_L * R_dot * R_dot * R_dot - cpar->rho_L * R * R_dot * dxdt[1]);
+        const double integrand_v = 16.0 * std::numbers::pi * cpar->mu_L * (R * R_dot*R_dot + R * R * R_dot * dxdt[1] / cpar->c_L);
+        const double integrand_r = 4.0 * std::numbers::pi / cpar->c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar->rho_L * R_dot * R_dot * R_dot - cpar->rho_L * R * R_dot * dxdt[1]);
 
         dxdt[par->num_species+3] = integrand_th + integrand_v + integrand_r;
     } else {

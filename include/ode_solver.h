@@ -86,7 +86,7 @@ public:
         const double t_int_1,
         const double *x_0,
         const size_t num_dim,
-        const OdeFun_t& ode_fun,
+        const OdeFun_t& ode_fun,    // use this for function objects: auto ode_fun = [&ode](const double t, const double *x, double *dxdt) -> is_success { return ode(t, x, dxdt); };
         size_t *error_ID,
         double timeout=1.0e30,
         bool save_solution=false
