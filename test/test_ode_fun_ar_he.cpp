@@ -17,8 +17,8 @@ using std::array;
 class OdeFunTester_ar_he : public testing::Tester
 {
 public:
-    OdeFun *ode;
-    cpar_t* cpar;
+    OdeFun ode;
+    cpar_t cpar;
     const Parameters *par;
 
     OdeFunTester_ar_he(std::string test_group_name): testing::Tester(test_group_name) {}
@@ -28,45 +28,38 @@ public:
         ErrorHandler::print_when_log = false;
         ErrorHandler::clear_errors();
         // Set up the OdeFun object
-        ode = new OdeFun();
-        cpar = new cpar_t();
         par = Parameters::get_parameters(Parameters::mechanism::chemkin_ar_he);
-
-        cpar->ID = 0;
-        cpar->mechanism = Parameters::mechanism::chemkin_ar_he;
-        // Initial conditions:
-        cpar->R_E = 10e-6;
-        cpar->set_species({par->get_species("O2")}, {1.0});
-        // Ambient parameters:
-        cpar->P_amb = 101325.0;
-        cpar->T_inf = 293.15;
-        // Liquid parameters:
-        cpar->alfa_M = 0.35;
-        cpar->P_v = 2338.1;
-        cpar->mu_L = 0.001;
-        cpar->rho_L = 998.2;
-        cpar->c_L = 1483.0;
-        cpar->surfactant = 1.0;
-        // Simulation settings:
-        cpar->enable_heat_transfer = true;
-        cpar->enable_evaporation = true;
-        cpar->enable_reactions = true;
-        cpar->enable_dissipated_energy = true;
-        cpar->target_specie = par->get_species("H2");
-        // Excitation parameters:
-        cpar->excitation_type = Parameters::excitation::sin_impulse;
-        cpar->set_excitation_params({-2.0e5, 30000.0, 1.0});
-
+        (void)par;
+        cpar = cpar_t(ControlParameters::Builder{
+            .ID                          = 0,
+            .mechanism                   = Parameters::mechanism::chemkin_ar_he,
+            .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
+            .species                     = {"O2"},
+            .fractions                   = {1.00000000000000000e+00},
+            .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]
+            .T_inf                       = 2.93149999999999977e+02,    // ambient temperature [K]
+            .alfa_M                      = 3.49999999999999978e-01,    // water accommodation coefficient [-]
+            .P_v                         = 2.33809999999999991e+03,    // vapour pressure [Pa]
+            .mu_L                        = 1.00000000000000002e-03,    // dynamic viscosity [Pa*s]
+            .rho_L                       = 9.98200000000000045e+02,    // liquid density [kg/m^3]
+            .c_L                         = 1.48300000000000000e+03,    // sound speed [m/s]
+            .surfactant                  = 1.00000000000000000e+00,    // surface tension modifier [-]
+            .enable_heat_transfer        = true,
+            .enable_evaporation          = true,
+            .enable_reactions            = true,
+            .enable_dissipated_energy    = true,
+            .target_specie               = "H2",
+            .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04, 1.00000000000000000e+00},
+            .excitation_type             = Parameters::excitation::sin_impulse
+        });
         // Init the OdeFun object
-        (void)ode->init(*cpar);
+        (void)ode.init(cpar);
     }
 
     void tear_down() override
     {
         if (ErrorHandler::get_error_count() != 0) ErrorHandler::print_errors();
         ErrorHandler::clear_errors();
-        delete ode;
-        delete cpar;
     }
 };
 
@@ -105,13 +98,13 @@ void test_ode_fun_ar_he()
             4.9235108340222642e+07,  0.0000000000000000e+00, -2.5033468715366870e+07, -1.2422430271871166e+07,  0.0000000000000000e+00,
             0.0000000000000000e+00, -5.6423258621030436e+02
         };
-        std::copy(S.begin(), S.end(), tester.ode->S);
-        std::copy(H.begin(), H.end(), tester.ode->H);
+        std::copy(S.begin(), S.end(), tester.ode.S);
+        std::copy(H.begin(), H.end(), tester.ode.H);
 
 
-        tester.ode->production_rate(T, M, p, x.data()+3);
-        ASSERT_APPROX_ARRAY(tester.ode->M_eff, M_eff_expected, tester.par->num_third_bodies, 1e-15);
-        ASSERT_APPROX_ARRAY(tester.ode->omega_dot, omega_dot_expected, tester.par->num_species, 1e-12);
+        tester.ode.production_rate(T, M, p, x.data()+3);
+        ASSERT_APPROX_ARRAY(tester.ode.M_eff, M_eff_expected, tester.par->num_third_bodies, 1e-15);
+        ASSERT_APPROX_ARRAY(tester.ode.omega_dot, omega_dot_expected, tester.par->num_species, 1e-12);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
    
     );
@@ -123,12 +116,12 @@ void test_ode_fun_ar_he()
             -2.5032582456895296e+07, -1.2422000517616974e+07,  0.0000000000000000e+00,  0.0000000000000000e+00, -5.6422699594115375e+02,
             6.9861519420936070e-04
         };
-        tester.ode->cpar->enable_heat_transfer = true;
-        tester.ode->cpar->enable_evaporation = true;
-        tester.ode->cpar->enable_reactions = true;
-        tester.ode->cpar->enable_dissipated_energy = true;
+        tester.ode.cpar.enable_heat_transfer = true;
+        tester.ode.cpar.enable_evaporation = true;
+        tester.ode.cpar.enable_reactions = true;
+        tester.ode.cpar.enable_dissipated_energy = true;
 
-        const bool success = tester.ode->operator()(t, (const double*)x.data(), (double*)dxdt.data());
+        const bool success = tester.ode.operator()(t, (const double*)x.data(), (double*)dxdt.data());
         ASSERT_APPROX_ARRAY(dxdt, dxdt_expected, tester.par->num_species+4, 1e-10);
         ASSERT_TRUE(success);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);

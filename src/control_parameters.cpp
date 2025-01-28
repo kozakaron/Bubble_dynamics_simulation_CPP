@@ -4,45 +4,91 @@
 #include "control_parameters.h"
 
 
-ControlParameters::ControlParameters():
-    ID(0),
-    mechanism(Parameters::mechanism::chemkin_otomo2018),
-    error_ID(ErrorHandler::no_error),
-    R_E(10.0e-06),
-    species(nullptr),
-    fractions(nullptr),
-    num_initial_species(0),
-    P_amb(101325.00),
-    T_inf(293.15),
-    alfa_M(0.3500),
-    P_v(2338.10),
-    mu_L(0.001000),
-    rho_L(998.20),
-    c_L(1483.00),
-    surfactant(1.00),
-    enable_heat_transfer(true),
-    enable_evaporation(true),
-    enable_reactions(true),
-    enable_dissipated_energy(true),
-    excitation_params(nullptr)
+ControlParameters::ControlParameters()
 {
-    const Parameters* par = Parameters::get_parameters(Parameters::mechanism::chemkin_otomo2018);
-    this->target_specie = par->get_species("NH3");
-    this->set_species({par->get_species("H2"), par->get_species("N2")}, {0.75, 0.25});
-    this->excitation_type = Parameters::excitation::sin_impulse;
-    this->set_excitation_params({-2.0e5, 30000.0, 1.0});
+    ControlParameters::Builder builder; // with default values
+    this->init(builder);
 }
 
 
-ControlParameters::~ControlParameters()
+ControlParameters::ControlParameters(const Builder& builder)
 {
-    if (this->species != nullptr)           delete[] this->species;
-    if (this->fractions != nullptr)         delete[] this->fractions;
-    if (this->excitation_params != nullptr) delete[] this->excitation_params;
+    this->init(builder);
 }
 
 
-void ControlParameters::set_species(const std::initializer_list<index_t> species_list, const std::initializer_list<double> fractions_list)
+void ControlParameters::init(const ControlParameters::Builder& builder)
+{
+    const Parameters* par = Parameters::get_parameters(builder.mechanism);
+    if (par == nullptr)
+    {
+        this->error_ID = LOG_ERROR("Invalid mechanism: " + std::to_string(builder.mechanism), builder.ID);
+        return;
+    }
+    this->ID = builder.ID;
+    this->mechanism = builder.mechanism;
+    this->error_ID = builder.error_ID;
+    this->R_E = builder.R_E;
+    this->P_amb = builder.P_amb;
+    this->T_inf = builder.T_inf;
+    this->alfa_M = builder.alfa_M;
+    this->P_v = builder.P_v;
+    this->mu_L = builder.mu_L;
+    this->rho_L = builder.rho_L;
+    this->c_L = builder.c_L;
+    this->surfactant = builder.surfactant;
+    this->enable_heat_transfer = builder.enable_heat_transfer;
+    this->enable_evaporation = builder.enable_evaporation;
+    this->enable_reactions = builder.enable_reactions;
+    this->enable_dissipated_energy = builder.enable_dissipated_energy;
+    this->target_specie = par->get_species(builder.target_specie);
+    this->excitation_type = builder.excitation_type;
+
+    if (this->target_specie == par->invalid_index)
+    {
+        this->error_ID = LOG_ERROR("Invalid target specie (" + builder.target_specie + ") for mechanism " + par->model, this->ID);
+        return;
+    }
+    this->num_initial_species = 0;
+    this->set_species(std::vector<std::string>(builder.species), std::vector<double>(builder.fractions));
+    this->set_excitation_params(std::vector<double>(builder.excitation_params));
+}
+
+
+ControlParameters::~ControlParameters() { }
+
+
+void ControlParameters::set_species(const std::vector<std::string> species_list, const std::vector<double> fractions_list)
+{
+    const Parameters* par = Parameters::get_parameters(this->mechanism);
+    if (par == nullptr)
+    {
+        this->error_ID = LOG_ERROR("Invalid mechanism: " + std::to_string(this->mechanism), this->ID);
+        return;
+    }
+
+    std::vector<index_t> species; species.reserve(species_list.size());
+    for (const auto& species_name: species_list)
+    {
+        index_t index = par->get_species(species_name);
+        if (index == par->invalid_index)
+        {
+            this->error_ID = LOG_ERROR("Invalid species (" + species_name + ") for mechanism " + par->model, this->ID);
+            return;
+        }
+        else if (index >= par->num_species)
+        {
+            this->error_ID = LOG_ERROR("Species index " + std::to_string(index) + " out of bound for mechanism " + par->model, this->ID);
+            return;
+        }
+        species.push_back(index);
+    }
+
+    this->set_species(species, fractions_list);
+}
+
+
+void ControlParameters::set_species(const std::vector<index_t>& species_list, const std::vector<double>& fractions_list)
 {
     const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
@@ -64,11 +110,18 @@ void ControlParameters::set_species(const std::initializer_list<index_t> species
     if (fractions_list.size() != species_list.size())
     {
         std::stringstream ss;
-        ss << "The number of species and fractions must be equal: species_list=[ ";
-        for (const auto& species: species_list) ss << species << " ";
-        ss << "], fractions_list=[ ";
-        for (const auto& fraction: fractions_list) ss << fraction << " ";
-        ss << "]";
+        ss << "The number of species and fractions must be equal: species_list=";
+        ss << ::to_string((index_t*)species_list.data(), species_list.size());
+        ss << ", fractions_list=";
+        ss << ::to_string((double*)fractions_list.data(), fractions_list.size());
+        this->error_ID = LOG_ERROR(ss.str(), this->ID);
+        return;
+    }
+    if (fractions_list.size() > ControlParameters::max_species)
+    {
+        std::stringstream ss;
+        ss << "Too many species: " << fractions_list.size() << " (" << ::to_string((index_t*)species_list.data(), species_list.size());
+        ss << ", " << ::to_string((double*)fractions_list.data(), fractions_list.size()) << "). Perhaps try to change ControlParameters::max_species.";
         this->error_ID = LOG_ERROR(ss.str(), this->ID);
         return;
     }
@@ -76,71 +129,109 @@ void ControlParameters::set_species(const std::initializer_list<index_t> species
     if (std::abs(sum_fraction - 1.0) > 1.0e-10)
     {
         std::stringstream ss;
-        ss << "The sum of fractions must be equal to 1.0, instead it is " << sum_fraction << ": fractions_list=[ ";
-        for (const auto& fraction: fractions_list) ss << fraction << " ";
+        ss << "The sum of fractions must be equal to 1.0, instead it is " << sum_fraction << ": fractions_list=";
+        ss << ::to_string((double*)fractions_list.data(), fractions_list.size());
         ss << "]";
         this->error_ID = LOG_ERROR(ss.str(), this->ID);
         return;
     }
 
-    if (this->species != nullptr) delete[] this->species;
-    if (this->fractions != nullptr) delete[] this->fractions;
-    this->species = new index_t[species_list.size()];
-    this->fractions = new double[fractions_list.size()];
     this->num_initial_species = species_list.size();
-
+    std::fill(this->species, this->species + ControlParameters::max_species, par->invalid_index);
+    std::fill(this->fractions, this->fractions + ControlParameters::max_species, 0.0);
     std::copy(species_list.begin(), species_list.end(), species);
     std::copy(fractions_list.begin(), fractions_list.end(), fractions);
 }
 
 
-void ControlParameters::set_excitation_params(const std::initializer_list<double> params_list)
+void ControlParameters::set_species(const std::initializer_list<std::string>& species_list, const std::initializer_list<double>& fractions_list)
+{
+    this->set_species(std::vector<std::string>(species_list), std::vector<double>(fractions_list));
+}
+
+void ControlParameters::set_species(const std::initializer_list<index_t>& species_list, const std::initializer_list<double>& fractions_list)
+{
+    this->set_species(std::vector<index_t>(species_list), std::vector<double>(fractions_list));
+}
+
+
+void ControlParameters::set_excitation_params(const std::initializer_list<double>& params_list)
+{
+    this->set_excitation_params(std::vector<double>(params_list));
+}
+
+void ControlParameters::set_excitation_params(const std::vector<double>& params_list)
 {
     if (params_list.size() != Parameters::excitation_arg_nums[this->excitation_type])
     {
         std::stringstream ss;
-        ss << "The number of excitation parameters must be equal to " << Parameters::excitation_arg_nums[this->excitation_type] << ": params_list=[ ";
-        for (const auto& param: params_list) ss << param << " ";
-        ss << "]";
+        ss << "The number of excitation parameters must be equal to " << Parameters::excitation_arg_nums[this->excitation_type] << ": params_list=";
+        ss << ::to_string((double*)params_list.data(), params_list.size());
         this->error_ID = LOG_ERROR(ss.str(), this->ID);
         return;
     }
-    if (this->excitation_params != nullptr) delete[] this->excitation_params;
-    this->excitation_params = new double[params_list.size()];
+    std::fill(this->excitation_params, this->excitation_params + ControlParameters::max_excitation_params, 0.0);
     std::copy(params_list.begin(), params_list.end(), excitation_params);
 }
 
 
-void ControlParameters::copy(const ControlParameters& cpar)
+std::string ControlParameters::to_string(const bool with_code) const
 {
-    this->ID = cpar.ID;
-    this->mechanism = cpar.mechanism;
-    this->R_E = cpar.R_E;
-    this->num_initial_species = cpar.num_initial_species;
-    this->P_amb = cpar.P_amb;
-    this->T_inf = cpar.T_inf;
-    this->alfa_M = cpar.alfa_M;
-    this->P_v = cpar.P_v;
-    this->mu_L = cpar.mu_L;
-    this->rho_L = cpar.rho_L;
-    this->c_L = cpar.c_L;
-    this->surfactant = cpar.surfactant;
-    this->enable_heat_transfer = cpar.enable_heat_transfer;
-    this->enable_evaporation = cpar.enable_evaporation;
-    this->enable_reactions = cpar.enable_reactions;
-    this->enable_dissipated_energy = cpar.enable_dissipated_energy;
-    this->target_specie = cpar.target_specie;
+    const Parameters* par = Parameters::get_parameters(this->mechanism);
+    if (par == nullptr)
+    {
+        LOG_ERROR("Invalid mechanism: " + std::to_string((int)this->mechanism), this->ID);
+        return "";
+    }
 
-    if (this->species != nullptr) delete[] this->species;
-    if (this->fractions != nullptr) delete[] this->fractions;
-    if (this->excitation_params != nullptr) delete[] this->excitation_params;
+    std::stringstream ss;
+    const size_t strw = 28;
+    auto format_string = [](std::ostream& os) -> std::ostream& { return os << "    " << std::setw(strw); };
+    auto format_bool = [](std::ostream& os) -> std::ostream& { return os << std::boolalpha; };
+    auto format_double = [](std::ostream& os) -> std::ostream& {
+        return os << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10);
+    };
+    auto species_to_string = [&par, &with_code](const index_t species) -> std::string {
+        if (with_code) return "\"" + par->species_names[species] + "\"";
+        else return par->species_names[species];
+    };
+    std::vector<std::string> species_names;
+    species_names.reserve(this->num_initial_species);
+    for (size_t index = 0; index < this->num_initial_species; ++index)
+        species_names.push_back(species_to_string(this->species[index]));
 
-    this->species = new index_t[cpar.num_initial_species];
-    this->fractions = new double[cpar.num_initial_species];
-    this->excitation_params = new double[Parameters::excitation_arg_nums[cpar.excitation_type]];
+    if (with_code) ss << "ControlParameters::Builder{\n";
+    ss << std::left;
+    
+    ss << format_string << ".ID"                         << " = " << this->ID << ",\n";
+    ss << format_string << ".mechanism"                  << " = " << (with_code ? "Parameters::mechanism::" : "") << par->model << ",\n";
+    ss << format_string << ".R_E"                        << " = " << format_double << this->R_E                       << ",    // bubble equilibrium radius [m]\n";
+    ss << format_string << ".species"                    << " = " << ::to_string((std::string*)species_names.data(), this->num_initial_species)   << ",\n";
+    ss << format_string << ".fractions"                  << " = " << ::to_string((double*)this->fractions, this->num_initial_species) << ",\n";
+    ss << format_string << ".P_amb"                      << " = " << format_double << this->P_amb                     << ",    // ambient pressure [Pa]\n";
+    ss << format_string << ".T_inf"                      << " = " << format_double << this->T_inf                     << ",    // ambient temperature [K]\n";
+    ss << format_string << ".alfa_M"                     << " = " << format_double << this->alfa_M                    << ",    // water accommodation coefficient [-]\n";
+    ss << format_string << ".P_v"                        << " = " << format_double << this->P_v                       << ",    // vapour pressure [Pa]\n";
+    ss << format_string << ".mu_L"                       << " = " << format_double << this->mu_L                      << ",    // dynamic viscosity [Pa*s]\n";
+    ss << format_string << ".rho_L"                      << " = " << format_double << this->rho_L                     << ",    // liquid density [kg/m^3]\n";
+    ss << format_string << ".c_L"                        << " = " << format_double << this->c_L                       << ",    // sound speed [m/s]\n";
+    ss << format_string << ".surfactant"                 << " = " << format_double << this->surfactant                << ",    // surface tension modifier [-]\n";
+    ss << format_string << ".enable_heat_transfer"       << " = " << format_bool   << this->enable_heat_transfer      << ",\n";
+    ss << format_string << ".enable_evaporation"         << " = " << format_bool   << this->enable_evaporation        << ",\n";
+    ss << format_string << ".enable_reactions"           << " = " << format_bool   << this->enable_reactions          << ",\n";
+    ss << format_string << ".enable_dissipated_energy"   << " = " << format_bool   << this->enable_dissipated_energy  << ",\n";
+    ss << format_string << ".target_specie"              << " = " << species_to_string(this->target_specie)           << ",\n";
+    ss << format_string << ".excitation_params"          << " = " << ::to_string((double*)this->excitation_params, Parameters::excitation_arg_nums[this->excitation_type]) << ",\n";
+    ss << format_string << ".excitation_type"            << " = " << (with_code ? "Parameters::excitation::" : "") << Parameters::excitation_names[this->excitation_type] << "\n";
 
-    std::copy(cpar.species, cpar.species + cpar.num_initial_species, this->species);
-    std::copy(cpar.fractions, cpar.fractions + cpar.num_initial_species, this->fractions);
-    std::copy(cpar.excitation_params, cpar.excitation_params + Parameters::excitation_arg_nums[cpar.excitation_type], this->excitation_params);
-    this->excitation_type = cpar.excitation_type;
+    if (with_code) ss << "}";
+    ss << std::right;
+    return ss.str();
+}
+
+
+std::ostream& operator<<(std::ostream& os, const ControlParameters& cpar)
+{
+    os << cpar.to_string();
+    return os;
 }

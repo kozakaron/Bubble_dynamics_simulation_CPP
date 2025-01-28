@@ -30,6 +30,12 @@ public:
         3, // sin_impulse
         3  // sin_impulse_logf
     };
+    static constexpr std::array<const char*, 4> excitation_names = {
+        "no_excitation",
+        "two_sinusoids",
+        "sin_impulse",
+        "sin_impulse_logf"
+    };
     static constexpr std::array<const char*, 4> excitation_arg_names = {
         "",                                     // no_excitation
         "p_A1 p_A2 freq1 freq2 theta_pahse",    // two_sinusoids
@@ -51,6 +57,7 @@ public:
     static constexpr double mu_L          = 0.001;              // Dynamic viscosity at 30 °C and 1 atm [Pa*s]
     static constexpr double P_v           = 2338.1;             // Saturated vapour pressure at 30 °C [Pa]
     static constexpr double alfa_M        = 0.35;               // Water accommodation coefficient [-]
+    static constexpr double k_b           = 1.380649e-23;       // Boltzmann constant [J/K]
     static constexpr double R_g           = 8.31446;            // Universal gas constant [J/mol/K]
     static constexpr double R_erg         = 83144600.0;         // Universal gas constant [erg/mol/K]
     static constexpr double R_cal         = 1.987204;           // Universal gas constant [cal/mol/K]

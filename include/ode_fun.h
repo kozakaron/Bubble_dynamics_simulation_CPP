@@ -16,7 +16,7 @@ public:
 // Members
     // generic
     const Parameters* par;              // reaction mechanism
-    cpar_t* cpar;                       // control parameters
+    cpar_t cpar;                        // control parameters
     size_t error_ID;                    // ID of error in ErrorHandler (ErrorHandler::no_error if no error occured)
     size_t num_species;                 // number of species (to check if init was called properly)
 #if defined TEST || defined BENCHMARK
