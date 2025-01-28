@@ -81,8 +81,8 @@ std::string percent(const size_t num, const size_t num_steps)
 std::string OdeSolution::to_string() const
 {
     std::stringstream ss;
-    size_t strw = 20;
-    size_t intw = 10;
+    const size_t strw = 20;
+    const size_t intw = 10;
     
     ss << std::setw(strw) << "success: ";
     if (success())
@@ -98,6 +98,7 @@ std::string OdeSolution::to_string() const
     ss << std::setw(strw) << "runtime: "            << std::setw(intw+3) << Timer::format_time(runtime) << "\n";
     ss << std::setw(strw) << "total_error: "        << std::setw(intw) << std::scientific << total_error << "\n";
     ss << std::setw(strw) << "num_steps: "          << std::setw(intw) << num_steps          << percent(num_steps, num_steps) << "\n";
+    ss << std::setw(strw) << "num_saved_steps: "    << std::setw(intw) << x.size()           << percent(x.size(), num_steps) << "\n";
     ss << std::setw(strw) << "num_repeats: "        << std::setw(intw) << num_repeats        << percent(num_repeats, num_steps) << "\n";
     ss << std::setw(strw) << "num_fun_evals: "      << std::setw(intw) << num_fun_evals      << percent(num_fun_evals, num_steps) << "\n";
     ss << std::setw(strw) << "num_fun_evals_jac: "  << std::setw(intw) << num_fun_evals_jac  << percent(num_fun_evals_jac, num_steps) << "\n";
@@ -200,7 +201,7 @@ is_success OdeSolver::preprocess(
     this->sol.push_t_x(t_int_0, x_0);
 
     this->t = t_int_0;
-    if (!this->ode_fun(this->t_int.first, this->x, this->x_new))
+    /*if (!this->ode_fun(this->t_int.first, this->x, this->x_new))
     {
         return false;
     }
@@ -208,7 +209,8 @@ is_success OdeSolver::preprocess(
                       (this->abs_tol + this->rel_tol * norm(this->x_new, num_dim));
     this->dt = std::max(this->dt, this->dt_min);
     this->dt = std::min(this->dt, this->dt_max);
-    this->dt = std::min(this->dt, 0.01 * (this->t_int.second - this->t_int.first));
+    this->dt = std::min(this->dt, 0.01 * (this->t_int.second - this->t_int.first));*/
+    this->dt = 1.0e-20;
 
     return true;
 }

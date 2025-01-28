@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iomanip>
 #include <numbers>
+#include <cmath>
 
 #include "common.h"
 #include "ode_fun.h"
@@ -22,7 +23,7 @@ double viscosity(const double T)
 
 OdeFun::OdeFun():
     par(nullptr),
-    cpar(nullptr),
+    cpar(),
     error_ID(ErrorHandler::no_error),
     num_species(0),
     C_p(nullptr),
@@ -45,7 +46,6 @@ OdeFun::~OdeFun()
 
 void OdeFun::delete_memory()
 {
-    if (this->cpar != nullptr)       delete this->cpar;
     if (this->C_p != nullptr)        delete[] this->C_p;
     if (this->H != nullptr)          delete[] this->H;
     if (this->S != nullptr)          delete[] this->S;
@@ -56,7 +56,6 @@ void OdeFun::delete_memory()
     if (this->net_rates != nullptr)  delete[] this->net_rates;
     if (this->omega_dot != nullptr)  delete[] this->omega_dot;
 
-    this->cpar = nullptr;
     this->C_p = nullptr;
     this->H = nullptr;
     this->S = nullptr;
@@ -74,14 +73,14 @@ is_success OdeFun::check_before_call()
     {
         return false;
     }
-    else if (this->par == nullptr || this->cpar == nullptr || this->omega_dot == nullptr)
+    else if (this->par == nullptr || this->omega_dot == nullptr)
     {
-        this->error_ID = LOG_ERROR("Arrays/par/cpar were nullptr. Forgot to call OdeFun::init()?", 0);
+        this->error_ID = LOG_ERROR("Arrays/par were nullptr. Forgot to call OdeFun::init()?", 0);
         return false;
     }
-    else if(this->cpar->error_ID != ErrorHandler::no_error)
+    else if(this->cpar.error_ID != ErrorHandler::no_error)
     {
-        this->error_ID = this->cpar->error_ID;
+        this->error_ID = this->cpar.error_ID;
         return false;
     }
     else if (this->num_species != this->par->num_species)
@@ -118,7 +117,7 @@ is_success OdeFun::check_after_call(
             ss << ". t = " << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10) << t;
             ss << ";    x = " << to_string((double*)x, this->num_species+4);
             ss << ";    dxdt = " << to_string((double*)dxdt, this->num_species+4);
-            this->error_ID = LOG_ERROR(ss.str(), this->cpar->ID);
+            this->error_ID = LOG_ERROR(ss.str(), this->cpar.ID);
             return false;
         }
     }
@@ -141,7 +140,6 @@ is_success OdeFun::init(const cpar_t& cpar)
     if (old_par != this->par || this->omega_dot == nullptr)
     {
         this->delete_memory();
-        this->cpar       = new cpar_t();
         this->C_p        = new double[par->num_species];
         this->H          = new double[par->num_species];
         this->S          = new double[par->num_species];
@@ -152,17 +150,17 @@ is_success OdeFun::init(const cpar_t& cpar)
         this->net_rates  = new double[par->num_reactions];
         this->omega_dot  = new double[par->num_species];
     }
-    this->cpar->copy(cpar);
-    if(this->cpar->error_ID != ErrorHandler::no_error)
+    this->cpar = cpar;
+    if(this->cpar.error_ID != ErrorHandler::no_error)
     {
-        this->error_ID = this->cpar->error_ID;
+        this->error_ID = this->cpar.error_ID;
         return false;
     }
     
     // Evaporation calculations
     // get coefficients for T_inf
     const double *a;  // NASA coefficients (length: Parameters::NASA_order+2)
-    if (this->cpar->T_inf <= par->temp_range[par->index_of_water*3+2]) // T_inf <= T_mid
+    if (this->cpar.T_inf <= par->temp_range[par->index_of_water*3+2]) // T_inf <= T_mid
     {
         a = &(par->a_low[par->index_of_water*(par->NASA_order+2)]);
     }
@@ -176,7 +174,7 @@ is_success OdeFun::init(const cpar_t& cpar)
     for (index_t n = 0; n < par->NASA_order; ++n)
     {
         this->C_v_inf += a[n] * T_pow;
-        T_pow *= this->cpar->T_inf;
+        T_pow *= this->cpar.T_inf;
     }
     this->C_v_inf = par->R_erg * (this->C_v_inf - 1.0);
 
@@ -189,34 +187,34 @@ is_success OdeFun::initial_conditions(
 ) //noexcept
 {
 // Equilibrium state
-    const double p_E = cpar->P_amb + 2.0 * cpar->surfactant * par->sigma / cpar->R_E;   // [Pa]
-    const double V_E = 4.0 / 3.0 * std::numbers::pi * cpar->R_E * cpar->R_E * cpar->R_E;    // [m^3]
-    const double p_gas = cpar->enable_evaporation ? p_E - cpar->P_v : p_E;   // [Pa]
-    const double n_gas = p_gas * V_E / (par->R_g * cpar->T_inf);    // [mol]
-    const double n_H2O = cpar->enable_evaporation ? cpar->P_v * V_E / (par->R_g * cpar->T_inf) : 0.0;   // [mol]
+    const double p_E = cpar.P_amb + 2.0 * cpar.surfactant * par->sigma / cpar.R_E;   // [Pa]
+    const double V_E = 4.0 / 3.0 * std::numbers::pi * cpar.R_E * cpar.R_E * cpar.R_E;    // [m^3]
+    const double p_gas = cpar.enable_evaporation ? p_E - cpar.P_v : p_E;   // [Pa]
+    const double n_gas = p_gas * V_E / (par->R_g * cpar.T_inf);    // [mol]
+    const double n_H2O = cpar.enable_evaporation ? cpar.P_v * V_E / (par->R_g * cpar.T_inf) : 0.0;   // [mol]
     const double c_gas = n_gas / V_E;   // [mol/m^3]
     const double c_H2O = n_H2O / V_E;   // [mol/m^3]
     
 // Initial conditions
-    x[0] = cpar->R_E;   // R_0 [m]
+    x[0] = cpar.R_E;   // R_0 [m]
     x[1] = 0.0;         // R_dot_0 [m/s]
-    x[2] = cpar->T_inf; // T_0 [K]
+    x[2] = cpar.T_inf; // T_0 [K]
     for (index_t k = 0; k < par->num_species; ++k)
     {
         x[3+k] = 0.0;  // c_k_0 [mol/cm^3]
     }
     x[3+par->num_species] = 0.0;   // dissipated energy [J]
-    x[3+par->index_of_water] = cpar->enable_evaporation ? 1.0e-6 * c_H2O : 0.0; // c_H2O_0 [mol/cm^3]
-    for (index_t k = 0; k < cpar->num_initial_species; ++k)
+    x[3+par->index_of_water] = cpar.enable_evaporation ? 1.0e-6 * c_H2O : 0.0; // c_H2O_0 [mol/cm^3]
+    for (index_t k = 0; k < cpar.num_initial_species; ++k)
     {
-        index_t index = cpar->species[k];
-        x[3+index] = 1.0e-6 * cpar->fractions[k] * c_gas;   // c_k_0 [mol/cm^3]
+        index_t index = cpar.species[k];
+        x[3+index] = 1.0e-6 * cpar.fractions[k] * c_gas;   // c_k_0 [mol/cm^3]
     }
 
 // Errors
     if (p_gas < 0.0)
     {
-        this->error_ID = LOG_ERROR("Negative gas pressure: " + std::to_string(p_gas), cpar->ID);
+        this->error_ID = LOG_ERROR("Negative gas pressure: " + std::to_string(p_gas), cpar.ID);
         return false;
     }
     return true;
@@ -232,70 +230,70 @@ std::pair<double, double> OdeFun::pressures(
 ) //noexcept
 {
     double p_Inf, p_Inf_dot;
-    switch (cpar->excitation_type)
+    switch (cpar.excitation_type)
     {
     case Parameters::excitation::two_sinusoids:
         {
-            double p_A1 = cpar->excitation_params[0];
-            double p_A2 = cpar->excitation_params[1];
-            double freq1 = cpar->excitation_params[2];
-            double freq2 = cpar->excitation_params[3];
-            double theta_phase = cpar->excitation_params[4];
+            double p_A1 = cpar.excitation_params[0];
+            double p_A2 = cpar.excitation_params[1];
+            double freq1 = cpar.excitation_params[2];
+            double freq2 = cpar.excitation_params[3];
+            double theta_phase = cpar.excitation_params[4];
 
-            p_Inf = cpar->P_amb + p_A1 * sin(2.0 * std::numbers::pi * freq1 * t) + p_A2 * sin(2.0 * std::numbers::pi * freq2 * t + theta_phase);
+            p_Inf = cpar.P_amb + p_A1 * sin(2.0 * std::numbers::pi * freq1 * t) + p_A2 * sin(2.0 * std::numbers::pi * freq2 * t + theta_phase);
             p_Inf_dot = 2.0 * std::numbers::pi * (p_A1 * freq1 * cos(2.0 * std::numbers::pi * freq1 * t) + p_A2 * freq2 * cos(2.0 * std::numbers::pi * freq2 * t + theta_phase));
             break;
         }
     case Parameters::excitation::sin_impulse:
         {
-            double p_A = cpar->excitation_params[0];
-            double freq = cpar->excitation_params[1];
-            double n = cpar->excitation_params[2];
+            double p_A = cpar.excitation_params[0];
+            double freq = cpar.excitation_params[1];
+            double n = cpar.excitation_params[2];
 
             if (t < 0.0 || t > n / freq)
             {
-                p_Inf = cpar->P_amb;
+                p_Inf = cpar.P_amb;
                 p_Inf_dot = 0.0;
             }
             else
             {
                 double insin = 2.0 * std::numbers::pi * freq;
-                p_Inf = cpar->P_amb + p_A * sin(insin * t);
+                p_Inf = cpar.P_amb + p_A * sin(insin * t);
                 p_Inf_dot = p_A * insin * cos(insin * t);
             }
             break;
         }
     case Parameters::excitation::sin_impulse_logf:
         {
-            double p_A = cpar->excitation_params[0];
-            double freq = pow(10.0, cpar->excitation_params[1]);
-            double n = cpar->excitation_params[2];
+            double p_A = cpar.excitation_params[0];
+            double freq = pow(10.0, cpar.excitation_params[1]);
+            double n = cpar.excitation_params[2];
 
             if (t < 0.0 || t > n / freq)
             {
-                p_Inf = cpar->P_amb;
+                p_Inf = cpar.P_amb;
                 p_Inf_dot = 0.0;
             }
             else
             {
                 double insin = 2.0 * std::numbers::pi * freq;
-                p_Inf = cpar->P_amb + p_A * sin(insin * t);
+                p_Inf = cpar.P_amb + p_A * sin(insin * t);
                 p_Inf_dot = p_A * insin * cos(insin * t);
             }
             break;
         }
     default: // no_excitation
         {
-            p_Inf = cpar->P_amb;
+            p_Inf = cpar.P_amb;
             p_Inf_dot = 0.0;
             break;
         }
     }
     
-    double p_L = p - (2.0 * cpar->surfactant * par->sigma + 4.0 * cpar->mu_L * R_dot) / R;
-    double p_L_dot = p_dot + (-2.0 * cpar->surfactant * par->sigma * R_dot + 4.0 * cpar->mu_L * R_dot * R_dot) / (R * R);
-    double delta = (p_L - p_Inf) / cpar->rho_L;
-    double delta_dot = (p_L_dot - p_Inf_dot) / cpar->rho_L;
+    double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
+    double p_L_dot = p_dot + (-2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R);
+    double delta = (p_L - p_Inf) / cpar.rho_L;
+    double delta_dot = (p_L_dot - p_Inf_dot) / cpar.rho_L;
 
     return std::make_pair(delta, delta_dot);
 }
@@ -348,8 +346,8 @@ std::pair<double, double> OdeFun::evaporation(
 {
 // condensation and evaporation
     double p_H2O = p * X_H2O;
-    double n_eva_dot = 1.0e3 * cpar->alfa_M * par->P_v / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * cpar->T_inf));
-    double n_con_dot = 1.0e3 * cpar->alfa_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
+    double n_eva_dot = 1.0e3 * cpar.alfa_M * par->P_v / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * cpar.T_inf));
+    double n_con_dot = 1.0e3 * cpar.alfa_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
     double n_net_dot = n_eva_dot - n_con_dot;
 // Molar heat capacity of water at constant volume (isochoric) [J/mol/K]
     // get coefficients for T
@@ -371,7 +369,7 @@ std::pair<double, double> OdeFun::evaporation(
     }
     C_v = par->R_erg * (C_v - 1.0);
 // Evaporation energy [J/mol]
-    double e_eva = this->C_v_inf * cpar->T_inf * 1.0e-7;
+    double e_eva = this->C_v_inf * cpar.T_inf * 1.0e-7;
     double e_con = C_v * T * 1.0e-7;
     double evap_energy = n_eva_dot * e_eva - n_con_dot * e_con;    // [W/m^2]
 
@@ -634,7 +632,7 @@ is_success OdeFun::operator()(
 
 // Heat transfer
     double Q_th_dot = 0.0;
-    if (cpar->enable_heat_transfer)
+    if (cpar.enable_heat_transfer)
     {
         const double rho_avg = W_avg * M;
         const double chi_avg = 10.0 * lambda_avg * W_avg / (C_p_avg * rho_avg);
@@ -644,14 +642,14 @@ is_success OdeFun::operator()(
             l_th = std::sqrt(R * chi_avg / std::abs(R_dot));
         }
         l_th = std::min(l_th, R * std::numbers::inv_pi);
-        Q_th_dot = lambda_avg * (cpar->T_inf - T) / l_th;
+        Q_th_dot = lambda_avg * (cpar.T_inf - T) / l_th;
     }
 
 // d/dt R
     dxdt[0] = R_dot;
 
 // d/dt c
-    if (cpar->enable_reactions)
+    if (cpar.enable_reactions)
     {
         this->production_rate(T, M, p, c);   // set omega_dot
     }
@@ -668,7 +666,7 @@ is_success OdeFun::operator()(
 // Evaporation
     double n_net_dot = 0.0;
     double evap_energy = 0.0;
-    if (cpar->enable_evaporation)
+    if (cpar.enable_evaporation)
     {
         std::pair<double, double> _evap = this->evaporation(p, T, c[par->index_of_water]/M);
         n_net_dot = _evap.first;
@@ -692,18 +690,18 @@ is_success OdeFun::operator()(
     const double delta     = _pres.first;
     const double delta_dot = _pres.second;
 
-    const double nom   = (1.0 + R_dot / cpar->c_L) * delta + R / cpar->c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar->c_L) * R_dot * R_dot;
-    const double denom = (1.0 - R_dot / cpar->c_L) * R + 4.0 * cpar->mu_L / (cpar->c_L * cpar->rho_L);
+    const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
+    const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
 
     dxdt[1] = nom / denom;
 
 // Dissipated energy
-    if (cpar->enable_dissipated_energy)
+    if (cpar.enable_dissipated_energy)
     {
         const double V_dot = 4.0 * R * R * R_dot * std::numbers::pi;
-        const double integrand_th = -(p * (1 + R_dot / cpar->c_L) + R / cpar->c_L * p_dot) * V_dot;
-        const double integrand_v = 16.0 * std::numbers::pi * cpar->mu_L * (R * R_dot*R_dot + R * R * R_dot * dxdt[1] / cpar->c_L);
-        const double integrand_r = 4.0 * std::numbers::pi / cpar->c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar->rho_L * R_dot * R_dot * R_dot - cpar->rho_L * R * R_dot * dxdt[1]);
+        const double integrand_th = -(p * (1 + R_dot / cpar.c_L) + R / cpar.c_L * p_dot) * V_dot;
+        const double integrand_v = 16.0 * std::numbers::pi * cpar.mu_L * (R * R_dot*R_dot + R * R * R_dot * dxdt[1] / cpar.c_L);
+        const double integrand_r = 4.0 * std::numbers::pi / cpar.c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar.rho_L * R_dot * R_dot * R_dot - cpar.rho_L * R * R_dot * dxdt[1]);
 
         dxdt[par->num_species+3] = integrand_th + integrand_v + integrand_r;
     } else {
@@ -719,6 +717,6 @@ is_success OdeFun::operator()(
 TODO:
     - do something with the long doubles
     - add python interface
-    - OdeSolution class
-    - simple RKCK45
+    - benchmark multithreaded ode solver
+    - make brute force parameter sweep with combinatorics
 */

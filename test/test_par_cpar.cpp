@@ -109,38 +109,34 @@ void test_par_cpar()
         ASSERT_APPROX(par->W[par->index_of_water], 18.01534, 1e-30);
     );
 
-
-    ControlParameters cpar;
     const Parameters* par = Parameters::get_parameters(Parameters::mechanism::chemkin_otomo2018);
-
-    cpar.ID = 0;
-    cpar.mechanism = Parameters::mechanism::chemkin_otomo2018;
-    // Initial conditions:
-    cpar.R_E = 10e-6;
-    cpar.set_species({par->get_species("H2"), par->get_species("N2")}, {0.75, 0.25});
-    // Ambient parameters:
-    cpar.P_amb = 101325.0;
-    cpar.T_inf = 293.15;
-    // Liquid parameters:
-    cpar.alfa_M = 0.35;
-    cpar.P_v = 2338.1;
-    cpar.mu_L = 0.001;
-    cpar.rho_L = 998.2;
-    cpar.c_L = 1483.0;
-    cpar.surfactant = 1.0;
-    // Simulation settings:
-    cpar.enable_heat_transfer = true;
-    cpar.enable_evaporation = true;
-    cpar.enable_reactions = true;
-    cpar.enable_dissipated_energy = true;
-    cpar.target_specie = par->get_species("NH3");
-    // Excitation parameters:
-    cpar.excitation_type = Parameters::excitation::sin_impulse;
-    cpar.set_excitation_params({-2.0e5, 30000.0, 1.0});
+    cpar_t cpar{ControlParameters::Builder{
+        .ID                          = 0,
+        .mechanism                   = Parameters::mechanism::chemkin_otomo2018,
+        .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
+        .species                     = {"H2", "N2"},
+        .fractions                   = {7.50000000000000000e-01, 2.50000000000000000e-01},
+        .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]
+        .T_inf                       = 2.93149999999999977e+02,    // ambient temperature [K]
+        .alfa_M                      = 3.49999999999999978e-01,    // water accommodation coefficient [-]
+        .P_v                         = 2.33809999999999991e+03,    // vapour pressure [Pa]
+        .mu_L                        = 1.00000000000000002e-03,    // dynamic viscosity [Pa*s]
+        .rho_L                       = 9.98200000000000045e+02,    // liquid density [kg/m^3]
+        .c_L                         = 1.48300000000000000e+03,    // sound speed [m/s]
+        .surfactant                  = 1.00000000000000000e+00,    // surface tension modifier [-]
+        .enable_heat_transfer        = true,
+        .enable_evaporation          = true,
+        .enable_reactions            = true,
+        .enable_dissipated_energy    = true,
+        .target_specie               = "NH3",
+        .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04, 1.00000000000000000e+00},
+        .excitation_type             = Parameters::excitation::sin_impulse
+    }};
 
     ADD_TEST(cpar_tester, "Check preset cpar",
         ASSERT_TRUE(par->model == "chemkin_otomo2018");
         ASSERT_EQUAL(par->num_species, 32);
+        ASSERT_EQUAL(cpar.mechanism, Parameters::mechanism::chemkin_otomo2018);
         ASSERT_TRUE(cpar.enable_heat_transfer);
         ASSERT_TRUE(cpar.enable_evaporation);
         ASSERT_TRUE(cpar.enable_reactions);
@@ -176,9 +172,9 @@ void test_par_cpar()
         ASSERT_EQUAL(cpar.excitation_params[1], 20000.0);
         ASSERT_EQUAL(cpar.excitation_params[2], 0.5);
 
-        // copy()
+        // copy
         cpar_t cpar_copy;
-        cpar_copy.copy(cpar);
+        cpar_copy = cpar;
         ASSERT_EQUAL(cpar_copy.ID, 1);
         ASSERT_EQUAL(cpar_copy.num_initial_species, 3);
         ASSERT_EQUAL(cpar_copy.species[0], par->get_species("H2"));
@@ -204,13 +200,17 @@ void test_par_cpar()
 
     ADD_TEST(cpar_tester, "Test cpar errors",
         ErrorHandler::clear_errors();
-        cpar_t cpar;
+        cpar_t cpar{ControlParameters::Builder{
+            .ID                          = 69,
+            .mechanism                   = Parameters::mechanism::chemkin_otomo2018,
+        }};
         ASSERT_EQUAL(cpar.error_ID, ErrorHandler::no_error);
         cpar.set_species({par->get_species("H2"), par->get_species("N2")}, {0.75, 0.255});
         ASSERT_FALSE(cpar.error_ID == ErrorHandler::no_error);
         ASSERT_EQUAL(cpar.error_ID, 0);
         Error error = ErrorHandler::get_error(cpar.error_ID);
         ASSERT_TRUE(error.message.find("1.0") != std::string::npos);
+        ASSERT_EQUAL(error.ID, 69);
         ErrorHandler::clear_errors();
     );
 
