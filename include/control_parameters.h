@@ -53,27 +53,27 @@ public:
     });
     */
     struct Builder {
-        size_t ID = 0;
-        size_t error_ID = ErrorHandler::no_error;
-        Parameters::mechanism mechanism = Parameters::mechanism::chemkin_ar_he;
-        double R_E = 10.0e-6;
-        std::vector<std::string> species = {"O2"};
-        std::vector<double> fractions = {1.0};
-        double P_amb = 101325.0;
-        double T_inf = 293.15;
-        double alfa_M = 0.35;
-        double P_v = 2338.1;
-        double mu_L = 0.001;
-        double rho_L = 998.2;
-        double c_L = 1483.0;
-        double surfactant = 1.0;
-        bool enable_heat_transfer = true;
-        bool enable_evaporation = true;
-        bool enable_reactions = true;
-        bool enable_dissipated_energy = true;
-        std::string target_specie = "H2";
-        std::vector<double> excitation_params = {-2.0e5, 30000.0, 1.0};
-        Parameters::excitation excitation_type = Parameters::excitation::sin_impulse;
+        size_t ID                               = 0;
+        size_t error_ID                         = ErrorHandler::no_error;
+        Parameters::mechanism mechanism         = Parameters::mechanism::chemkin_ar_he;
+        double R_E                              = 10.0e-6;
+        std::vector<std::string> species        = {"O2"};
+        std::vector<double> fractions           = {1.0};
+        double P_amb                            = 101325.0;
+        double T_inf                            = 293.15;
+        double alfa_M                           = 0.35;
+        double P_v                              = 2338.1;
+        double mu_L                             = 0.001;
+        double rho_L                            = 998.2;
+        double c_L                              = 1483.0;
+        double surfactant                       = 1.0;
+        bool enable_heat_transfer               = true;
+        bool enable_evaporation                 = true;
+        bool enable_reactions                   = true;
+        bool enable_dissipated_energy           = true;
+        std::string target_specie               = "H2";
+        std::vector<double> excitation_params   = {-2.0e5, 30000.0, 1.0};
+        Parameters::excitation excitation_type  = Parameters::excitation::sin_impulse;
     };
     
 // Methods

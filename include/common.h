@@ -39,7 +39,7 @@ public:
     void start();
     // Measure the time elapsed since the last start in seconds
     double lap();
-    // Get current time
+    // Get current time as "2025.01.29 12:12:04"
     static std::string current_time();
     // Format elapsed time (0.002 -> "2 ms", 0.000000002 -> "2 ns")
     static std::string format_time(double time);
