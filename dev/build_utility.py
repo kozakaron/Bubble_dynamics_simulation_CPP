@@ -205,8 +205,8 @@ class Builder:
         command_list = [compiler, '-c'] + compiler_flags + [source_file, '-o', object_file]
         result = subprocess.run(command_list, capture_output=True, text=True)
         if result.returncode != 0:
-            self.logger.log(message = 'Error compiling ' + f'{source_file}:',
-                            formatted_message = light_red + 'Error compiling ' + bold + f'{source_file}:' + reset)
+            self.logger.log(message = 'error compiling ' + f'{source_file}:',
+                            formatted_message = light_red + 'error compiling ' + bold + f'{source_file}:' + reset)
             self.logger.log_compiler_output(result.stderr, indent=True)
 
         # log compile time
@@ -239,7 +239,7 @@ class Builder:
 
 
     def add_source_file(self, source_file: str, compiler: str, compiler_flags: list[str]):
-        self.thread_pool_args.append((compiler, source_file, compiler_flags))
+        self.thread_pool_args.append((compiler, source_file.replace('\\', '/'), compiler_flags))
 
     
     def compile_all(self) -> list[str]:
