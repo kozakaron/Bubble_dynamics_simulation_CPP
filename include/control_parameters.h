@@ -11,7 +11,7 @@
 
 /*________________________________control_parameters________________________________*/
 
-typedef class ControlParameters {
+class ControlParameters {
 public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
@@ -46,7 +46,7 @@ public:
     Parameters::excitation excitation_type;             // type of excitation
 
 // Builder struct, defaults
-    /* Usage in initialization: cpar_t cpar{cpar_t::Builder{
+    /* Usage in initialization: ControlParameters cpar{ControlParameters::Builder{
         .ID = 1,
         .mechanism = Parameters::mechanism::chemkin_ar_he,
         ...
@@ -94,7 +94,7 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const ControlParameters& cpar);
 private:
     void init(const Builder& builder);
-} cpar_t;
+};
 
 
 #endif // CONTROL_PARAMETERS_H

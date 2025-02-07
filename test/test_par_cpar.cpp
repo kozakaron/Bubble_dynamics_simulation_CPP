@@ -110,7 +110,7 @@ void test_par_cpar()
     );
 
     const Parameters* par = Parameters::get_parameters(Parameters::mechanism::chemkin_otomo2018);
-    cpar_t cpar{ControlParameters::Builder{
+    ControlParameters cpar{ControlParameters::Builder{
         .ID                          = 0,
         .mechanism                   = Parameters::mechanism::chemkin_otomo2018,
         .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
@@ -173,7 +173,7 @@ void test_par_cpar()
         ASSERT_EQUAL(cpar.excitation_params[2], 0.5);
 
         // copy
-        cpar_t cpar_copy;
+        ControlParameters cpar_copy;
         cpar_copy = cpar;
         ASSERT_EQUAL(cpar_copy.ID, 1);
         ASSERT_EQUAL(cpar_copy.num_initial_species, 3);
@@ -200,7 +200,7 @@ void test_par_cpar()
 
     ADD_TEST(cpar_tester, "Test cpar errors",
         ErrorHandler::clear_errors();
-        cpar_t cpar{ControlParameters::Builder{
+        ControlParameters cpar{ControlParameters::Builder{
             .ID                          = 69,
             .mechanism                   = Parameters::mechanism::chemkin_otomo2018,
         }};
