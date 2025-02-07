@@ -4,7 +4,6 @@
 #include "parameters.h"
 #include "control_parameters.h"
 #include "ode_fun.h"
-#include "test.h"
 #include "test_list.h"
 
 // WARNING: THe correctness of the input values are not guaranteed.

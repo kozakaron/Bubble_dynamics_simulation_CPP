@@ -24,7 +24,7 @@ public:
     // Run all tests
     void run_tests();
     // Add a test case
-    // Usage: add_test("test_name", [&](){ /* test code */ });
+    // Usage: add_test("test_name", [&](){ /* test code */ return ""; });
     // Or: ADD_TEST(tester, "test_name", /* test code */);
     void add_test(const std::string& test_name, TestCase test_case);
     // Get the total number of passed tests

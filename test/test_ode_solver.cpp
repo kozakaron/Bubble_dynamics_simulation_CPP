@@ -28,6 +28,13 @@ is_success ode_fun_hires(const double t, const double *x, double *dxdt)
     return true;
 }
 
+void test_RKCK45();
+
+void test_ode_solver()
+{
+    test_RKCK45();
+}
+
 void test_RKCK45()
 {
     Tester tester = Tester("Test ode_solver.h's RKCK45 class");
