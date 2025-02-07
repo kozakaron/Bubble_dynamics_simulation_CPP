@@ -18,7 +18,7 @@ class OdeFunTester_ar_he : public testing::Tester
 {
 public:
     OdeFun ode;
-    cpar_t cpar;
+    ControlParameters cpar;
     const Parameters *par;
 
     OdeFunTester_ar_he(std::string test_group_name): testing::Tester(test_group_name) {}
@@ -30,7 +30,7 @@ public:
         // Set up the OdeFun object
         par = Parameters::get_parameters(Parameters::mechanism::chemkin_ar_he);
         (void)par;
-        cpar = cpar_t(ControlParameters::Builder{
+        cpar = ControlParameters(ControlParameters::Builder{
             .ID                          = 0,
             .mechanism                   = Parameters::mechanism::chemkin_ar_he,
             .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]

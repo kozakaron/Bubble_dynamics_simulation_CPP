@@ -125,7 +125,7 @@ is_success OdeFun::check_after_call(
 }
 
 
-is_success OdeFun::init(const cpar_t& cpar)
+is_success OdeFun::init(const ControlParameters& cpar)
 {
     const Parameters *old_par = this->par;
     this->par = Parameters::get_parameters(cpar.mechanism);

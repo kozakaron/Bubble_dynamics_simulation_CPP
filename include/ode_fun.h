@@ -16,7 +16,7 @@ public:
 // Members
     // generic
     const Parameters* par;              // reaction mechanism
-    cpar_t cpar;                        // control parameters
+    ControlParameters cpar;             // control parameters
     size_t error_ID;                    // ID of error in ErrorHandler (ErrorHandler::no_error if no error occured)
     size_t num_species;                 // number of species (to check if init was called properly)
 #if defined TEST || defined BENCHMARK
@@ -82,7 +82,7 @@ private:
 public:
     OdeFun();
     ~OdeFun();
-    is_success init(const cpar_t& cpar);
+    is_success init(const ControlParameters& cpar);
     // Calculates the initial condition of the bubble from the control parameters.
     is_success initial_conditions(
         double* x

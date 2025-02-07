@@ -16,7 +16,7 @@ void benchmark_ode_fun()
         OdeFun ode = OdeFun();
         const Parameters *par = Parameters::get_parameters(Parameters::mechanism::chemkin_otomo2018);
         (void)par;
-        cpar_t cpar{ControlParameters::Builder{
+        ControlParameters cpar{ControlParameters::Builder{
             .ID                          = 0,
             .mechanism                   = Parameters::mechanism::chemkin_otomo2018,
             .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
@@ -96,7 +96,7 @@ void benchmark_ode_fun()
     {
 // Set up control parameters
         OdeFun ode = OdeFun();
-        cpar_t cpar;
+        ControlParameters cpar;
         const Parameters *par = Parameters::get_parameters(Parameters::mechanism::chemkin_otomo2018);
 
         cpar.ID = 0;
