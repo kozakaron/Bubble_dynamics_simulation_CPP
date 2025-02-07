@@ -233,6 +233,6 @@ std::string ControlParameters::to_string(const bool with_code) const
 
 std::ostream& operator<<(std::ostream& os, const ControlParameters& cpar)
 {
-    os << cpar.to_string();
+    os << cpar.to_string(true);
     return os;
 }
