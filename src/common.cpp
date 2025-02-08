@@ -122,6 +122,8 @@ std::string Timer::format_time(double time)
 
 Error::Error()
 {
+    this->error_severity = Error::severity::info;
+    this->error_type = Error::type::general;
     this->message = "";
     this->function = "";
     this->file = "";
@@ -131,6 +133,8 @@ Error::Error()
 }
 
 Error::Error(
+    const Error::severity error_severity,
+    const Error::type error_type,
     const std::string &message,
     const std::string &function,
     const std::string &file,
@@ -138,6 +142,8 @@ Error::Error(
     const size_t ID
 )
 {
+    this->error_severity = error_severity;
+    this->error_type = error_type;
     this->message = message;
     this->function = function;
     this->file = file;
@@ -151,7 +157,25 @@ std::string Error::to_string(const bool color) const
 {
     std::stringstream ss;
     ss << this->time << ": ";
-    if (color) ss << colors::red;
+    std::string error_color = "";
+    if (color)
+        switch (this->error_severity)
+        {
+        case Error::severity::info:
+            error_color = colors::cyan;
+            break;
+        case Error::severity::warning:
+            error_color = colors::yellow;
+            break;
+        case Error::severity::error:
+            error_color = colors::red;
+            break;
+        default:
+            break;
+        }
+    if (color) ss << colors::bold << error_color;
+    ss << "(" << Error::type_names[this->error_type] << ") ";
+    if (color) ss << colors::reset << error_color;
     ss << this->message;
     if (color) ss << colors::reset;
     ss << " in " << this->file << ":" << this->line << ": " << this->function << "();";
@@ -175,7 +199,7 @@ void ErrorHandler::set_log_file(const std::string &filename)
     ErrorHandler::log_file.open(filename, std::ios::out | std::ios::app);
     if (!ErrorHandler::log_file.is_open())
     {
-        LOG_ERROR("Could not open log file " + filename, 0);
+        LOG_ERROR("Could not open log file " + filename);
     }
 }
 

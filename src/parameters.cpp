@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "common.h"
 #include "parameters.h"
 
@@ -157,28 +159,30 @@ const Parameters *Parameters::get_parameters(const Parameters::mechanism mech)
         case mechanism::chemkin_otomo2018:
             return &Parameters::chemkin_otomo2018_params;
         default:
-            (void)LOG_ERROR("Unknown mechanisms: " + std::to_string(mech), 0);
+            LOG_ERROR("Unknown mechanisms: " + std::to_string(mech));
             return nullptr;
     }
 }
 
-index_t Parameters::get_element(const std::string &name) const
+index_t Parameters::get_element(std::string name) const
 {
+    std::transform(name.begin(), name.end(), name.begin(), ::toupper);
     auto it = _elements.find(name);
     if (it == _elements.end())
     {
-        (void)LOG_ERROR("Element \"" + name + "\" not in " + this->model, 0);
+        LOG_ERROR("Element \"" + name + "\" not in " + this->model);
         return invalid_index;
     }
     return it->second;
 }
 
-index_t Parameters::get_species(const std::string &name) const
+index_t Parameters::get_species(std::string name) const
 {
+    std::transform(name.begin(), name.end(), name.begin(), ::toupper);
     auto it = _species.find(name);
     if (it == _species.end())
     {
-        (void)LOG_ERROR("Species \"" + name + "\" not in " + this->model, 0);
+        LOG_ERROR("Species \"" + name + "\" not in " + this->model);
         return invalid_index;
     }
     return it->second;

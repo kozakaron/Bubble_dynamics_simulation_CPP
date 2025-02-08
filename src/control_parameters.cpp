@@ -23,7 +23,8 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     const Parameters* par = Parameters::get_parameters(builder.mechanism);
     if (par == nullptr)
     {
-        this->error_ID = LOG_ERROR("Invalid mechanism: " + std::to_string(builder.mechanism), builder.ID);
+        std::string message = "Invalid mechanism: " + std::to_string(builder.mechanism);
+        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, builder.ID);
         return;
     }
     this->ID = builder.ID;
@@ -47,7 +48,8 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
 
     if (this->target_specie == par->invalid_index)
     {
-        this->error_ID = LOG_ERROR("Invalid target specie (" + builder.target_specie + ") for mechanism " + par->model, this->ID);
+        std::string message = "Invalid target specie (" + builder.target_specie + ") for mechanism " + par->model;
+        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
         return;
     }
     this->num_initial_species = 0;
@@ -64,7 +66,8 @@ void ControlParameters::set_species(const std::vector<std::string> species_list,
     const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
     {
-        this->error_ID = LOG_ERROR("Invalid mechanism: " + std::to_string(this->mechanism), this->ID);
+        std::string message = "Invalid mechanism: " + std::to_string(this->mechanism);
+        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
         return;
     }
 
@@ -74,12 +77,14 @@ void ControlParameters::set_species(const std::vector<std::string> species_list,
         index_t index = par->get_species(species_name);
         if (index == par->invalid_index)
         {
-            this->error_ID = LOG_ERROR("Invalid species (" + species_name + ") for mechanism " + par->model, this->ID);
+            std::string message = "Invalid species (" + species_name + ") for mechanism " + par->model;
+            this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
             return;
         }
         else if (index >= par->num_species)
         {
-            this->error_ID = LOG_ERROR("Species index " + std::to_string(index) + " out of bound for mechanism " + par->model, this->ID);
+            std::string message = "Species index " + std::to_string(index) + " out of bound for mechanism " + par->model;
+            this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
             return;
         }
         species.push_back(index);
@@ -94,18 +99,21 @@ void ControlParameters::set_species(const std::vector<index_t>& species_list, co
     const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
     {
-        this->error_ID = LOG_ERROR("Invalid mechanism: " + std::to_string(this->mechanism), this->ID);
+        std::string message = "Invalid mechanism: " + std::to_string(this->mechanism);
+        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
         return;
     }
     for (const auto& species: species_list)
         if (species == par->invalid_index)
         {
-            this->error_ID = LOG_ERROR("Invalid species (" + std::to_string(species) + ") for mechanism " + par->model, this->ID);
+            std::string message = "Invalid species (" + std::to_string(species) + ") for mechanism " + par->model;
+            this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
             return;
         }
         else if (species >= par->num_species)
         {
-            this->error_ID = LOG_ERROR("Species index " + std::to_string(species) + " out of bound for mechanism " + par->model, this->ID);
+            std::string message = "Species index " + std::to_string(species) + " out of bound for mechanism " + par->model;
+            this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
             return;
         }
     if (fractions_list.size() != species_list.size())
@@ -115,7 +123,7 @@ void ControlParameters::set_species(const std::vector<index_t>& species_list, co
         ss << ::to_string((index_t*)species_list.data(), species_list.size());
         ss << ", fractions_list=";
         ss << ::to_string((double*)fractions_list.data(), fractions_list.size());
-        this->error_ID = LOG_ERROR(ss.str(), this->ID);
+        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str(), this->ID);
         return;
     }
     if (fractions_list.size() > ControlParameters::max_species)
@@ -123,7 +131,7 @@ void ControlParameters::set_species(const std::vector<index_t>& species_list, co
         std::stringstream ss;
         ss << "Too many species: " << fractions_list.size() << " (" << ::to_string((index_t*)species_list.data(), species_list.size());
         ss << ", " << ::to_string((double*)fractions_list.data(), fractions_list.size()) << "). Perhaps try to change ControlParameters::max_species.";
-        this->error_ID = LOG_ERROR(ss.str(), this->ID);
+        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str(), this->ID);
         return;
     }
     double sum_fraction = std::accumulate(fractions_list.begin(), fractions_list.end(), 0.0);
@@ -133,7 +141,7 @@ void ControlParameters::set_species(const std::vector<index_t>& species_list, co
         ss << "The sum of fractions must be equal to 1.0, instead it is " << sum_fraction << ": fractions_list=";
         ss << ::to_string((double*)fractions_list.data(), fractions_list.size());
         ss << "]";
-        this->error_ID = LOG_ERROR(ss.str(), this->ID);
+        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str(), this->ID);
         return;
     }
 
@@ -168,7 +176,7 @@ void ControlParameters::set_excitation_params(const std::vector<double>& params_
         std::stringstream ss;
         ss << "The number of excitation parameters must be equal to " << Parameters::excitation_arg_nums[this->excitation_type] << ": params_list=";
         ss << ::to_string((double*)params_list.data(), params_list.size());
-        this->error_ID = LOG_ERROR(ss.str(), this->ID);
+        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str(), this->ID);
         return;
     }
     std::fill(this->excitation_params, this->excitation_params + ControlParameters::max_excitation_params, 0.0);
@@ -181,7 +189,7 @@ std::string ControlParameters::to_string(const bool with_code) const
     const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
     {
-        LOG_ERROR("Invalid mechanism: " + std::to_string((int)this->mechanism), this->ID);
+        LOG_ERROR(Error::severity::error, Error::type::preprocess, "Invalid mechanism: " + std::to_string((int)this->mechanism), this->ID);
         return "";
     }
 

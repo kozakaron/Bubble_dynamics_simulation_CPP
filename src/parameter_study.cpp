@@ -9,7 +9,7 @@ Range::Range():
     end(0.0),
     num_steps(0)
 { 
-    LOG_ERROR("Range is not initialized witha ny meaningful value.", 0);
+    LOG_ERROR("Range is not initialized witha ny meaningful value.");
 }
 
 
@@ -20,7 +20,7 @@ Range::Range(double start, double end, size_t num_steps):
 {
     if (start > end)
     {
-        LOG_ERROR("Start value (" + std::to_string(start) + ") is greater than end value (" + std::to_string(end) + ")", 0);
+        LOG_ERROR("Start value (" + std::to_string(start) + ") is greater than end value (" + std::to_string(end) + ")");
         this->end = this->start;
     }
 }
@@ -118,7 +118,7 @@ PowRange::PowRange(double start, double end, size_t num_steps, double base):
 {
     if (base <= 0.0)
     {
-        LOG_ERROR("The value of base (" + std::to_string(base) + ") must be positive. Otherwise the formula f(x) = a * x^base + c breaks.", 0);
+        LOG_ERROR("The value of base (" + std::to_string(base) + ") must be positive. Otherwise the formula f(x) = a * x^base + c breaks.");
         this->start = 1.0;
     }
     this->base = base;
@@ -338,7 +338,8 @@ std::pair<is_success, ControlParameters> ParameterStudy::get_next_combination()
     is_success success = (combination_ID / prod % 2) == 0;
     if (!success)
     {
-        cpar.error_ID = LOG_ERROR("combination_ID (" + std::to_string(combination_ID) + ") is out of range for current parameter study with a max combination count of " + std::to_string(this->get_total_combination_count()), combination_ID);
+        std::string message = "combination_ID (" + std::to_string(combination_ID) + ") is out of range for current parameter study with a max combination count of " + std::to_string(this->get_total_combination_count());
+        cpar.error_ID = LOG_ERROR(message, combination_ID);
     }
 
     return {success, cpar};
