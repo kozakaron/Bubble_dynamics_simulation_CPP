@@ -177,7 +177,8 @@ is_success OdeSolver::preprocess(
     this->sol.clear();
     if (t_int_1 <= t_int_0)
     {
-        this->sol.error_ID = LOG_ERROR("Time interval is invalid: t_int_1 <= t_int_0 (" + std::to_string(t_int_1) + " <= " + std::to_string(t_int_0) + ")", 0);
+        std::string message = "Time interval is invalid: t_int_1 <= t_int_0 (" + std::to_string(t_int_1) + " <= " + std::to_string(t_int_0) + ")";
+        this->sol.error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message);
         return false;
     } else {
         this->t_int = std::make_pair(t_int_0, t_int_1);
@@ -286,7 +287,7 @@ is_success OdeSolver::solve(
         }
         if (this->timer.lap() > timeout)
         {
-            this->sol.error_ID = LOG_ERROR("Timeout: " + std::to_string(timeout) + " s", 0);
+            this->sol.error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, "Timeout: " + std::to_string(timeout) + " s", 0);
             success = false;
             break;
         }

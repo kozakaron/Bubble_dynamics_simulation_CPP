@@ -81,8 +81,8 @@ public:
     const index_t index_of_water;                   // Index of water in arrays, INVALID if H2O is not in mechanism
     const index_t invalid_index;                    // Invalid index
     std::vector<std::string> species_names;         // Names of species (num_species)
-    index_t get_element(const std::string &name) const;  // Get index of element by name
-    index_t get_species(const std::string &name) const;  // Get index of species by name
+    index_t get_element(std::string name) const;    // Get index of element by name
+    index_t get_species(std::string name) const;    // Get index of species by name
     const double *W;                                // Molar masses [g/mol] (num_species)
     const double *lambdas;                          // Thermal conductivities [W/m/K] (num_species)
 // NASA polynomials

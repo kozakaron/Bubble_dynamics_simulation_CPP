@@ -13,8 +13,9 @@
 #include <iomanip>
 #include <atomic>
 
-constexpr size_t num_tasks = 64;
+size_t num_tasks;
 std::atomic<size_t> task_counter;
+constexpr size_t task_per_thread = 4;
 
 void task()
 {
@@ -43,23 +44,16 @@ void benchmark_speedup()
 {
     std::cout << colors::bold << "Measure multithreaded runtime with RKCK45 solver and simple chemkin_ar_he mechanism" << colors::reset << std::endl;
     std::cout << "    Number of threads: " << std::thread::hardware_concurrency() << std::endl;
-    std::cout << "    Single-threaded runtime of one task: ";
+    std::cout << "    Threads [-]     |  Runtime/task [s] |     Speedup [-]\n";
 
     Timer timer;
-    timer.start();
-    task_counter = num_tasks - 1;
-    task();
-    double single_thread_runtime = timer.lap();
-
-    std::cout << single_thread_runtime << " s;   Number of tasks: " << num_tasks << std::endl;
-    std::cout << "    Threads [-]   |   Runtime [s]   |   ~Speedup [-]\n";
-    single_thread_runtime *= num_tasks;
-
-    for (size_t num_threads = std::thread::hardware_concurrency(); num_threads >= 1; num_threads /= 2)
+    double single_thread_runtime;
+    for (size_t num_threads = 1; num_threads <= std::thread::hardware_concurrency(); num_threads *= 2)
     {
         {
             std::vector<std::jthread> threads(num_threads);
             task_counter = 0;
+            num_tasks = task_per_thread * num_threads;
 
             timer.start();
 
@@ -69,11 +63,11 @@ void benchmark_speedup()
             }
         }
 
-        double runtime = timer.lap();
-        std::cout << "    " << std::setw(8) << num_threads << "      |   " << std::setw(8) << runtime;
-        std::cout  << "      |   " << single_thread_runtime / runtime << std::endl;
+        double runtime = timer.lap() / num_threads / task_per_thread;
+        if (num_threads == 1) single_thread_runtime = runtime;
+        std::cout << "    " << std::setw(10) << num_threads << "      |   " << std::setw(10) << runtime;
+        std::cout  << "      |     " << single_thread_runtime / runtime << std::endl;
     }
-
 }
 
 #endif // BENCHMARK

@@ -15,14 +15,29 @@ void test_common()
 
     ADD_TEST(tester, "Test ErrorHandler class",
         ErrorHandler::print_when_log = false;
-        const size_t idx1 = LOG_ERROR("Test error message", 33);
+        const size_t idx1 = LOG_ERROR("Test error message");
         const size_t idx2 = LOG_ERROR("Another test error message", 44);
+        const size_t idx3 = LOG_ERROR(Error::severity::warning, Error::type::preprocess, "Another test error message");
+        const size_t idx4 = LOG_ERROR(Error::severity::info, Error::type::postprocess, "Another test error message", 66);
         ASSERT_EQUAL(idx1, 0);
         ASSERT_EQUAL(idx2, 1);
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 2);
-        ASSERT_EQUAL(ErrorHandler::get_error(0).ID, 33);
+        ASSERT_EQUAL(idx3, 2);
+        ASSERT_EQUAL(idx4, 3);
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 4);
+        ASSERT_EQUAL(ErrorHandler::get_error(0).ID, 0);
         ASSERT_EQUAL(ErrorHandler::get_error(1).ID, 44);
+        ASSERT_EQUAL(ErrorHandler::get_error(2).ID, 0);
+        ASSERT_EQUAL(ErrorHandler::get_error(3).ID, 66);
         ASSERT_TRUE(ErrorHandler::get_error(0).message == "Test error message");
+        ASSERT_TRUE(ErrorHandler::get_error(1).message == "Another test error message");
+        ASSERT_EQUAL(ErrorHandler::get_error(0).error_severity, Error::severity::error);
+        ASSERT_EQUAL(ErrorHandler::get_error(1).error_severity, Error::severity::error);
+        ASSERT_EQUAL(ErrorHandler::get_error(2).error_severity, Error::severity::warning);
+        ASSERT_EQUAL(ErrorHandler::get_error(3).error_severity, Error::severity::info);
+        ASSERT_EQUAL(ErrorHandler::get_error(0).error_type, Error::type::general);
+        ASSERT_EQUAL(ErrorHandler::get_error(1).error_type, Error::type::general);
+        ASSERT_EQUAL(ErrorHandler::get_error(2).error_type, Error::type::preprocess);
+        ASSERT_EQUAL(ErrorHandler::get_error(3).error_type, Error::type::postprocess);
         ErrorHandler::clear_errors();
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
         ErrorHandler::print_when_log = true;

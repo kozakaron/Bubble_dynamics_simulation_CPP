@@ -4,6 +4,7 @@
 #include <string>
 #include <chrono>
 #include <vector>
+#include <array>
 #include <mutex>
 
 typedef bool is_success;
@@ -51,6 +52,14 @@ private:
 class Error
 {
 public:
+    enum severity {info, warning, error};
+    enum type {general, preprocess, odefun, timeout, convergence, postprocess};
+    static constexpr std::array<const char*, 6> type_names = {
+        "general", "preprocess", "odefun", "timeout", "convergence", "postprocess"
+    };
+
+    Error::severity error_severity;
+    Error::type error_type;
     std::string message;
     std::string function;
     std::string file;
@@ -60,6 +69,8 @@ public:
 
     Error();
     Error(
+        const Error::severity error_severity,
+        const Error::type error_type,
         const std::string &message,
         const std::string &function,
         const std::string &file,
@@ -88,9 +99,18 @@ public:
     static Error get_error(size_t index);
 };
 
-// Error macro: ERROR(string message, size_t ID=0)
-#define ERROR(message, ID) Error(message, __FUNCTION__, __FILE__, __LINE__, ID)
-#define LOG_ERROR(message, ID) ErrorHandler::log_error(ERROR(message, ID))
+// Error macro overloads:
+//  - ERROR(string message)
+//  - ERROR(string message, size_t ID)
+//  - ERROR(severity error_severity, type error_type, string message)
+//  - ERROR(severity error_severity, type error_type, string message, size_t ID)
+#define ERROR_1(message) Error(Error::severity::error, Error::type::general, message, __FUNCTION__, __FILE__, __LINE__, 0)
+#define ERROR_2(message, ID) Error(Error::severity::error, Error::type::general, message, __FUNCTION__, __FILE__, __LINE__, ID)
+#define ERROR_3(error_severity, error_type, message) Error(error_severity, error_type, message, __FUNCTION__, __FILE__, __LINE__, 0)
+#define ERROR_4(error_severity, error_type, message, ID) Error(error_severity, error_type, message, __FUNCTION__, __FILE__, __LINE__, ID)
+#define _GET_MACRO(_1, _2, _3, _4, NAME, ...) NAME
+#define ERROR(...) _GET_MACRO(__VA_ARGS__, ERROR_4, ERROR_3, ERROR_2, ERROR_1)(__VA_ARGS__)
+#define LOG_ERROR(...) ErrorHandler::log_error(ERROR(__VA_ARGS__))
 
 // Unrolling macro, optimization off macro
 #if defined(__GNUC__) && !defined(__clang__)

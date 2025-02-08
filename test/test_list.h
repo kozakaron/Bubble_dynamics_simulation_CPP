@@ -22,6 +22,7 @@ void print_test_summary();
 
 #ifdef BENCHMARK
 void benchmark_ode_fun();
+void benchmark_speedup();
 
 
 
