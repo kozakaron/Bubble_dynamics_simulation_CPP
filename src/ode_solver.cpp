@@ -57,7 +57,7 @@ void OdeSolution::clear()
 std::string percent(const size_t num, const size_t num_steps)
 {
     std::stringstream ss;
-    ss << " (";
+    ss << "    // ";
     if (num_steps == 0)
     {
         ss << std::setw(8) << "nan %";
@@ -73,51 +73,92 @@ std::string percent(const size_t num, const size_t num_steps)
     {
         ss << std::setw(8) << std::setprecision(2) << (double) num / num_steps << " per step";
     }
-    ss << ")";
+    
     return ss.str();
 }
 
 
-std::string OdeSolution::to_string() const
+std::string OdeSolution::to_csv() const
 {
     std::stringstream ss;
-    const size_t strw = 20;
-    const size_t intw = 10;
-    
-    ss << std::setw(strw) << "success: ";
-    if (success())
+    auto format_double = [](std::ostream& os) -> std::ostream& {
+        return os << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10);
+    };
+
+    ss << (this->success() ? "true" : "false") << "," << this->num_dim << "," << this->num_steps << ",";
+    ss << this->num_repeats << "," << this->num_fun_evals << "," << this->num_fun_evals_jac << "," << this->num_jac_evals << ",";
+    ss << this->num_plu << "," << this->num_solve_with_plu << "," << format_double << this->total_error << ",";
+    ss << format_double << this->runtime << "," << format_double;
+    if (this->t.empty()) ss << format_double << 0.0 << ",";
+    else ss << this->t.back() << ",";
+    if (!this->x.empty())
     {
-        ss << colors::green << colors::bold << std::setw(intw) << "true" << colors::reset << "\n";
+        for (size_t i = 0; i < this->x[0].size(); ++i)
+            ss << format_double << this->x[0][i] << ";";
+        ss << ",";
+        for (size_t i = 0; i < this->x.back().size(); ++i)
+            ss << format_double << this->x.back()[i] << ";";
+        ss << ",";
     }
     else
     {
-        ss << colors::red << colors::bold << std::setw(intw) << "false" << colors::reset << "\n";
-        ss << std::setw(strw) << "error: " << ErrorHandler::get_error(error_ID) << "\n";
+        ss << ",,";
+    }
+    
+    return ss.str();
+}
+
+
+std::string OdeSolution::to_string(const bool colored, const bool with_code) const
+{
+    std::stringstream ss;
+    const size_t strw = 24;
+    const size_t intw = 10;
+    
+    ss << std::left;
+    if (with_code) ss << "OdeSolution{\n";
+    ss << std::setw(strw) << "    .success" << " = ";
+    if (success())
+    {
+        if (colored) ss << colors::green << colors::bold;
+        ss << "true";
+        if (colored) ss << colors::reset;
+        ss << ",\n";
+    }
+    else
+    {
+        if (colored) ss << colors::red << colors::bold;
+        ss << "false";
+        if (colored) ss << colors::reset;
+        ss << ",\n";
+        ss << std::setw(strw) << "    .error" << " = \"" << ErrorHandler::get_error(error_ID).to_string(colored) << "\",\n";
     }
 
-    ss << std::setw(strw) << "runtime: "            << std::setw(intw+3) << Timer::format_time(runtime) << "\n";
-    ss << std::setw(strw) << "total_error: "        << std::setw(intw) << std::scientific << total_error << "\n";
-    ss << std::setw(strw) << "num_steps: "          << std::setw(intw) << num_steps          << percent(num_steps, num_steps) << "\n";
-    ss << std::setw(strw) << "num_saved_steps: "    << std::setw(intw) << x.size()           << percent(x.size(), num_steps) << "\n";
-    ss << std::setw(strw) << "num_repeats: "        << std::setw(intw) << num_repeats        << percent(num_repeats, num_steps) << "\n";
-    ss << std::setw(strw) << "num_fun_evals: "      << std::setw(intw) << num_fun_evals      << percent(num_fun_evals, num_steps) << "\n";
-    ss << std::setw(strw) << "num_fun_evals_jac: "  << std::setw(intw) << num_fun_evals_jac  << percent(num_fun_evals_jac, num_steps) << "\n";
-    ss << std::setw(strw) << "num_jac_evals: "      << std::setw(intw) << num_jac_evals      << percent(num_jac_evals, num_steps) << "\n";
-    ss << std::setw(strw) << "num_plu: "            << std::setw(intw) << num_plu            << percent(num_plu, num_steps) << "\n";
-    ss << std::setw(strw) << "num_solve_with_plu: " << std::setw(intw) << num_solve_with_plu << percent(num_solve_with_plu, num_steps) << "\n";
+    ss << std::setw(strw) << "    .runtime"            << " = \"" << Timer::format_time(runtime) << "\",\n";
+    ss << std::setw(strw) << "    .total_error"        << " = " << std::setw(intw) << std::scientific << total_error << ",\n";
+    ss << std::setw(strw) << "    .num_steps"          << " = " << std::setw(intw) << std::to_string(num_steps)          + "," << percent(num_steps, num_steps) << "\n";
+    ss << std::setw(strw) << "    .num_saved_steps"    << " = " << std::setw(intw) << std::to_string(x.size())           + "," << percent(x.size(), num_steps) << "\n";
+    ss << std::setw(strw) << "    .num_repeats"        << " = " << std::setw(intw) << std::to_string(num_repeats)        + "," << percent(num_repeats, num_steps) << "\n";
+    ss << std::setw(strw) << "    .num_fun_evals"      << " = " << std::setw(intw) << std::to_string(num_fun_evals)      + "," << percent(num_fun_evals, num_steps) << "\n";
+    ss << std::setw(strw) << "    .num_fun_evals_jac"  << " = " << std::setw(intw) << std::to_string(num_fun_evals_jac)  + "," << percent(num_fun_evals_jac, num_steps) << "\n";
+    ss << std::setw(strw) << "    .num_jac_evals"      << " = " << std::setw(intw) << std::to_string(num_jac_evals)      + "," << percent(num_jac_evals, num_steps) << "\n";
+    ss << std::setw(strw) << "    .num_plu"            << " = " << std::setw(intw) << std::to_string(num_plu)            + "," << percent(num_plu, num_steps) << "\n";
+    ss << std::setw(strw) << "    .num_solve_with_plu" << " = " << std::setw(intw) << std::to_string(num_solve_with_plu) + "," << percent(num_solve_with_plu, num_steps) << "\n";
     
     if (this->t.size() >=2 && this->x.size() >= 2 && this->num_dim > 0)
     {
-        ss << std::setw(strw) << "t: " << "{";
-        ss << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10) << this->t[0]                  << ", ..., ";
-        ss << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10) << this->t[this->t.size() - 1] << "}\n";
-        ss << std::setw(strw) << "x: " << "{\n";
-        ss << std::setw(strw+4) << " " << ::to_string((double*)this->x[0].data(),                  this->x[0].size())                  << ",\n";
-        ss << std::setw(strw+4) << " " << " ..., \n";
-        ss << std::setw(strw+4) << " " << ::to_string((double*)this->x[this->x.size() - 1].data(), this->x[this->x.size() - 1].size()) << "\n";
-        ss << std::setw(strw) << " " << "}\n";
+        ss << std::setw(strw) << "    .t" << " = " << "{";
+        ss << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10) << this->t[0]                  << ", /* ..., */ ";
+        ss << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10) << this->t[this->t.size() - 1] << "},\n";
+        ss << std::setw(strw) << "    .x" << " = " << "{\n";
+        ss << std::setw(strw+8) << " " << ::to_string((double*)this->x[0].data(),                  this->x[0].size())                  << ",\n";
+        ss << std::setw(strw+8) << " " << " // ..., \n";
+        ss << std::setw(strw+8) << " " << ::to_string((double*)this->x[this->x.size() - 1].data(), this->x[this->x.size() - 1].size()) << "\n";
+        ss << std::setw(strw+4) << " " << "}\n";
     }
 
+    if (with_code) ss << "}";
+    ss << std::right;
     return ss.str();
 }
 

@@ -52,8 +52,10 @@ private:
 class Error
 {
 public:
-    enum severity {info, warning, error};
-    enum type {general, preprocess, odefun, timeout, convergence, postprocess};
+    static constexpr char csv_header[] = "time,severity,type,message,function,file,line";
+    enum severity {info=0, warning, error};
+    enum type {general=0, preprocess, odefun, timeout, convergence, postprocess};
+    static constexpr std::array<const char*, 3> severity_names = {"info", "warning", "error"};
     static constexpr std::array<const char*, 6> type_names = {
         "general", "preprocess", "odefun", "timeout", "convergence", "postprocess"
     };
@@ -77,6 +79,7 @@ public:
         const size_t line,
         const size_t ID = 0
     );
+    std::string to_csv() const;
     std::string to_string(const bool color = false) const;
     friend std::ostream &operator<<(std::ostream &os, const Error &err);
 };
@@ -102,14 +105,20 @@ public:
 // Error macro overloads:
 //  - ERROR(string message)
 //  - ERROR(string message, size_t ID)
-//  - ERROR(severity error_severity, type error_type, string message)
-//  - ERROR(severity error_severity, type error_type, string message, size_t ID)
-#define ERROR_1(message) Error(Error::severity::error, Error::type::general, message, __FUNCTION__, __FILE__, __LINE__, 0)
-#define ERROR_2(message, ID) Error(Error::severity::error, Error::type::general, message, __FUNCTION__, __FILE__, __LINE__, ID)
-#define ERROR_3(error_severity, error_type, message) Error(error_severity, error_type, message, __FUNCTION__, __FILE__, __LINE__, 0)
-#define ERROR_4(error_severity, error_type, message, ID) Error(error_severity, error_type, message, __FUNCTION__, __FILE__, __LINE__, ID)
+//  - ERROR(Error::severity error_severity, Error::type error_type, string message)
+//  - ERROR(Error::severity error_severity, Error::type error_type, string message, size_t ID)
+#define _ERROR_1(message) Error(Error::severity::error, Error::type::general, message, __FUNCTION__, __FILE__, __LINE__, 0)
+#define _ERROR_2(message, ID) Error(Error::severity::error, Error::type::general, message, __FUNCTION__, __FILE__, __LINE__, ID)
+#define _ERROR_3(error_severity, error_type, message) Error(error_severity, error_type, message, __FUNCTION__, __FILE__, __LINE__, 0)
+#define _ERROR_4(error_severity, error_type, message, ID) Error(error_severity, error_type, message, __FUNCTION__, __FILE__, __LINE__, ID)
 #define _GET_MACRO(_1, _2, _3, _4, NAME, ...) NAME
-#define ERROR(...) _GET_MACRO(__VA_ARGS__, ERROR_4, ERROR_3, ERROR_2, ERROR_1)(__VA_ARGS__)
+#define ERROR(...) _GET_MACRO(__VA_ARGS__, _ERROR_4, _ERROR_3, _ERROR_2, _ERROR_1)(__VA_ARGS__)
+
+// Log error macro: input is the same as ERROR macro, returns the error ID
+//  - LOG_ERROR(string message)
+//  - LOG_ERROR(string message, size_t ID)
+//  - LOG_ERROR(Error::severity error_severity, Error::type error_type, string message)
+//  - LOG_ERROR(Error::severity error_severity, Error::type error_type, string message, size_t ID)
 #define LOG_ERROR(...) ErrorHandler::log_error(ERROR(__VA_ARGS__))
 
 // Unrolling macro, optimization off macro

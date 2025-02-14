@@ -1,6 +1,8 @@
 #include <iomanip>
 #include <sstream>
+#include <numbers>
 #include <cmath>
+#include <regex>
 
 #include "parameter_study.h"
 
@@ -343,4 +345,100 @@ std::pair<is_success, ControlParameters> ParameterStudy::get_next_combination()
     }
 
     return {success, cpar};
+}
+
+
+double get_dissipated_energy(const OdeSolution &sol)
+{
+    if (sol.x.empty()) return 0.0;
+    if (sol.x.back().empty()) return 0.0;
+    return sol.x.back().back();
+}
+
+double get_n_target(const OdeSolution &sol, const ControlParameters &cpar)
+{
+    if (sol.x.empty()) return 0.0;
+    if (sol.x.back().empty()) return 0.0;
+    const Parameters* par = Parameters::get_parameters(cpar.mechanism);
+    if (par == nullptr) return 0.0;
+    if (cpar.target_specie == par->invalid_index) return 0.0;
+
+    const double R_last = 100.0 * sol.x.back()[0];  // [cm]
+    const double V_last = 4.0 / 3.0 * std::numbers::pi * std::pow(cpar.R_E, 3); // [cm^3]
+    const double c_target = sol.x.back()[cpar.target_specie];  // [mol/cm^3]
+
+    return c_target * V_last;  // [mol]
+}
+
+double get_energy_demand(const OdeSolution &sol, const ControlParameters &cpar)
+{
+    const Parameters* par = Parameters::get_parameters(cpar.mechanism);
+    if (par == nullptr) return SimulationData::infinite_energy_demand;
+    if (cpar.target_specie == par->invalid_index) return SimulationData::infinite_energy_demand;
+
+    const double dissipated_energy = get_dissipated_energy(sol);    // [J]
+    const double n_target = get_n_target(sol, cpar);    // [mol]
+    const double m_target = 1.0e-3 * n_target * par->W[cpar.target_specie];  // [kg]
+
+    if (dissipated_energy < -1.0e-8)
+        LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Dissipated energy is negative: " + std::to_string(dissipated_energy), cpar.ID);
+    if (n_target < -1.0e-8)
+        LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Target specie concentration is negative: " + std::to_string(n_target), cpar.ID);
+
+    if (m_target < 1e-20) return SimulationData::infinite_energy_demand;
+    return 1.0e-6 * dissipated_energy / m_target;  // [MJ/kg]
+}
+
+SimulationData::SimulationData(const ControlParameters &cpar, const OdeSolution &sol, const double T_max):
+    cpar(cpar),    
+    sol(sol),
+    T_max(T_max),
+    dissipated_energy(get_dissipated_energy(sol)),
+    n_target_specie(get_n_target(sol, cpar)),
+    energy_demand(get_energy_demand(sol, cpar))
+{}
+
+
+std::string SimulationData::to_csv() const
+{
+    std::stringstream ss;
+    ss << this->T_max << ", ";
+    ss << this->dissipated_energy << ",";
+    ss << this->n_target_specie << ",";
+    ss << this->energy_demand << ",";
+    ss << this->cpar.to_csv() << ",";
+    ss << this->sol.to_csv();
+
+    return ss.str();
+}
+
+
+std::string SimulationData::to_string() const
+{
+    const size_t strw = 28;
+    auto format_double = [](std::ostream& os) -> std::ostream& {
+        return os << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10);
+    };
+
+    std::stringstream ss;
+    ss << std::left;
+    ss << "SimulationData{\n";
+    ss << std::setw(strw) << "    .T_max"              << " = " << format_double << this->T_max                << ",    // [K]\n";
+    ss << std::setw(strw) << "    .dissipated_energy"  << " = " << format_double << this->dissipated_energy    << ",    // [J]\n";
+    ss << std::setw(strw) << "    .n_target_specie"    << " = " << format_double << this->n_target_specie      << ",    // [mol]\n";
+    ss << std::setw(strw) << "    .energy_demand"      << " = " << format_double << this->energy_demand        << ",    // [MJ/kg]\n";
+    ss << "    .cpar = ControlParameters{";
+    ss << std::regex_replace(this->cpar.to_string(true), std::regex("\n"), "\n    ");
+    ss << "},\n    .sol = ";
+    ss << std::regex_replace(this->sol.to_string(false, true), std::regex("\n"), "\n    ");
+    ss << ",\n}" << std::right;
+
+    return ss.str();
+}
+
+
+std::ostream &operator<<(std::ostream &os, const SimulationData &data)
+{
+    os << data.to_string();
+    return os;
 }
