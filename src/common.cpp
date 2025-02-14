@@ -75,12 +75,14 @@ void Timer::start()
     start_time = std::chrono::high_resolution_clock::now();
 }
 
+
 double Timer::lap()
 {
     auto end_time = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time).count();
     return 1e-9 * static_cast<double>(duration);
 }
+
 
 std::string Timer::current_time()
 {
@@ -97,6 +99,7 @@ std::string Timer::current_time()
     ss << std::put_time(buf, "%Y.%m.%d %X");
     return ss.str();
 }
+
 
 std::string Timer::format_time(double time)
 {
@@ -120,6 +123,7 @@ std::string Timer::format_time(double time)
     return ss.str();
 }
 
+
 Error::Error()
 {
     this->error_severity = Error::severity::info;
@@ -131,6 +135,7 @@ Error::Error()
     this->ID = 0;
     this->time = "";
 }
+
 
 Error::Error(
     const Error::severity error_severity,
@@ -153,6 +158,18 @@ Error::Error(
     this->time = Timer::current_time();
 }
 
+
+std::string Error::to_csv() const
+{
+    std::stringstream ss;
+    std::string message = this->message;
+    std::replace(message.begin(), message.end(), ',', ';');
+    ss << this->time << "," << Error::severity_names[this->error_severity] << "," << Error::type_names[this->error_type] << ",";
+    ss << message << "," << this->function << "," << this->file << "," << this->line;
+    return ss.str();
+}
+
+
 std::string Error::to_string(const bool color) const
 {
     std::stringstream ss;
@@ -174,7 +191,9 @@ std::string Error::to_string(const bool color) const
             break;
         }
     if (color) ss << colors::bold << error_color;
-    ss << "(" << Error::type_names[this->error_type] << ") ";
+    ss << "(" << Error::type_names[this->error_type];
+    if (!color) ss << ", " << Error::severity_names[this->error_severity];
+    ss << ") ";
     if (color) ss << colors::reset << error_color;
     ss << this->message;
     if (color) ss << colors::reset;
@@ -183,11 +202,13 @@ std::string Error::to_string(const bool color) const
     return ss.str();
 }
 
+
 std::ostream &operator<<(std::ostream &os, const Error &err)
 {
     os << err.to_string(true);
     return os;
 }
+
 
 std::vector<Error> ErrorHandler::errors;
 std::mutex ErrorHandler::mutex;
@@ -202,6 +223,7 @@ void ErrorHandler::set_log_file(const std::string &filename)
         LOG_ERROR("Could not open log file " + filename);
     }
 }
+
 
 size_t ErrorHandler::log_error(const Error &err)
 {
@@ -218,6 +240,7 @@ size_t ErrorHandler::log_error(const Error &err)
     return ErrorHandler::errors.size() - 1;
 }
 
+
 void ErrorHandler::print_errors()
 {
     std::lock_guard<std::mutex> lock(ErrorHandler::mutex);
@@ -233,11 +256,13 @@ void ErrorHandler::print_errors()
     }
 }
 
+
 size_t ErrorHandler::get_error_count()
 {
     std::lock_guard<std::mutex> lock(ErrorHandler::mutex);
     return ErrorHandler::errors.size();
 }
+
 
 void ErrorHandler::clear_errors()
 {
@@ -248,6 +273,7 @@ void ErrorHandler::clear_errors()
     std::lock_guard<std::mutex> lock(ErrorHandler::mutex);
     ErrorHandler::errors.clear();
 }
+
 
 Error ErrorHandler::get_error(size_t index)
 {

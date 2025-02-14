@@ -1,7 +1,9 @@
 #ifndef PARAMETER_STUDY_H
 #define PARAMETER_STUDY_H
 #include "common.h"
+#include "parameters.h"
 #include "control_parameters.h"
+#include "ode_solver.h"
 
 #include <string>
 #include <ostream>
@@ -122,6 +124,30 @@ public:
     size_t get_total_combination_count() const;
     size_t get_next_combination_ID() const;
     std::pair<is_success, ControlParameters> get_next_combination();
+};
+
+
+class SimulationData
+{
+public:
+    static constexpr char csv_header[] = "T_max,dissipated_energy,n_target_specie,energy_demand" + ControlParameters::csv_header + OdeSolution::csv_header;
+
+    const ControlParameters &cpar;
+    const OdeSolution &sol;
+    const double T_max;              // [K]
+    const double dissipated_energy;  // [J]
+    const double n_target_specie;    // [mol]
+    const double energy_demand;      // [MJ/kg]
+    static constexpr double infinite_energy_demand = 1.0e30;
+
+    SimulationData(
+        const ControlParameters &cpar,
+        const OdeSolution &sol,
+        double T_max = 0.0
+    );
+    std::string to_csv() const;
+    std::string to_string() const;
+    friend std::ostream &operator<<(std::ostream &os, const SimulationData &data);
 };
 
 #endif // PARAMETER_STUDY_H

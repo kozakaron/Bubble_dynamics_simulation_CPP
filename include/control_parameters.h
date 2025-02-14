@@ -16,6 +16,7 @@ public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
     static constexpr size_t max_species = 4;
+    static constexpr char csv_header[] = "ID,mechanism,error_ID,R_E,species,fractions,P_amb,T_inf,alfa_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,target_specie,excitation_params,excitation_type";
 // Members
     size_t ID;                          // ID of control parameter
     Parameters::mechanism mechanism;    // rection mechanism
@@ -88,6 +89,8 @@ public:
     // Set excitation parameters like this: set_excitation_params({-2.0e5, 30000.0, 1.0});
     void set_excitation_params(const std::vector<double>& params_list);
     void set_excitation_params(const std::initializer_list<double>& params_list);
+    // Convert to CSV string
+    std::string to_csv() const;
     // Convert to string. with_code: ready to copy to constructor; one_line: without newlines
     std::string to_string(const bool with_code=false) const;
     // Ostream overload

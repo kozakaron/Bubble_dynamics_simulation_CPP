@@ -184,6 +184,39 @@ void ControlParameters::set_excitation_params(const std::vector<double>& params_
 }
 
 
+std::string ControlParameters::to_csv() const
+{
+    std::stringstream ss;
+    auto format_double = [](std::ostream& os) -> std::ostream& {
+        return os << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10);
+    };
+    const Parameters* par = Parameters::get_parameters(this->mechanism);
+    if (par == nullptr)
+    {
+        return ",,,,,,,,,,,,,,,,,,,,";
+    }
+
+    ss << this->ID << "," << par->model << "," << format_double << this->R_E << ",";
+    for (size_t index = 0; index < this->num_initial_species; ++index)
+        ss << par->species_names[this->species[index]] << ";";
+    ss << ",";
+    for (size_t index = 0; index < this->num_initial_species; ++index)
+        ss << format_double << this->fractions[index] << ";";
+    ss << "," << format_double << this->P_amb << "," << format_double << this->T_inf << ",";
+    ss << format_double << this->alfa_M << "," << format_double << this->P_v << ",";
+    ss << format_double << this->mu_L << "," << format_double << this->rho_L << ",";
+    ss << format_double << this->c_L << "," << format_double << this->surfactant << ",";
+    ss << std::boolalpha << this->enable_heat_transfer << "," << std::boolalpha << this->enable_evaporation << ",";
+    ss << std::boolalpha << this->enable_reactions << "," << std::boolalpha << this->enable_dissipated_energy << ",";
+    ss << par->species_names[this->target_specie] << ",";
+    for (size_t index = 0; index < Parameters::excitation_arg_nums[this->excitation_type]; ++index)
+        ss << format_double << this->excitation_params[index] << ";";
+    ss << Parameters::excitation_names[this->excitation_type];
+
+    return ss.str();
+}
+
+
 std::string ControlParameters::to_string(const bool with_code) const
 {
     const Parameters* par = Parameters::get_parameters(this->mechanism);

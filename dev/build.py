@@ -62,9 +62,10 @@ def main():
         common_flags.extend(['-Wall', '-Wextra', '-Werror'])
     if args.debug:
         common_flags.append('-g')
-    if args.optimize2:
+        common_flags.append('-Og')
+    if args.optimize2 and not args.debug:
         compiler_flags.append('-O2')
-    if args.optimize3 and not args.optimize2:
+    if args.optimize3 and not args.optimize2 and not args.debug:
         compiler_flags.append('-O3')
 
     builder = Builder(build_dir)

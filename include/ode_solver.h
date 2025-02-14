@@ -9,6 +9,8 @@
 class OdeSolution
 {
 public:
+    static constexpr char csv_header[] = "success,num_dim,num_steps,num_repeats,num_fun_evals,num_fun_evals_jac,num_jac_evals,num_plu,num_solve_with_plu,total_error,runtime,t_last,x_0,x_last";
+
     std::vector<double> t;
     std::vector<std::vector<double>> x;
     size_t num_dim;
@@ -30,7 +32,8 @@ public:
     is_success success() const;
     void push_t_x(const double t_i, const double *x_i);
     void clear();
-    std::string to_string() const;
+    std::string to_csv() const;
+    std::string to_string(const bool colored=true, const bool with_code=true) const;
     friend std::ostream &operator<<(std::ostream &os, const OdeSolution &ode);
 };
 
@@ -106,8 +109,9 @@ public:
         {-11.0/54.0,     5.0/2.0,     -70.0/27.0,      35.0/27.0,         0.0},
         {1631.0/55296.0, 175.0/512.0,  575.0/13824.0,  44275.0/110592.0,  253.0/4096.0}
      };
-    static constexpr double b_error[] = {-0.0042937748015873,  0.                ,  0.0186685860938579, -0.0341550268308081, -0.0193219866071429,  0.0391022021456804};
+    static constexpr double b_error[] = {-0.0042937748015873,  0.0,  0.0186685860938579, -0.0341550268308081, -0.0193219866071429,  0.0391022021456804};
     static constexpr double b_lower[] = {2825.0/27648.0, 0.0, 18575.0/48384.0, 13525.0/55296.0, 277.0/14336.0, 1.0/4.0};
+    //static constexpr double b_lower[] = {37.0/378.0, 0.0, 250.0/621.0, 125.0/594.0, 0.0, 512.0/1171.0};
     static constexpr double c[] = {0.0, 1.0/5.0, 3.0/10.0, 3.0/5.0, 1.0, 7.0/8.0};
 
     double **k;
