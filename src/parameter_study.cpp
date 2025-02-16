@@ -11,7 +11,7 @@ Range::Range():
     end(0.0),
     num_steps(0)
 { 
-    LOG_ERROR("Range is not initialized witha ny meaningful value.");
+    LOG_ERROR("Range is not initialized witha any meaningful value.");
 }
 
 
@@ -19,13 +19,7 @@ Range::Range(double start, double end, size_t num_steps):
     start(start),
     end(end),
     num_steps(num_steps)
-{
-    if (start > end)
-    {
-        LOG_ERROR("Start value (" + std::to_string(start) + ") is greater than end value (" + std::to_string(end) + ")");
-        this->end = this->start;
-    }
-}
+{ }
 
 
 std::string Range::to_array() const
@@ -169,6 +163,7 @@ std::unique_ptr<Range> get_unique_ptr(const ParameterStudy::AnyRange range)
 
 ParameterStudy::ParameterStudy(const ParameterStudy::Builder &builder):
     combination_ID(0),
+    total_combination_count(1),
     mechanism(builder.mechanism),
     R_E(get_unique_ptr(builder.R_E)),
     species(builder.species),
@@ -192,6 +187,20 @@ ParameterStudy::ParameterStudy(const ParameterStudy::Builder &builder):
     for (const auto &excitation_param : builder.excitation_params)
     {
         this->excitation_params.push_back(get_unique_ptr(excitation_param));
+    }
+
+    this->total_combination_count *= this->R_E->get_num_steps();
+    this->total_combination_count *= this->P_amb->get_num_steps();
+    this->total_combination_count *= this->T_inf->get_num_steps();
+    this->total_combination_count *= this->alfa_M->get_num_steps();
+    this->total_combination_count *= this->P_v->get_num_steps();
+    this->total_combination_count *= this->mu_L->get_num_steps();
+    this->total_combination_count *= this->rho_L->get_num_steps();
+    this->total_combination_count *= this->c_L->get_num_steps();
+    this->total_combination_count *= this->surfactant->get_num_steps();
+    for (const auto &excitation_param : this->excitation_params)
+    {
+        this->total_combination_count *= excitation_param->get_num_steps();
     }
 }
 
@@ -244,17 +253,14 @@ std::string ParameterStudy::to_string(const bool with_code) const
     ss << format_field_name << ".enable_evaporation" << " = " << std::boolalpha << this->enable_evaporation << ",\n";
     ss << format_field_name << ".enable_reactions" << " = " << std::boolalpha << this->enable_reactions << ",\n";
     ss << format_field_name << ".enable_dissipated_energy" << " = " << std::boolalpha << this->enable_dissipated_energy << ",\n";
-    ss << format_field_name << ".target_specie" << " = " << this->target_specie << ",\n";
+    ss << format_field_name << ".target_specie" << " = " << species_to_string(this->target_specie) << ",\n";
     ss << format_field_name << ".excitation_params" << " = {";
     for (size_t i = 0; i < this->excitation_params.size(); ++i)
     {
         if (i == 0)
             ss << "\n";
-        ss << "        " << excitation_params[i]->to_string();
-        if (i < this->excitation_params.size() - 1)
-            ss << ",\n";
-        else
-            ss << "\n";
+        ss << "        " << format_range(this->excitation_params.at(i).get(), i == this->excitation_params.size() - 1);
+        ss << "\n";
     }
 
     ss << "    },\n";
@@ -275,22 +281,7 @@ std::ostream &operator<<(std::ostream &os, const ParameterStudy &ps)
 
 size_t ParameterStudy::get_total_combination_count() const
 {
-    size_t count = 1;
-    count *= this->R_E->get_num_steps();
-    count *= this->P_amb->get_num_steps();
-    count *= this->T_inf->get_num_steps();
-    count *= this->alfa_M->get_num_steps();
-    count *= this->P_v->get_num_steps();
-    count *= this->mu_L->get_num_steps();
-    count *= this->rho_L->get_num_steps();
-    count *= this->c_L->get_num_steps();
-    count *= this->surfactant->get_num_steps();
-    for (const auto &excitation_param : this->excitation_params)
-    {
-        count *= excitation_param->get_num_steps();
-    }
-
-    return count;
+    return this->total_combination_count;
 }
 
 
@@ -338,11 +329,6 @@ std::pair<is_success, ControlParameters> ParameterStudy::get_next_combination()
     }
 
     is_success success = (combination_ID / prod % 2) == 0;
-    if (!success)
-    {
-        std::string message = "combination_ID (" + std::to_string(combination_ID) + ") is out of range for current parameter study with a max combination count of " + std::to_string(this->get_total_combination_count());
-        cpar.error_ID = LOG_ERROR(message, combination_ID);
-    }
 
     return {success, cpar};
 }
@@ -362,10 +348,12 @@ double get_n_target(const OdeSolution &sol, const ControlParameters &cpar)
     const Parameters* par = Parameters::get_parameters(cpar.mechanism);
     if (par == nullptr) return 0.0;
     if (cpar.target_specie == par->invalid_index) return 0.0;
+    if (sol.x.front().size() != 4 + par->num_species) return 0.0;
+    if (sol.x.back().size() != 4 + par->num_species) return 0.0;
 
     const double R_last = 100.0 * sol.x.back()[0];  // [cm]
-    const double V_last = 4.0 / 3.0 * std::numbers::pi * std::pow(cpar.R_E, 3); // [cm^3]
-    const double c_target = sol.x.back()[cpar.target_specie];  // [mol/cm^3]
+    const double V_last = 4.0 / 3.0 * std::numbers::pi * std::pow(R_last, 3); // [cm^3]
+    const double c_target = sol.x.back()[3+cpar.target_specie];  // [mol/cm^3]
 
     return c_target * V_last;  // [mol]
 }
@@ -389,6 +377,14 @@ double get_energy_demand(const OdeSolution &sol, const ControlParameters &cpar)
     return 1.0e-6 * dissipated_energy / m_target;  // [MJ/kg]
 }
 
+
+const std::string SimulationData::csv_header = std::string("T_max,dissipated_energy,n_target_specie,energy_demand,")
+                                             + std::string(ControlParameters::csv_header) + std::string(",")
+                                             + std::string(OdeSolution::csv_header) + std::string(",") + std::string(Error::csv_header);
+
+const Error SimulationData::no_error = Error(Error::severity::info, Error::type::general, "No error", "", __FILE__, __LINE__, 0);
+
+
 SimulationData::SimulationData(const ControlParameters &cpar, const OdeSolution &sol, const double T_max):
     cpar(cpar),    
     sol(sol),
@@ -402,12 +398,26 @@ SimulationData::SimulationData(const ControlParameters &cpar, const OdeSolution 
 std::string SimulationData::to_csv() const
 {
     std::stringstream ss;
-    ss << this->T_max << ", ";
-    ss << this->dissipated_energy << ",";
-    ss << this->n_target_specie << ",";
-    ss << this->energy_demand << ",";
+    auto format_double = [](std::ostream& os) -> std::ostream& {
+        return os << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10);
+    };
+
+    ss << format_double << this->T_max << ",";
+    ss << format_double << this->dissipated_energy << ",";
+    ss << format_double << this->n_target_specie << ",";
+    ss << format_double << this->energy_demand << ",";
     ss << this->cpar.to_csv() << ",";
-    ss << this->sol.to_csv();
+    ss << this->sol.to_csv() << ",";
+
+    if (this->sol.error_ID == ErrorHandler::no_error)
+    {
+        ss << this->no_error.to_csv();
+    } else
+    {
+        Error error = ErrorHandler::get_error(this->sol.error_ID);
+        ss << error.to_csv();
+    }
+
 
     return ss.str();
 }
@@ -432,6 +442,70 @@ std::string SimulationData::to_string() const
     ss << "},\n    .sol = ";
     ss << std::regex_replace(this->sol.to_string(false, true), std::regex("\n"), "\n    ");
     ss << ",\n}" << std::right;
+
+    return ss.str();
+}
+
+
+std::string SimulationData::to_small_string(const ParameterStudy &ps, const double best_energy_demand, const bool colored) const
+{
+    std::stringstream ss;
+    std::string total_combinations = std::to_string(ps.get_total_combination_count());
+    auto format_double = [](std::ostream& os) -> std::ostream& {
+        return os << std::scientific << std::setprecision(4);
+    };
+
+    ss << std::setw(total_combinations.size()) << std::to_string(this->cpar.ID) << "/" << total_combinations << ": ";
+    if (colored)
+        ss << colors::bold << (this->sol.success() ? colors::green : colors::red) << (this->sol.success() ? "success" : " failed") << colors::reset << "; ";
+    else
+        ss << (this->sol.success() ? "success" : " failed") << "; ";
+    ss << "runtime=" << Timer::format_time(this->sol.runtime) << "; ";
+    ss << "num_steps=" << std::setw(8) << this->sol.num_steps << ";   |   ";
+
+    if (ps.R_E->get_num_steps() > 1)
+        ss << "R_E=" << format_double << this->cpar.R_E << " m; ";
+    if (ps.P_amb->get_num_steps() > 1)
+        ss << "P_amb=" << format_double << this->cpar.P_amb << " Pa; ";
+    if (ps.T_inf->get_num_steps() > 1)
+        ss << "T_inf=" << format_double << this->cpar.T_inf << " K; ";
+    if (ps.alfa_M->get_num_steps() > 1)
+        ss << "alfa_M=" << format_double << this->cpar.alfa_M << "; ";
+    if (ps.P_v->get_num_steps() > 1)
+        ss << "P_v=" << format_double << this->cpar.P_v << " Pa; ";
+    if (ps.mu_L->get_num_steps() > 1)
+        ss << "mu_L=" << format_double << this->cpar.mu_L << " Pa*s; ";
+    if (ps.rho_L->get_num_steps() > 1)
+        ss << "rho_L=" << format_double << this->cpar.rho_L << " kg/m^3; ";
+    if (ps.c_L->get_num_steps() > 1)
+        ss << "c_L=" << format_double << this->cpar.c_L << " m/s; ";
+    if (ps.surfactant->get_num_steps() > 1)
+        ss << "surfactant=" << format_double << this->cpar.surfactant << "; ";
+
+    std::string excitation_arg_names = Parameters::excitation_arg_names.at(ps.excitation_type);
+    std::string excitation_arg_units = Parameters::excitation_arg_units.at(ps.excitation_type);
+    auto name_begin = excitation_arg_names.begin();
+    auto unit_begin = excitation_arg_units.begin();
+    auto name_end = excitation_arg_names.end();
+    auto unit_end = excitation_arg_units.end();
+    for (size_t i = 0; i < ps.excitation_params.size(); ++i)
+    {
+        name_end = std::find(name_begin, excitation_arg_names.end(), ' ');
+        unit_end = std::find(unit_begin, excitation_arg_units.end(), ' ');
+        std::string excitation_arg_name = std::string(name_begin, name_end);
+        std::string excitation_arg_unit = std::string(unit_begin, unit_end);
+        if (ps.excitation_params[i]->get_num_steps() > 1)
+            ss << excitation_arg_name << "=" << format_double << this->cpar.excitation_params[i] << " " << excitation_arg_unit << "; ";
+        name_begin = name_end + 1;
+        unit_begin = unit_end + 1;
+    }
+
+    ss << "   |   ";
+    ss << "energy_demand=" << format_double << this->energy_demand << " MJ/kg ";
+    if (colored)
+        ss << colors::bold << "(best=" << format_double << best_energy_demand << " MJ/kg)" << colors::reset;
+    else
+        ss << "(best=" << format_double << best_energy_demand << " MJ/kg)";
 
     return ss.str();
 }

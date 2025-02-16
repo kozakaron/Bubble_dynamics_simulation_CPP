@@ -11,6 +11,7 @@
 #include <vector>
 #include <variant>
 #include <atomic>
+#include <mutex>
 
 // Represents possible values for a parameter in a parameter study. Options:
 // - Const: constant value
@@ -74,6 +75,7 @@ class ParameterStudy
 {
 private:
     std::atomic<size_t> combination_ID;
+    size_t total_combination_count;
 
     Parameters::mechanism mechanism;
     std::unique_ptr<Range> R_E;
@@ -121,6 +123,7 @@ public:
     ParameterStudy(const Builder &builder);
     std::string to_string(const bool with_code=false) const;
     friend std::ostream &operator<<(std::ostream &os, const ParameterStudy &ps);
+    friend class SimulationData;
     size_t get_total_combination_count() const;
     size_t get_next_combination_ID() const;
     std::pair<is_success, ControlParameters> get_next_combination();
@@ -130,7 +133,8 @@ public:
 class SimulationData
 {
 public:
-    static constexpr char csv_header[] = "T_max,dissipated_energy,n_target_specie,energy_demand" + ControlParameters::csv_header + OdeSolution::csv_header;
+    static const std::string csv_header;
+    static const Error no_error;
 
     const ControlParameters &cpar;
     const OdeSolution &sol;
@@ -147,7 +151,22 @@ public:
     );
     std::string to_csv() const;
     std::string to_string() const;
+    std::string to_small_string(const ParameterStudy &ps, const double best_energy_demand, const bool colored=true) const;
     friend std::ostream &operator<<(std::ostream &os, const SimulationData &data);
 };
+
+
+/*class WriteFile
+{
+private:
+    std::ofstream csv_file;
+    std::mutex mutex;
+    size_t num_lines;
+    size_t max_lines;
+public:
+    WriteFile(const std::string &filename);
+    void write(const std::string &line);
+    void close();
+};*/
 
 #endif // PARAMETER_STUDY_H

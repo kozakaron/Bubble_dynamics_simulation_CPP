@@ -37,7 +37,7 @@ void test_parameter_study()
         ASSERT_EQUAL(linrange[1], 0);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
         linrange = LinearRange{1, 0, 1};
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 1);
+        ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
         ErrorHandler::clear_errors();
 
         PowRange powrange{1, 16, 16, 2};
@@ -109,6 +109,57 @@ void test_parameter_study()
         ASSERT_FALSE(success);
         ASSERT_EQUAL(cpar.error_ID, 0);
         ErrorHandler::clear_errors();
+    );
+
+    ADD_TEST(tester, "test SimulationData class",
+        auto cpar = ControlParameters(ControlParameters::Builder{
+            .ID                          = 0,
+            .mechanism                   = Parameters::mechanism::chemkin_ar_he,
+            .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
+            .species                     = {"O2"},
+            .fractions                   = {1.00000000000000000e+00},
+            .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]
+            .T_inf                       = 2.93149999999999977e+02,    // ambient temperature [K]
+            .alfa_M                      = 3.49999999999999978e-01,    // water accommodation coefficient [-]
+            .P_v                         = 2.33809999999999991e+03,    // vapour pressure [Pa]
+            .mu_L                        = 1.00000000000000002e-03,    // dynamic viscosity [Pa*s]
+            .rho_L                       = 9.98200000000000045e+02,    // liquid density [kg/m^3]
+            .c_L                         = 1.48300000000000000e+03,    // sound speed [m/s]
+            .surfactant                  = 1.00000000000000000e+00,    // surface tension modifier [-]
+            .enable_heat_transfer        = true,
+            .enable_evaporation          = true,
+            .enable_reactions            = true,
+            .enable_dissipated_energy    = true,
+            .target_specie               = "H2O2",
+            .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04, 1.00000000000000000e+00},
+            .excitation_type             = Parameters::excitation::sin_impulse
+        });
+    
+        OdeSolution sol;
+        sol.t = {0.0, 1.0};
+        sol.x = {{
+                    1.0000000000000001e-05, 0.0000000000000000e+00, 2.9314999999999998e+02, 0.0000000000000000e+00, 0.0000000000000000e+00,
+                    0.0000000000000000e+00, 4.6517455752721046e-05, 0.0000000000000000e+00, 9.5926618412304955e-07, 0.0000000000000000e+00,
+                    0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+                    0.0000000000000000e+00
+                }, {
+                    1.0000850644975870e-05,  2.0736455319422995e-15,  2.9315000000000657e+02, -1.8915271945128421e-33,  2.4326921263456480e-10,
+                   -1.9953268575847301e-22,  4.6494706600082013e-05,  1.0145497852167193e-25,  9.5926618412303917e-07,  0.0000000000000000e+00,
+                    2.3380625551111345e-13,  2.2003345706478023e-08,  0.0000000000000000e+00,  0.0000000000000000e+00,  2.0732275271545515e-55,
+                    1.1191854750923134e-06
+                }};
+        sol.num_dim = sol.x[0].size();
+
+        SimulationData data(cpar, sol, 1000.0);
+        ASSERT_EQUAL(data.T_max, 1000.0);
+        ASSERT_APPROX(data.dissipated_energy, 1.1191854750923134e-06, 1e-20);
+        ASSERT_APPROX(data.n_target_specie, 9.219091868668137e-17, 1e-5);
+        ASSERT_APPROX(data.energy_demand, 356900.1798166697, 1e-5);
+
+        ASSERT_EQUAL(SimulationData(cpar, OdeSolution(), 1000.0).energy_demand, SimulationData::infinite_energy_demand);
+        const Parameters* par = Parameters::get_parameters(cpar.mechanism);
+        cpar.target_specie = par->invalid_index;
+        ASSERT_EQUAL(SimulationData(cpar, sol, 1000.0).energy_demand, SimulationData::infinite_energy_demand);
     );
 
     tester.run_tests();
