@@ -102,17 +102,19 @@ public:
     static Error get_error(size_t index);
 };
 
+
 // Error macro overloads:
 //  - ERROR(string message)
 //  - ERROR(string message, size_t ID)
 //  - ERROR(Error::severity error_severity, Error::type error_type, string message)
 //  - ERROR(Error::severity error_severity, Error::type error_type, string message, size_t ID)
+#define ERROR(...) _GET_MACRO(__VA_ARGS__, _ERROR_4, _ERROR_3, _ERROR_2, _ERROR_1)(__VA_ARGS__)
 #define _ERROR_1(message) Error(Error::severity::error, Error::type::general, message, __FUNCTION__, __FILE__, __LINE__, 0)
 #define _ERROR_2(message, ID) Error(Error::severity::error, Error::type::general, message, __FUNCTION__, __FILE__, __LINE__, ID)
 #define _ERROR_3(error_severity, error_type, message) Error(error_severity, error_type, message, __FUNCTION__, __FILE__, __LINE__, 0)
 #define _ERROR_4(error_severity, error_type, message, ID) Error(error_severity, error_type, message, __FUNCTION__, __FILE__, __LINE__, ID)
 #define _GET_MACRO(_1, _2, _3, _4, NAME, ...) NAME
-#define ERROR(...) _GET_MACRO(__VA_ARGS__, _ERROR_4, _ERROR_3, _ERROR_2, _ERROR_1)(__VA_ARGS__)
+
 
 // Log error macro: input is the same as ERROR macro, returns the error ID
 //  - LOG_ERROR(string message)

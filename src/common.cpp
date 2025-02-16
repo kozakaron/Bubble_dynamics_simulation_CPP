@@ -227,6 +227,7 @@ void ErrorHandler::set_log_file(const std::string &filename)
 
 size_t ErrorHandler::log_error(const Error &err)
 {
+    std::lock_guard<std::mutex> lock(ErrorHandler::mutex);
     if (ErrorHandler::print_when_log)
     {
         std::cerr << err << std::endl;
@@ -235,8 +236,8 @@ size_t ErrorHandler::log_error(const Error &err)
     {
         ErrorHandler::log_file << err.to_string(false) << std::endl;
     }
-    std::lock_guard<std::mutex> lock(ErrorHandler::mutex);
     ErrorHandler::errors.push_back(err);
+    
     return ErrorHandler::errors.size() - 1;
 }
 
@@ -278,10 +279,10 @@ void ErrorHandler::clear_errors()
 Error ErrorHandler::get_error(size_t index)
 {
     if (index == ErrorHandler::no_error)
-        return ERROR("No error occured", 0);
+        return ERROR(Error::severity::info, Error::type::general, "No error occured");
     if (index >= ErrorHandler::errors.size())
         return ERROR("Error index " + std::to_string(index) + " out of bounds, number of errors: " + std::to_string(ErrorHandler::errors.size()) +\
-                     " (Perhaps you used ErrorHandler::clear_errors)", 0);
+                     " (Perhaps you used ErrorHandler::clear_errors)");
     std::lock_guard<std::mutex> lock(ErrorHandler::mutex);
     return ErrorHandler::errors[index];
 }

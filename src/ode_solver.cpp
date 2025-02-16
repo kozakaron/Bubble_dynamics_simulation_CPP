@@ -98,11 +98,10 @@ std::string OdeSolution::to_csv() const
         ss << ",";
         for (size_t i = 0; i < this->x.back().size(); ++i)
             ss << format_double << this->x.back()[i] << ";";
-        ss << ",";
     }
     else
     {
-        ss << ",,";
+        ss << ",";
     }
     
     return ss.str();
@@ -328,7 +327,7 @@ is_success OdeSolver::solve(
         }
         if (this->timer.lap() > timeout)
         {
-            this->sol.error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, "Timeout: " + std::to_string(timeout) + " s", 0);
+            this->sol.error_ID = LOG_ERROR(Error::severity::error, Error::type::timeout, "Timeout: " + std::to_string(timeout) + " s", 0);
             success = false;
             break;
         }
