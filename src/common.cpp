@@ -268,7 +268,7 @@ size_t ErrorHandler::get_error_count()
 void ErrorHandler::clear_errors()
 {
 #ifndef TEST
-    std::cerr << colors::bold << colors::red << "It is not recommended to clear errors outside test mode. " << colors::reset << std::endl;
+    std::cerr << colors::bold << colors::yellow << "It is not recommended to clear errors outside test mode. " << colors::reset << std::endl;
     // Why? becouse error_ID is used to point to certain errors
 #endif
     std::lock_guard<std::mutex> lock(ErrorHandler::mutex);

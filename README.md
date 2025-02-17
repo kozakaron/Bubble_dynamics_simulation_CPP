@@ -124,20 +124,20 @@ auto ode_fun = [&ode](const double t, const double *x, double *dxdt) -> is_succe
 
 // solve the ODE
 RKCK45 solver;
-solver.solve(0.0, t_max, (double*)x_0.data(), ode.par->num_species+4, ode_fun, &ode.error_ID, 60.0, false);
+solver.solve(0.0, t_max, (double*)x_0.data(), ode.par->num_species+4, ode_fun, &ode.cpar.error_ID, 60.0, false);
 
 // get solution, do postprocessing
 OdeSolution sol = solver.get_solution();
-SimulationData data(cpar, sol, 0.0);   // T_max is ignored
+SimulationData data(cpar, sol);
 std::cout << data << std::endl;
 ```
 
 ### Running a bruteforce parameter study
 
-A bruteforce parameter study can be defined by the `ParameterStudy` class declared in [./include/parameter_study.h](./include/parameter_study.h). It is also initialized with a builder struct and a designated initializer list, similar to `ControlParameters`. However, arguments have to be a childre of the `Range` class: `Const`, `LinearRange`, `PowRange`. It also has defaults for missing arguments, and can be printed to console in usable code format:
+A bruteforce parameter study can be defined by the `ParameterCombinator` class declared in [./include/parameter_study.h](./include/parameter_study.h). It is also initialized with a builder struct and a designated initializer list, similar to `ControlParameters`. However, arguments have to be a childre of the `Range` class: `Const`, `LinearRange`, `PowRange`. It also has defaults for missing arguments, and can be printed to console in usable code format:
 
 ```cpp
-ParameterStudy parameter_study = ParameterStudy{ParameterStudy::Builder{
+ParameterCombinator parameter_study = ParameterCombinator{ParameterCombinator::Builder{
     .mechanism                   = Parameters::mechanism::chemkin_ar_he,
     .R_E                         = LinearRange(0.000005, 0.000125, 5),                 // {5e-06, 3.5e-05, 6.5e-05, 9.5e-05, 0.000125}
     .P_amb                       = Const(101325.000000),                               // {101325}
@@ -166,4 +166,4 @@ while (true)
 }
 ```
 
-The `ParameterStudy` class does not create all possible `ControlParameters` ahead of time in a huge list. Thus, it can theoritically handle an arbitrary number of combinations with a small memory footprint.
+The `ParameterCombinator` class does not create all possible `ControlParameters` ahead of time in a huge list. Thus, it can theoritically handle an arbitrary number of combinations with a small memory footprint.

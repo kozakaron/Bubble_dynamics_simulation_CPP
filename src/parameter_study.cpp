@@ -144,7 +144,7 @@ std::string PowRange::to_string() const
 }
 
 
-std::unique_ptr<Range> get_unique_ptr(const ParameterStudy::AnyRange range)
+std::unique_ptr<Range> get_unique_ptr(const ParameterCombinator::AnyRange range)
 {
     if (std::holds_alternative<Const>(range))
     {
@@ -161,7 +161,7 @@ std::unique_ptr<Range> get_unique_ptr(const ParameterStudy::AnyRange range)
     return nullptr;
 }
 
-ParameterStudy::ParameterStudy(const ParameterStudy::Builder &builder):
+ParameterCombinator::ParameterCombinator(const ParameterCombinator::Builder &builder):
     combination_ID(0),
     total_combination_count(1),
     mechanism(builder.mechanism),
@@ -205,7 +205,7 @@ ParameterStudy::ParameterStudy(const ParameterStudy::Builder &builder):
 }
 
 
-std::string ParameterStudy::to_string(const bool with_code) const
+std::string ParameterCombinator::to_string(const bool with_code) const
 {
     const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
@@ -234,7 +234,7 @@ std::string ParameterStudy::to_string(const bool with_code) const
         species_names.push_back(species_to_string(species_name));
     }
 
-    if (with_code) ss << "ParameterStudy::Builder{\n";
+    if (with_code) ss << "ParameterCombinator::Builder{\n";
     ss << std::left;
 
     ss << format_field_name << ".mechanism" << " = " << ((with_code ? "Parameters::mechanism::" : "") + par->model) << ",\n";
@@ -272,26 +272,26 @@ std::string ParameterStudy::to_string(const bool with_code) const
 }
 
 
-std::ostream &operator<<(std::ostream &os, const ParameterStudy &ps)
+std::ostream &operator<<(std::ostream &os, const ParameterCombinator &pc)
 {
-    os << ps.to_string(true);
+    os << pc.to_string(true);
     return os;
 }
 
 
-size_t ParameterStudy::get_total_combination_count() const
+size_t ParameterCombinator::get_total_combination_count() const
 {
     return this->total_combination_count;
 }
 
 
-size_t ParameterStudy::get_next_combination_ID() const
+size_t ParameterCombinator::get_next_combination_ID() const
 {
     return this->combination_ID.load();
 }
 
 
-std::pair<is_success, ControlParameters> ParameterStudy::get_next_combination()
+std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combination()
 {
     const size_t combination_ID = this->combination_ID.fetch_add(1, std::memory_order_relaxed);    
     size_t prod = 1;
@@ -373,22 +373,21 @@ double get_energy_demand(const OdeSolution &sol, const ControlParameters &cpar)
     if (n_target < -1.0e-8)
         LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Target specie concentration is negative: " + std::to_string(n_target), cpar.ID);
 
-    if (m_target < 1e-20) return SimulationData::infinite_energy_demand;
+    if (m_target < 10*std::numeric_limits<double>::min()) return SimulationData::infinite_energy_demand;
     return 1.0e-6 * dissipated_energy / m_target;  // [MJ/kg]
 }
 
 
-const std::string SimulationData::csv_header = std::string("T_max,dissipated_energy,n_target_specie,energy_demand,")
+const std::string SimulationData::csv_header = std::string("dissipated_energy,n_target_specie,energy_demand,")
                                              + std::string(ControlParameters::csv_header) + std::string(",")
                                              + std::string(OdeSolution::csv_header) + std::string(",") + std::string(Error::csv_header);
 
 const Error SimulationData::no_error = Error(Error::severity::info, Error::type::general, "No error", "", __FILE__, __LINE__, 0);
 
 
-SimulationData::SimulationData(const ControlParameters &cpar, const OdeSolution &sol, const double T_max):
+SimulationData::SimulationData(const ControlParameters &cpar, const OdeSolution &sol):
     cpar(cpar),    
     sol(sol),
-    T_max(T_max),
     dissipated_energy(get_dissipated_energy(sol)),
     n_target_specie(get_n_target(sol, cpar)),
     energy_demand(get_energy_demand(sol, cpar))
@@ -402,7 +401,6 @@ std::string SimulationData::to_csv() const
         return os << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10);
     };
 
-    ss << format_double << this->T_max << ",";
     ss << format_double << this->dissipated_energy << ",";
     ss << format_double << this->n_target_specie << ",";
     ss << format_double << this->energy_demand << ",";
@@ -433,7 +431,6 @@ std::string SimulationData::to_string() const
     std::stringstream ss;
     ss << std::left;
     ss << "SimulationData{\n";
-    ss << std::setw(strw) << "    .T_max"              << " = " << format_double << this->T_max                << ",    // [K]\n";
     ss << std::setw(strw) << "    .dissipated_energy"  << " = " << format_double << this->dissipated_energy    << ",    // [J]\n";
     ss << std::setw(strw) << "    .n_target_specie"    << " = " << format_double << this->n_target_specie      << ",    // [mol]\n";
     ss << std::setw(strw) << "    .energy_demand"      << " = " << format_double << this->energy_demand        << ",    // [MJ/kg]\n";
@@ -447,7 +444,7 @@ std::string SimulationData::to_string() const
 }
 
 
-std::string SimulationData::to_small_string(const ParameterStudy &ps, const double best_energy_demand, const bool colored) const
+std::string SimulationData::to_small_string(const ParameterCombinator &ps, const double best_energy_demand, const bool colored) const
 {
     std::stringstream ss;
     std::string total_combinations = std::to_string(ps.get_total_combination_count());

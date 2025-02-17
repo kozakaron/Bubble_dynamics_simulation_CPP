@@ -58,26 +58,26 @@ void test_parameter_study()
         ASSERT_TRUE((PowRange{1, 10, 5, 1.0}[1] < PowRange{1, 10, 5, 0.5}[1]));
     );
 
-    ADD_TEST(tester, "Test ParameterStudy::get_total_combination_count()",
-        ParameterStudy::Builder builder{
+    ADD_TEST(tester, "Test ParameterCombinator::get_total_combination_count()",
+        ParameterCombinator::Builder builder{
             .mechanism = Parameters::mechanism::chemkin_ar_he,
             .R_E = PowRange(1e-6, 10e-6, 5, 2),
             .rho_L = LinearRange(800.0, 1200.0, 5),
         };
-        ParameterStudy ps1{builder};
-        ASSERT_EQUAL(ps1.get_total_combination_count(), 5*5);
+        ParameterCombinator pc1{builder};
+        ASSERT_EQUAL(pc1.get_total_combination_count(), 5*5);
 
         builder.R_E = LinearRange(1e-6, 10e-6, 125);
         builder.rho_L = LinearRange(800.0, 1200.0, 125);
         builder.P_amb = LinearRange(101325.0, 101325.0, 1);
         builder.T_inf = LinearRange(293.15, 293.15, 125);
         builder.excitation_params[0] = LinearRange(-2.0e5, -2.0e5, 125);
-        ParameterStudy ps2{builder};
-        ASSERT_EQUAL(ps2.get_total_combination_count(), 125*125*125*125);
+        ParameterCombinator pc2{builder};
+        ASSERT_EQUAL(pc2.get_total_combination_count(), 125*125*125*125);
     );
 
-    ADD_TEST(tester, "Test ParameterStudy::get_next_combination()",
-        ParameterStudy::Builder builder{
+    ADD_TEST(tester, "Test ParameterCombinator::get_next_combination()",
+        ParameterCombinator::Builder builder{
             .mechanism = Parameters::mechanism::chemkin_ar_he,
             .R_E = LinearRange(0, 4, 5),
             .species = {"H2O"},
@@ -87,15 +87,15 @@ void test_parameter_study()
                 Const(1),
                 Const(1)
         }};
-        ParameterStudy ps{builder};
-        ASSERT_EQUAL(ps.get_total_combination_count(), 5*3*2);
+        ParameterCombinator pc{builder};
+        ASSERT_EQUAL(pc.get_total_combination_count(), 5*3*2);
         size_t ID = 0;
         for (size_t excitation_param = 0; excitation_param < 2; excitation_param++)
             for (size_t rho_L = 0; rho_L < 3; rho_L++)
                 for (size_t R_E = 0; R_E < 5; R_E++)
                 {
-                    ASSERT_EQUAL(ps.get_next_combination_ID(), ID);
-                    auto [success, cpar] = ps.get_next_combination();
+                    ASSERT_EQUAL(pc.get_next_combination_ID(), ID);
+                    auto [success, cpar] = pc.get_next_combination();
                     ASSERT_TRUE(success);
                     ASSERT_EQUAL(cpar.ID, ID);
                     ASSERT_EQUAL(cpar.R_E, R_E);
@@ -105,9 +105,9 @@ void test_parameter_study()
                     ASSERT_EQUAL(cpar.excitation_params[2], 1);
                     ID++;
                 }
-        auto [success, cpar] = ps.get_next_combination();
+        auto [success, cpar] = pc.get_next_combination();
         ASSERT_FALSE(success);
-        ASSERT_EQUAL(cpar.error_ID, 0);
+        ASSERT_EQUAL(cpar.error_ID, ErrorHandler::no_error);
         ErrorHandler::clear_errors();
     );
 
@@ -150,16 +150,15 @@ void test_parameter_study()
                 }};
         sol.num_dim = sol.x[0].size();
 
-        SimulationData data(cpar, sol, 1000.0);
-        ASSERT_EQUAL(data.T_max, 1000.0);
+        SimulationData data(cpar, sol);
         ASSERT_APPROX(data.dissipated_energy, 1.1191854750923134e-06, 1e-20);
         ASSERT_APPROX(data.n_target_specie, 9.219091868668137e-17, 1e-5);
         ASSERT_APPROX(data.energy_demand, 356900.1798166697, 1e-5);
 
-        ASSERT_EQUAL(SimulationData(cpar, OdeSolution(), 1000.0).energy_demand, SimulationData::infinite_energy_demand);
+        ASSERT_EQUAL(SimulationData(cpar, OdeSolution()).energy_demand, SimulationData::infinite_energy_demand);
         const Parameters* par = Parameters::get_parameters(cpar.mechanism);
         cpar.target_specie = par->invalid_index;
-        ASSERT_EQUAL(SimulationData(cpar, sol, 1000.0).energy_demand, SimulationData::infinite_energy_demand);
+        ASSERT_EQUAL(SimulationData(cpar, sol).energy_demand, SimulationData::infinite_energy_demand);
     );
 
     tester.run_tests();
