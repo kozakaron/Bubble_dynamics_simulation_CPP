@@ -12,6 +12,7 @@
 #include <variant>
 #include <atomic>
 #include <mutex>
+#include <limits>
 
 // Represents possible values for a parameter in a parameter study. Options:
 // - Const: constant value
@@ -71,7 +72,7 @@ public:
 };
 
 
-class ParameterStudy
+class ParameterCombinator
 {
 private:
     std::atomic<size_t> combination_ID;
@@ -120,9 +121,9 @@ public:
         Parameters::excitation excitation_type  = Parameters::excitation::sin_impulse;
     };
 
-    ParameterStudy(const Builder &builder);
+    ParameterCombinator(const Builder &builder);
     std::string to_string(const bool with_code=false) const;
-    friend std::ostream &operator<<(std::ostream &os, const ParameterStudy &ps);
+    friend std::ostream &operator<<(std::ostream &os, const ParameterCombinator &pc);
     friend class SimulationData;
     size_t get_total_combination_count() const;
     size_t get_next_combination_ID() const;
@@ -138,35 +139,36 @@ public:
 
     const ControlParameters &cpar;
     const OdeSolution &sol;
-    const double T_max;              // [K]
     const double dissipated_energy;  // [J]
     const double n_target_specie;    // [mol]
     const double energy_demand;      // [MJ/kg]
-    static constexpr double infinite_energy_demand = 1.0e30;
+    static constexpr double infinite_energy_demand = std::numeric_limits<double>::infinity();
 
     SimulationData(
         const ControlParameters &cpar,
-        const OdeSolution &sol,
-        double T_max = 0.0
+        const OdeSolution &sol
     );
     std::string to_csv() const;
     std::string to_string() const;
-    std::string to_small_string(const ParameterStudy &ps, const double best_energy_demand, const bool colored=true) const;
+    std::string to_small_string(const ParameterCombinator &ps, const double best_energy_demand, const bool colored=true) const;
     friend std::ostream &operator<<(std::ostream &os, const SimulationData &data);
 };
 
 
-/*class WriteFile
+/*class ParameterStudy
 {
 private:
-    std::ofstream csv_file;
-    std::mutex mutex;
-    size_t num_lines;
-    size_t max_lines;
+    ParameterCombinator &parameter_combinator;
+    std::string save_folder;
+    std::ofstream output_log_file;
+    std::mutex output_mutex;
+    std::vector<std::ofstream> csv_files;
+    
+    void parameter_study_task();
 public:
-    WriteFile(const std::string &filename);
-    void write(const std::string &line);
-    void close();
+    ParameterStudy(const ParameterCombinator &parameter_combinator, const std::string &save_folder);
+    ~ParameterStudy();
+    void run(const size_t num_threads);
 };*/
 
 #endif // PARAMETER_STUDY_H

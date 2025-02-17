@@ -34,7 +34,7 @@ void task()
         const size_t task_ID = task_counter.fetch_add(1, std::memory_order_relaxed);
         if (task_ID >= num_tasks) break;
 
-        solver.solve(0.0, 100.0e-6, (double*)x, ode.par->num_species+4, ode_fun, &ode.error_ID, 60.0, false);
+        solver.solve(0.0, 100.0e-6, (double*)x, ode.par->num_species+4, ode_fun, &ode.cpar.error_ID, 60.0, false);
         //OdeSolution sol = solver.get_solution();
         //std::cout << task_ID << ". " << sol.runtime << "\n";
     }

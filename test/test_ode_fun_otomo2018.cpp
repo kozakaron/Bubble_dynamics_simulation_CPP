@@ -126,23 +126,23 @@ void test_ode_fun_otomo2018()
 
     ADD_TEST(tester, "Test check_before_call",
         ErrorHandler::clear_errors();
-        ASSERT_EQUAL(tester.ode.error_ID, ErrorHandler::no_error);
+        ASSERT_EQUAL(tester.ode.cpar.error_ID, ErrorHandler::no_error);
         ASSERT_TRUE(tester.ode.check_before_call());
 
         auto par = tester.ode.par;
         tester.ode.par = nullptr;
         ASSERT_FALSE(tester.ode.check_before_call());
-        ASSERT_EQUAL(tester.ode.error_ID, 0);
+        ASSERT_EQUAL(tester.ode.cpar.error_ID, 0);
         tester.ode.par = par;
         ASSERT_FALSE(tester.ode.check_before_call());
-        ASSERT_EQUAL(tester.ode.error_ID, 0);
-        tester.ode.error_ID = ErrorHandler::no_error;
+        ASSERT_EQUAL(tester.ode.cpar.error_ID, 0);
+        tester.ode.cpar.error_ID = ErrorHandler::no_error;
 
         tester.ode.num_species = 0;
         ASSERT_FALSE(tester.ode.check_before_call());
-        ASSERT_EQUAL(tester.ode.error_ID, 1);
+        ASSERT_EQUAL(tester.ode.cpar.error_ID, 1);
         tester.ode.num_species = tester.par->num_species;
-        tester.ode.error_ID = ErrorHandler::no_error;
+        tester.ode.cpar.error_ID = ErrorHandler::no_error;
         ErrorHandler::clear_errors();
     );
 
@@ -153,11 +153,11 @@ void test_ode_fun_otomo2018()
         array<double, 1+4> x = {4.17769608e-06, 8.29024721e+01, 1.50982469e+02, 9.32148950e-09, 9.32148950e-09};
         array<double, 1+4> dxdt = {0.0, 0.0, 0.0, 0.0, 0.0};
         ASSERT_TRUE(tester.ode.check_after_call(t, x.data(), dxdt.data()));
-        ASSERT_EQUAL(tester.ode.error_ID, ErrorHandler::no_error);
+        ASSERT_EQUAL(tester.ode.cpar.error_ID, ErrorHandler::no_error);
 
         dxdt[3] = std::numeric_limits<double>::infinity();
         ASSERT_FALSE(tester.ode.check_after_call(t, x.data(), dxdt.data()));
-        ASSERT_EQUAL(tester.ode.error_ID, 0);
+        ASSERT_EQUAL(tester.ode.cpar.error_ID, 0);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 1);
         ErrorHandler::clear_errors();
     );

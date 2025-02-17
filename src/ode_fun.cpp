@@ -24,7 +24,6 @@ double viscosity(const double T)
 OdeFun::OdeFun():
     par(nullptr),
     cpar(),
-    error_ID(ErrorHandler::no_error),
     num_species(0),
     C_p(nullptr),
     H(nullptr),
@@ -69,25 +68,20 @@ void OdeFun::delete_memory()
 
 is_success OdeFun::check_before_call()
 {
-    if (this->error_ID != ErrorHandler::no_error)
+    if (this->cpar.error_ID != ErrorHandler::no_error)
     {
         return false;
     }
     else if (this->par == nullptr || this->omega_dot == nullptr)
     {
-        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Arrays/par were nullptr. Forgot to call OdeFun::init()?");
-        return false;
-    }
-    else if(this->cpar.error_ID != ErrorHandler::no_error)
-    {
-        this->error_ID = this->cpar.error_ID;
+        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Arrays/par were nullptr. Forgot to call OdeFun::init()?");
         return false;
     }
     else if (this->num_species != this->par->num_species)
     {
         std::string message = "Invalid array lengths. Expected num_species=" + std::to_string(this->par->num_species) +\
                               ", arrays are initialized with size " + std::to_string(this->num_species) + " instead. Forgot to call OdeFun::init()?";
-        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, message);
+        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, message);
         return false;
     }
     return true;
@@ -118,7 +112,7 @@ is_success OdeFun::check_after_call(
             ss << ". t = " << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10) << t;
             ss << ";    x = " << to_string((double*)x, this->num_species+4);
             ss << ";    dxdt = " << to_string((double*)dxdt, this->num_species+4);
-            this->error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, ss.str(), this->cpar.ID);
+            this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, ss.str(), this->cpar.ID);
             return false;
         }
     }
@@ -130,10 +124,9 @@ is_success OdeFun::init(const ControlParameters& cpar)
 {
     const Parameters *old_par = this->par;
     this->par = Parameters::get_parameters(cpar.mechanism);
-    this->error_ID = ErrorHandler::no_error;
     if(this->par == nullptr)
     {
-        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Invalid mechanism: " + std::to_string(cpar.mechanism), cpar.ID);
+        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Invalid mechanism: " + std::to_string(cpar.mechanism), cpar.ID);
         return false;
     }
     this->num_species = this->par->num_species;
@@ -154,7 +147,6 @@ is_success OdeFun::init(const ControlParameters& cpar)
     this->cpar = cpar;
     if(this->cpar.error_ID != ErrorHandler::no_error)
     {
-        this->error_ID = this->cpar.error_ID;
         return false;
     }
     
@@ -215,7 +207,7 @@ is_success OdeFun::initial_conditions(
 // Errors
     if (p_gas < 0.0)
     {
-        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Negative gas pressure: " + std::to_string(p_gas), cpar.ID);
+        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Negative gas pressure: " + std::to_string(p_gas), cpar.ID);
         return false;
     }
     return true;
@@ -718,6 +710,4 @@ is_success OdeFun::operator()(
 TODO:
     - do something with the long doubles
     - add python interface
-    - benchmark multithreaded ode solver
-    - make brute force parameter sweep with combinatorics
 */
