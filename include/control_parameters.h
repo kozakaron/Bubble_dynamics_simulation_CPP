@@ -16,7 +16,7 @@ public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
     static constexpr size_t max_species = 4;
-    static constexpr char csv_header[] = "ID,mechanism,error_ID,R_E,species,fractions,P_amb,T_inf,alfa_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,target_specie,excitation_params,excitation_type";
+    static constexpr char csv_header[] = "ID,mechanism,R_E,species,fractions,P_amb,T_inf,alfa_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,target_specie,excitation_params,excitation_type";
 // Members
     size_t ID;                          // ID of control parameter
     Parameters::mechanism mechanism;    // rection mechanism
@@ -79,6 +79,7 @@ public:
     
 // Methods
     ControlParameters();
+    // Constructor with Builder. See Builder struct for more details.
     ControlParameters(const Builder& builder);
     ~ControlParameters();
     // Set species and their fractions like this: set_species({"H2", "N2"}, {0.75, 0.25}); or set_species({par->get_species("O2")}, {1.0});

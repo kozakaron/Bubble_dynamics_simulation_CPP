@@ -25,13 +25,19 @@ namespace colors
     const std::string reset =       "\033[0m";
 }
 
+
 template <typename T>
 std::string to_string(T* arr, size_t len);
+
 
 template <typename T>
 std::string to_string(T** arr, size_t len1, size_t len2);
 
+
 // Timer class for benchmarking
+//  - Measure time: Timer timer; timer.start(); /* ... */ double elapsed_time = timer.lap();
+//  - Format elapsed time (static method): std::string formatted_time = Timer::format_time(elapsed_time);
+//  - Get current time (static method): std::string current_time = Timer::current_time();
 class Timer
 {
 public:
@@ -49,6 +55,8 @@ private:
     std::chrono::high_resolution_clock::time_point start_time;
 };
 
+// Class to store errors. Used in ErrorHandler class. Use ERROR macro to create errors.
+// Prints errors in the format: "2025.02.15 21:31:08: (general) here is the error message with details ./src/some_file.cpp:42: Class::function()"
 class Error
 {
 public:
@@ -84,6 +92,14 @@ public:
     friend std::ostream &operator<<(std::ostream &os, const Error &err);
 };
 
+
+// Class to store errors and print them. Use LOG_ERROR macro to create errors. 
+// ErrorHandler is a static and thread safe class.
+//  - Disable printing with ErrorHandler::print_when_log = false;
+//  - Print all errors with ErrorHandler::print_errors();
+//  - Clear all errors with ErrorHandler::clear_errors();
+// Some classes store a state of error in a size_t variable, where ErrorHandler::no_error indicates no error.
+//  - Use ErrorHandler::get_error(error_ID) to get the corresponding error.
 class ErrorHandler
 {
 private:
@@ -136,6 +152,8 @@ public:
 #endif
 
 // Benchmarking macro
+// Usage: BENCHMARK_LINE(some_function();, 10);
+// Repeat some_function() N times
 #define BENCHMARK_LINE(line, N) \
     { \
         Timer benchmark_timer; \

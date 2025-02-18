@@ -3,8 +3,12 @@
 #include <numbers>
 #include <cmath>
 #include <regex>
+#include <limits>
+#include <filesystem>
+#include <thread>
 
 #include "parameter_study.h"
+#include "ode_fun.h"
 
 Range::Range():
     start(0.0),
@@ -384,6 +388,7 @@ const std::string SimulationData::csv_header = std::string("dissipated_energy,n_
 
 const Error SimulationData::no_error = Error(Error::severity::info, Error::type::general, "No error", "", __FILE__, __LINE__, 0);
 
+const double SimulationData::infinite_energy_demand = std::numeric_limits<double>::infinity();
 
 SimulationData::SimulationData(const ControlParameters &cpar, const OdeSolution &sol):
     cpar(cpar),    
@@ -457,7 +462,7 @@ std::string SimulationData::to_small_string(const ParameterCombinator &ps, const
         ss << colors::bold << (this->sol.success() ? colors::green : colors::red) << (this->sol.success() ? "success" : " failed") << colors::reset << "; ";
     else
         ss << (this->sol.success() ? "success" : " failed") << "; ";
-    ss << "runtime=" << Timer::format_time(this->sol.runtime) << "; ";
+    ss << "runtime=" << std::setw(10) << Timer::format_time(this->sol.runtime) << "; ";
     ss << "num_steps=" << std::setw(8) << this->sol.num_steps << ";   |   ";
 
     if (ps.R_E->get_num_steps() > 1)
@@ -512,4 +517,172 @@ std::ostream &operator<<(std::ostream &os, const SimulationData &data)
 {
     os << data.to_string();
     return os;
+}
+
+
+ParameterStudy::ParameterStudy(
+    ParameterCombinator &parameter_combinator,
+    std::string save_folder,
+    std::function<OdeSolver*()> solver_factory,
+    const double t_max,
+    const double timeout
+):
+    parameter_combinator(parameter_combinator),
+    solver_factory(solver_factory),
+    best_energy_demand(SimulationData::infinite_energy_demand),
+    t_max(t_max),
+    timeout(timeout)
+{
+    // check save_folder path validity, create if it does not exist, check if empty
+    this->save_folder = ""; // invalid path
+    std::filesystem::path save_folder_path(save_folder);
+    if (!std::filesystem::exists(save_folder_path))
+    {
+        if (!std::filesystem::create_directories(save_folder_path))
+        {
+            LOG_ERROR("Failed to create save folder: " + save_folder_path.string());
+            return;
+        }
+    }
+    if (!std::filesystem::is_empty(save_folder_path))
+    {
+        LOG_ERROR("Save folder is not empty: " + save_folder_path.string());
+        return;
+    }
+    this->save_folder = save_folder;
+
+    // save general information
+    std::filesystem::path general_info_file_path = save_folder_path / "bruteforce_parameter_study_settings.txt";
+    std::ofstream general_info_file(general_info_file_path);
+    if (!general_info_file.is_open())
+    {
+        LOG_ERROR("Failed to open file: " + general_info_file_path.string());
+    } else {
+        const Parameters* par = Parameters::get_parameters(parameter_combinator.mechanism);
+        general_info_file << "datetime: " << Timer::current_time() << "\n";
+        general_info_file << "total_combination_count: " << parameter_combinator.get_total_combination_count() << "\n";
+        general_info_file << "t_max: " << t_max << "\n";
+        general_info_file << "timeout: " << timeout << "\n";
+        general_info_file << "max_threads: " << std::thread::hardware_concurrency() << "\n";
+        general_info_file << "mechanism: " << par->model << "\n";
+        general_info_file << "number_of_species: " << par->num_species << "\n";
+        general_info_file << "number_of_reactions: " << par->num_reactions << "\n";
+        general_info_file << "species: " << ::to_string((std::string*)par->species_names.data(), par->num_species) << "\n\n";
+        general_info_file << parameter_combinator.to_string(true);
+        general_info_file.close();
+    }
+
+    // open log file
+    std::filesystem::path log_file_path = save_folder_path / "output.log";
+    std::filesystem::path error_file_path = save_folder_path / "errors.log";
+    ErrorHandler::set_log_file(error_file_path.string());
+    this->output_log_file.open(log_file_path);
+    if (!this->output_log_file.is_open())
+    {
+        LOG_ERROR("Failed to open file: " + log_file_path.string());
+    }
+}
+
+
+ParameterStudy::~ParameterStudy()
+{
+    if (this->output_log_file.is_open())
+    {
+        this->output_log_file.close();
+    }
+}
+
+
+void ParameterStudy::parameter_study_task(const bool print_output, const size_t thread_id)
+{
+    // setup ODE solver and ODE function
+    OdeFun ode;
+    std::unique_ptr<OdeSolver> solver(this->solver_factory());
+    std::vector<double> x_0;
+    auto ode_fun = [&ode](const double t, const double *x, double *dxdt) -> is_success { return ode(t, x, dxdt); };
+
+    // open csv file
+    std::filesystem::path save_folder_path(save_folder);
+    std::filesystem::path csv_file_path = save_folder_path / ("output_" + std::to_string(thread_id) + ".csv");
+    std::ofstream csv_file(csv_file_path);
+    if (!csv_file.is_open())
+    {
+        LOG_ERROR("Failed to open file: " + csv_file_path.string());
+        return;
+    }
+    csv_file << SimulationData::csv_header << "\n";
+
+    // run parameter study
+    while(true)
+    {
+        auto [success, cpar] = parameter_combinator.get_next_combination();
+        if (!success) break;
+
+        ode.init(cpar);
+        x_0.resize(ode.par->num_species+4);
+        ode.initial_conditions(x_0.data());
+
+        solver->solve(
+            0.0,                        // t_int_0
+            this->t_max,                // t_int_1
+            (double*)x_0.data(),        // x_0
+            ode.par->num_species+4,     // num_dim
+            ode_fun,                    // ode_fun
+            &ode.cpar.error_ID,         // error_ID ptr
+            this->timeout,              // timeout [s]
+            false                       // save all steps
+        );
+        OdeSolution sol = solver->get_solution();
+        SimulationData data(cpar, sol);
+
+        csv_file << data.to_csv() << "\n";
+        std::unique_lock<std::mutex> lock(this->output_mutex);
+        this->best_energy_demand = std::min(this->best_energy_demand, data.energy_demand);
+        lock.unlock();
+
+        if (this->output_log_file.is_open())
+            this->output_log_file << data.to_small_string(parameter_combinator, best_energy_demand, false) << "\n";
+       
+        if (print_output)
+        {
+            lock.lock();
+            std::cout << data.to_small_string(parameter_combinator, best_energy_demand, true) << "\n";
+        }
+    }
+
+    csv_file.close();
+}
+
+
+void ParameterStudy::run(const size_t num_threads, const bool print_output)
+{
+    if (this->save_folder.empty()) return;
+    if (num_threads == 0)
+    {
+        LOG_ERROR("Number of threads must be greater than zero.");
+        return;
+    }
+    if (num_threads > std::thread::hardware_concurrency())
+    {
+        LOG_ERROR("Number of threads (" + std::to_string(num_threads) + ") must be less than or equal to the number of hardware threads (" + std::to_string(std::thread::hardware_concurrency()) + ")");
+        return;
+    }
+    ErrorHandler::print_when_log = print_output;
+
+    Timer timer;
+    timer.start();
+    std::vector<std::thread> threads(num_threads);
+    for (size_t i = 0; i < num_threads; i++)
+    {
+        threads[i] = std::thread(&ParameterStudy::parameter_study_task, this, print_output, i);
+    }
+
+    for (size_t i = 0; i < num_threads; i++)
+    {
+        threads[i].join();
+    }
+
+    double runtime = timer.lap();
+    std::cout << "\n\nTotal runtime: " << Timer::format_time(runtime) << std::endl;
+    std::cout << "\nAverage runtime per combination: " << Timer::format_time(runtime / parameter_combinator.get_total_combination_count()) << std::endl;
 }

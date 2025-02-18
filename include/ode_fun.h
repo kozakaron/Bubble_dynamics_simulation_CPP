@@ -81,12 +81,14 @@ private:
 public:
     OdeFun();
     ~OdeFun();
+    // Initializes: allocate required memory for current simulation
     is_success init(const ControlParameters& cpar);
     // Calculates the initial condition of the bubble from the control parameters.
     is_success initial_conditions(
         double* x
     ) ; //noexcept
-    is_success operator()(   // <----- CALL OPERATOR
+    // Call operator. Calculates the right-hand side of the ODE system.
+    is_success operator()(
         const double t,
         const double* x,
         double* dxdt

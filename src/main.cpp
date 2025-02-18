@@ -1,8 +1,10 @@
 #include "common.h"
 #include "parameters.h"
+#include "control_parameters.h"
 #include "ode_fun.h"
+#include "ode_solver.h"
+#include "parameter_study.h"
 #include "test_list.h"
-
 
 using namespace std;
 
@@ -25,6 +27,7 @@ int main(int argc, char **argv)
 #ifdef BENCHMARK
     benchmark_ode_fun();
     benchmark_speedup();
+    benchmark_parameter_study();
 #endif  // BENCHMARK
 
     ErrorHandler::print_errors();

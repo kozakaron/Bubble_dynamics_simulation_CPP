@@ -167,3 +167,5 @@ while (true)
 ```
 
 The `ParameterCombinator` class does not create all possible `ControlParameters` ahead of time in a huge list. Thus, it can theoritically handle an arbitrary number of combinations with a small memory footprint.
+
+Use `ParameterStudy` class to create save folder, run simulations multithreaded, log output and errors, save results to csv automatically. See [./test/benchmark_parameter_study.cpp](./test/benchmark_parameter_study.cpp) for example code.
