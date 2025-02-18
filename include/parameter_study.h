@@ -7,12 +7,13 @@
 
 #include <string>
 #include <ostream>
+#include <fstream>
 #include <memory>
 #include <vector>
 #include <variant>
 #include <atomic>
 #include <mutex>
-#include <limits>
+#include <functional>
 
 // Represents possible values for a parameter in a parameter study. Options:
 // - Const: constant value
@@ -125,6 +126,7 @@ public:
     std::string to_string(const bool with_code=false) const;
     friend std::ostream &operator<<(std::ostream &os, const ParameterCombinator &pc);
     friend class SimulationData;
+    friend class ParameterStudy;
     size_t get_total_combination_count() const;
     size_t get_next_combination_ID() const;
     std::pair<is_success, ControlParameters> get_next_combination();
@@ -136,13 +138,13 @@ class SimulationData
 public:
     static const std::string csv_header;
     static const Error no_error;
+    static const double infinite_energy_demand;
 
     const ControlParameters &cpar;
     const OdeSolution &sol;
     const double dissipated_energy;  // [J]
     const double n_target_specie;    // [mol]
     const double energy_demand;      // [MJ/kg]
-    static constexpr double infinite_energy_demand = std::numeric_limits<double>::infinity();
 
     SimulationData(
         const ControlParameters &cpar,
@@ -155,20 +157,29 @@ public:
 };
 
 
-/*class ParameterStudy
+class ParameterStudy
 {
 private:
     ParameterCombinator &parameter_combinator;
     std::string save_folder;
     std::ofstream output_log_file;
     std::mutex output_mutex;
-    std::vector<std::ofstream> csv_files;
+    std::function<OdeSolver*()> solver_factory;
+    double best_energy_demand;
+    const double t_max;
+    const double timeout;
     
-    void parameter_study_task();
+    void parameter_study_task(const bool print_output, const size_t thread_id);
 public:
-    ParameterStudy(const ParameterCombinator &parameter_combinator, const std::string &save_folder);
+    ParameterStudy(
+        ParameterCombinator &parameter_combinator,
+        std::string save_folder,
+        std::function<OdeSolver*()> solver_factory,
+        const double t_max = 1.0,
+        const double timeout = 60.0
+    );
     ~ParameterStudy();
-    void run(const size_t num_threads);
-};*/
+    void run(const size_t num_threads, const bool print_output=true);
+};
 
 #endif // PARAMETER_STUDY_H

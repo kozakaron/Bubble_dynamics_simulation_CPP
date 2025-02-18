@@ -188,9 +188,18 @@ OdeSolver::OdeSolver(
 
 OdeSolver::~OdeSolver()
 {
+    this->base_class_cleanup();
+}
+
+
+void OdeSolver::base_class_cleanup()
+{
     if (this->x != nullptr) delete[] this->x;
     if (this->x_new != nullptr) delete[] this->x_new;
     if (this->loc_error != nullptr) delete[] this->loc_error;
+    this->x = nullptr;
+    this->x_new = nullptr;
+    this->loc_error = nullptr;
 }
 
 
@@ -384,6 +393,7 @@ RKCK45::RKCK45(
 
 RKCK45::~RKCK45()
 {
+    this->base_class_cleanup();
     for (size_t i = 0; i < this->stages; ++i)
     {
         if (this->k[i] != nullptr) delete[] this->k[i];

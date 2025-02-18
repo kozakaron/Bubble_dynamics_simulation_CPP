@@ -193,7 +193,7 @@ std::string ControlParameters::to_csv() const
     const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
     {
-        return ",,,,,,,,,,,,,,,,,,,,";
+        return ",,,,,,,,,,,,,,,,,,,";
     }
 
     ss << this->ID << "," << par->model << "," << format_double << this->R_E << ",";
@@ -211,7 +211,7 @@ std::string ControlParameters::to_csv() const
     ss << par->species_names[this->target_specie] << ",";
     for (size_t index = 0; index < Parameters::excitation_arg_nums[this->excitation_type]; ++index)
         ss << format_double << this->excitation_params[index] << ";";
-    ss << Parameters::excitation_names[this->excitation_type];
+    ss << "," << Parameters::excitation_names[this->excitation_type];
 
     return ss.str();
 }

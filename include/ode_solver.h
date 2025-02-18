@@ -67,7 +67,8 @@ public:
         const double dt_min=1.0e-20,
         const double dt_max=1.0e-1
     );
-    ~OdeSolver();
+    virtual ~OdeSolver() = 0;
+    void base_class_cleanup();
     virtual is_success preprocess(
         const double t_int_0,
         const double t_int_1,
