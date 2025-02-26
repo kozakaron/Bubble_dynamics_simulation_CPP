@@ -16,7 +16,7 @@ linker = cpp_compiler
 
 # Define the source directory and output binary
 src_dirs = ['./src', './test']
-include_dirs = ['./include', './test', './src', './mechanism']
+include_dirs = ['./include', './test', './src', './mechanism', './libode-ignore/include/ode']
 build_dir = './bin'
 output_binary_name = 'main'
 
@@ -40,15 +40,16 @@ linker_flags = [
 ]
 common_flags = [
 # Sanitizers: help identify issues in runtime, performance overhead
-    '-fsanitize=address',     # Protect against memory errors (a.g. use after free)
-    '-fsanitize=undefined',   # Protect against undefined behavior (e.g. integer overflow, invalid type casts)
-    '-fno-omit-frame-pointer',# Keep frame pointer for better stack traces
+    #'-fsanitize=address',     # Protect against memory errors (a.g. use after free)
+    #'-fsanitize=undefined',   # Protect against undefined behavior (e.g. integer overflow, invalid type casts)
+    #'-fno-omit-frame-pointer',# Keep frame pointer for better stack traces
     #'-fomit-frame-pointer',    # Omit frame pointer for functions that don't need one
 ]
 
 
 import argparse
 from build_utility import Builder, Logger
+import shutil
 
 def main():
     args = parse_args()
@@ -81,6 +82,8 @@ def main():
     #    builder.add_source_file(cuda_file, cuda_compiler, compiler_flags)
 
     object_files = builder.compile_all()
+    object_files.append('./bin/libode.a')
+    shutil.copy('./libode-ignore/bin/libode.a', build_dir)
     builder.link_object_files(linker, object_files, output_binary_name, linker_flags, args.shared)
 
     if args.run and not args.shared:

@@ -1,0 +1,39 @@
+Test cpar: ControlParameters::Builder{
+    .ID                          = 0,
+    .mechanism                   = Parameters::mechanism::chemkin_ar_he,
+    .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
+    .species                     = {"O2"},
+    .fractions                   = {1.00000000000000000e+00},
+    .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]
+    .T_inf                       = 2.93149999999999977e+02,    // ambient temperature [K]
+    .alfa_M                      = 3.49999999999999978e-01,    // water accommodation coefficient [-]
+    .P_v                         = 2.33809999999999991e+03,    // vapour pressure [Pa]
+    .mu_L                        = 1.00000000000000002e-03,    // dynamic viscosity [Pa*s]
+    .rho_L                       = 9.98200000000000045e+02,    // liquid density [kg/m^3]
+    .c_L                         = 1.48300000000000000e+03,    // sound speed [m/s]
+    .surfactant                  = 1.00000000000000000e+00,    // surface tension modifier [-]
+    .enable_heat_transfer        = true,
+    .enable_evaporation          = true,
+    .enable_reactions            = true,
+    .enable_dissipated_energy    = true,
+    .target_specie               = "H2",
+    .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04, 1.00000000000000000e+00},
+    .excitation_type             = Parameters::excitation::sin_impulse
+}
+Integration time interval end: 1.00 ms
+
+              solver name            implicit             runtime           num_steps        num_fun_eval          x_last[-1]
+               own RKCK45               false            22.870 s             1006723                   0          1.1192e-06
+             libode RKF32               false            21.004 s             2170031             6510093          1.1192e-06
+              libode RK43               false            24.444 s             1525999             7629995          1.1192e-06
+           libode OdeRKCK               false            24.191 s             1296861             7781166          1.1192e-06
+        libode OdeDoPri54               false            29.468 s             1317253             9220771          1.1192e-06
+         libode OdeVern65               false            27.881 s              969036             8721324          1.1192e-06
+         libode OdeVern76               false            failed: ODE FAILURE: solution vector contains NaN
+        libode OdeDoPri87               false            11.83 us                  17                 221                -nan
+         libode OdeVern98               false            26.14 us                  38                 608        -7.39627e-10
+             libode GRK4A                true            failed: LINALG FAILURE: the matrix is singular
+[1m[31mErrors:[0m
+    2025.02.26 14:57:13: [1m[31m(odefun) [0m[31mdxdt[1] is NaN. t = 5.16290291415985791e-07;    x = {1.00839228135219931e-05, -7.07953546666622580e-01, -4.34401594649096296e+03, 4.09763441344439369e-17, 6.16983806694858328e-28, 6.84671534916872342e-11, 4.53656483573298844e-05, -1.17675277069233446e-05, 9.26653449710952201e-07, 0.00000000000000000e+00, 4.86722427543631027e-17, 1.22061462575389160e-09, 0.00000000000000000e+00, 0.00000000000000000e+00, 1.17649495430620897e-05, -1.23397861041496473e-11};    dxdt = {-7.07953546666622580e-01, -nan, -nan, -nan, -nan, -nan, -nan, -nan, -nan, -nan, -nan, -nan, -nan, 0.00000000000000000e+00, -nan, -nan}[0m in ./src/ode_fun.cpp:115: check_after_call();
+[92mBuild succeeded in [1m7.05[0m[92m seconds[0m
+[91m[1m./bin/main program returned with code 1[0m
