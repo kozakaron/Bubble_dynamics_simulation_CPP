@@ -29,6 +29,8 @@ debugger_help = f'''{bold}Debugger help:{reset}
     {bold}backtrace{reset} show stack trace (bt)
     {bold}list{reset}      show source code (l): {italic}list{reset} or {italic}list 1, 10{reset}'''
 
+object_files_dir = 'object_files'
+
 
 
 from pygments import highlight
@@ -89,7 +91,7 @@ class Logger:
 
 
     def silent_log(self, message: str):
-        self.log_str += message + '\n\n'
+        self.log_str += message + '\n'
 
 
     def log_compiler_output(self, text: str, indent: bool = True, linker: bool = False):
@@ -168,16 +170,18 @@ class Builder:
         self.compile_times = dict()
         self.thread_pool_args = []
         self.output_binary = ''
-        self.logger = Logger(os.path.join(build_dir, '.build.log'))
+        self.logger = Logger(os.path.join(build_dir, 'build.log'))
         if not os.path.exists(build_dir):
             os.mkdir(build_dir)
         else:
             self._clean_build_dir(build_dir)
 
 
-    def _log_command(self, command_list: list[str]):
+    def _log_command(self, command_list: list[str], comment: str = ''):
         command = os.getcwd().replace('\\', '/') + '> ' + ' '.join(command_list)
-        self.logger.silent_log(command)
+        if comment != '':
+            command = '# ' + comment + '\n' + command
+        self.logger.silent_log(command + '\n')
 
 
     def _clean_build_dir(self, build_dir: str):
@@ -187,6 +191,7 @@ class Builder:
                     os.remove(os.path.join(root, name))
             for name in dirs:
                 shutil.rmtree(os.path.join(root, name))
+        os.mkdir(os.path.join(build_dir, object_files_dir))
 
 
     def _check_tool_exists(self, tool: str) -> bool:
@@ -210,9 +215,9 @@ class Builder:
         # compile
         base_name = os.path.basename(source_file)
         object_file = os.path.splitext(base_name)[0] + '.o'
-        object_file = os.path.join(self.build_dir, object_file)
+        object_file = os.path.join(self.build_dir, object_files_dir, object_file)
         command_list = [compiler, '-c'] + compiler_flags + [source_file, '-o', object_file]
-        self._log_command(command_list)
+        self._log_command(command_list, f'compiling {source_file}')
         result = subprocess.run(command_list, capture_output=True, text=True)
         if result.returncode != 0:
             self.logger.log(message = 'error compiling ' + f'{source_file}:',
@@ -264,7 +269,7 @@ class Builder:
             for _, source_file, _ in self.thread_pool_args:
                 base_name = os.path.basename(source_file)
                 object_file = os.path.splitext(base_name)[0] + '.o'
-                object_file = os.path.join(self.build_dir, object_file).replace('\\', '/')
+                object_file = os.path.join(self.build_dir, object_files_dir, object_file).replace('\\', '/')
                 object_files.append(object_file)
 
         return object_files
@@ -290,6 +295,7 @@ class Builder:
             self.logger.write_to_file()
             return -1
         if len(obj_files) == 0:
+            self.logger.log_error('no object files to link', '')
             self.logger.write_to_file()
             return -1
         
@@ -305,16 +311,14 @@ class Builder:
             for lib_file in os.listdir(lib_dir):
                 if not lib_file.endswith('.a') and not lib_file.endswith('.so') and not lib_file.endswith('.dll'):
                     continue
-
                 lib_file = os.path.join(lib_dir, lib_file)
-                if 'core' in lib_file:
+                if 'core' in lib_file:  # libsundials_core must be linked last
                     if core_lib is not None:
                         self.logger.log_error(f'multiple core libraries found: {core_lib}, {lib_file}', '')
                         self.logger.write_to_file()
                         return -1
                     core_lib = lib_file
                     continue
-                
                 linker_flags.append(lib_file)
             
             if core_lib is None:
@@ -336,7 +340,7 @@ class Builder:
 
         # link
         command_list = [linker] + obj_files + ['-o', output_binary] + linker_flags
-        self._log_command(command_list)
+        self._log_command(command_list, f'linking {output_binary}')
         result = subprocess.run(command_list, capture_output=True, text=True)
         if result.returncode != 0:
             self.logger.log(message = 'Error linking:',
@@ -350,7 +354,7 @@ class Builder:
         compile_times_str = ''
         for cpp_file, compile_time in self.compile_times.items():
             compile_times_str += f'{cpp_file: >40}: {compile_time:5.2f} s\n'
-        self.logger.log(message = 'bbject file compilation times: \n' + compile_times_str)
+        self.logger.log(message = 'object file compilation times: \n' + compile_times_str)
         if result.returncode != 0:
             self.logger.log_error('linking failed', '')
             self.logger.write_to_file()
