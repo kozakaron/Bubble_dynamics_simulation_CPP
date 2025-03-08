@@ -16,7 +16,8 @@ linker = cpp_compiler
 
 # Define the source directory and output binary
 src_dirs = ['./src', './test']
-include_dirs = ['./include', './test', './src', './mechanism']
+include_dirs = ['./include', './test', './src', './mechanism', './sundials/install/include']
+lib_dirs = ['./sundials/install/lib']
 build_dir = './bin'
 output_binary_name = 'main'
 
@@ -81,7 +82,14 @@ def main():
     #    builder.add_source_file(cuda_file, cuda_compiler, compiler_flags)
 
     object_files = builder.compile_all()
-    builder.link_object_files(linker, object_files, output_binary_name, linker_flags, args.shared)
+    builder.link(
+        linker=linker,
+        obj_files=object_files,
+        lib_dirs=lib_dirs,
+        output_binary_name=output_binary_name,
+        linker_flags=linker_flags,
+        shared=args.shared
+    )
 
     if args.run and not args.shared:
         if args.debug:
