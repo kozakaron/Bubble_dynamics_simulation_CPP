@@ -88,6 +88,10 @@ class Logger:
         self.log_str += message + '\n'
 
 
+    def silent_log(self, message: str):
+        self.log_str += message + '\n\n'
+
+
     def log_compiler_output(self, text: str, indent: bool = True, linker: bool = False):
         print(self._compiler_output_formatter(text, indent, linker))
         self.log_str += text + '\n'
@@ -171,6 +175,11 @@ class Builder:
             self._clean_build_dir(build_dir)
 
 
+    def _log_command(self, command_list: list[str]):
+        command = os.getcwd().replace('\\', '/') + '> ' + ' '.join(command_list)
+        self.logger.silent_log(command)
+
+
     def _clean_build_dir(self, build_dir: str):
         for root, dirs, files in os.walk(build_dir, topdown=False):
             for name in files:
@@ -203,6 +212,7 @@ class Builder:
         object_file = os.path.splitext(base_name)[0] + '.o'
         object_file = os.path.join(self.build_dir, object_file)
         command_list = [compiler, '-c'] + compiler_flags + [source_file, '-o', object_file]
+        self._log_command(command_list)
         result = subprocess.run(command_list, capture_output=True, text=True)
         if result.returncode != 0:
             self.logger.log(message = 'error compiling ' + f'{source_file}:',
@@ -260,7 +270,14 @@ class Builder:
         return object_files
     
 
-    def link_object_files(self, linker: str, obj_files: list[str], output_binary_name: str, linker_flags: list[str], shared: bool = False) -> bool:
+    def link(self,
+             linker: str,
+             obj_files: list[str],
+             lib_dirs: list[str],
+             output_binary_name: str,
+             linker_flags: list[str],
+             shared: bool = False
+            ) -> bool:
         start = time.time()
 
         #checks
@@ -276,6 +293,38 @@ class Builder:
             self.logger.write_to_file()
             return -1
         
+        # gather library directories
+        for lib_dir in lib_dirs:
+            if not os.path.exists(lib_dir):
+                self.logger.log_error('library directory not found', lib_dir)
+                self.logger.write_to_file()
+                return -1
+            linker_flags.append('-L' + os.path.abspath(lib_dir).replace('\\', '/'))
+            
+            core_lib = None
+            for lib_file in os.listdir(lib_dir):
+                if not lib_file.endswith('.a') and not lib_file.endswith('.so') and not lib_file.endswith('.dll'):
+                    continue
+
+                lib_file = os.path.join(lib_dir, lib_file)
+                if 'core' in lib_file:
+                    if core_lib is not None:
+                        self.logger.log_error(f'multiple core libraries found: {core_lib}, {lib_file}', '')
+                        self.logger.write_to_file()
+                        return -1
+                    core_lib = lib_file
+                    continue
+                
+                linker_flags.append(lib_file)
+            
+            if core_lib is None:
+                self.logger.log_error('core library not found', '')
+                self.logger.write_to_file()
+                return -1
+            linker_flags.append(core_lib)            
+            linker_flags.append('-lm')
+
+        
         # determine output binary name
         output_binary_name = os.path.basename(output_binary_name).split('.')[0]
         if shared:
@@ -287,6 +336,7 @@ class Builder:
 
         # link
         command_list = [linker] + obj_files + ['-o', output_binary] + linker_flags
+        self._log_command(command_list)
         result = subprocess.run(command_list, capture_output=True, text=True)
         if result.returncode != 0:
             self.logger.log(message = 'Error linking:',
