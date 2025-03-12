@@ -68,6 +68,8 @@ def main():
         compiler_flags.append('-O2')
     if args.optimize3 and not args.optimize2 and not args.debug:
         compiler_flags.append('-O3')
+    if not args.optimize2 and not args.optimize3:
+        compiler_flags.append('-O0')
 
     builder = Builder(build_dir)
     log_global_settings(builder.logger)

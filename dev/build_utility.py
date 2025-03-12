@@ -314,7 +314,7 @@ class Builder:
                 lib_file = os.path.join(lib_dir, lib_file)
                 if 'core' in lib_file:  # libsundials_core must be linked last
                     if core_lib is not None:
-                        self.logger.log_error(f'multiple core libraries found: {core_lib}, {lib_file}', '')
+                        self.logger.log_error('multiple core libraries found', f'{core_lib}, {lib_file}')
                         self.logger.write_to_file()
                         return -1
                     core_lib = lib_file
