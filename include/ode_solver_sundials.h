@@ -8,11 +8,12 @@
 
 #include "common.h"
 #include "ode_fun.h"
+#include "ode_solver.h"
 
 class OdeSolverCVODE
 {
 public:
-    size_t error_ID;
+    size_t init_error_ID;   // only used to indicate errors in the constructor
     SUNContext sun_context;
     double t;
     N_Vector x;
@@ -21,8 +22,14 @@ public:
     SUNLinearSolver linear_solver;
     void* cvode_mem;
 
-    OdeSolverCVODE(OdeFun *ode);
+    OdeSolverCVODE(const size_t num_dim);
     ~OdeSolverCVODE();
+    OdeSolution solve(
+        const double t_max,
+        OdeFun* ode,
+        double timeout = 1.0e30,
+        bool save_solution = false
+    );
 };
 
 

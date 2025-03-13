@@ -62,10 +62,10 @@ class Error
 public:
     static constexpr char csv_header[] = "time,severity,type,message,function,file,line";
     enum severity {info=0, warning, error};
-    enum type {general=0, preprocess, odefun, timeout, convergence, postprocess};
+    enum type {general=0, preprocess, odefun, timeout, cvode, postprocess};
     static constexpr std::array<const char*, 3> severity_names = {"info", "warning", "error"};
     static constexpr std::array<const char*, 6> type_names = {
-        "general", "preprocess", "odefun", "timeout", "convergence", "postprocess"
+        "general", "preprocess", "odefun", "timeout", "cvode", "postprocess"
     };
 
     Error::severity error_severity;
