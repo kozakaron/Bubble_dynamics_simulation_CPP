@@ -33,6 +33,7 @@ public:
     double t;                         // simulation time
     N_Vector x;                       // simulation state vector
     N_Vector abstol;                  // absolute tolerance vector
+    sunrealtype reltol;               // relative tolerance
     SUNMatrix A;                      // matrix for linear solver
     SUNLinearSolver linear_solver;    // linear solver
     void* cvode_mem;                  // CVODE memory block
