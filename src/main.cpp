@@ -22,12 +22,15 @@ int main(int argc, char **argv)
         .fractions = {0.75, 0.25},
     }};
     OdeFun ode; ode.init(cpar);
+
     OdeSolverCVODE cvode(ode.par->num_species+4);
-    cout << cpar << endl;
+    //cout << cpar << endl;
 
-    OdeSolution solution = cvode.solve(1.0, &ode, 2, false);
-
+    OdeSolution solution = cvode.solve(1.0, &ode, 60.0, false);
     cout << solution << endl;
+    //SimulationData data(cpar, solution);
+    //cout << data << endl;
+
     
 #ifdef TEST
     testing::test_common();
