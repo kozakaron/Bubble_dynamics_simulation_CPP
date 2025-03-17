@@ -520,6 +520,45 @@ std::ostream &operator<<(std::ostream &os, const SimulationData &data)
 }
 
 
+// Verify, that the path provided as string is valid. Automatically count folders with the same base name. 
+// Create a new folder, return the path to the new folder.
+std::string verify_save_folder(const std::string save_folder)
+{
+    std::filesystem::path save_folder_path(save_folder);
+
+    // count existing folders with the same base name
+    size_t folder_count = 0;
+    if (std::filesystem::exists(save_folder_path.parent_path()))
+    {
+        for (const auto& entry : std::filesystem::directory_iterator(save_folder_path.parent_path()))
+        {
+            if (entry.is_directory() && entry.path().filename().string().find(save_folder_path.filename().string()) == 0)
+            {
+                folder_count++;
+            }
+        }
+    }
+    
+    // create folder name
+    std::string ret = save_folder_path.parent_path() / (save_folder_path.filename().string() + std::to_string(folder_count + 1));
+    save_folder_path = std::filesystem::path(ret);
+    if (std::filesystem::exists(save_folder_path))
+    {
+        LOG_ERROR("Save folder already exists: " + save_folder_path.string());
+        return "";
+    }
+
+    // create save folder
+    if (!std::filesystem::create_directories(save_folder_path))
+    {
+        LOG_ERROR("Failed to create save folder: " + save_folder_path.string());
+        return "";
+    }
+
+    return ret;
+}
+
+
 ParameterStudy::ParameterStudy(
     ParameterCombinator &parameter_combinator,
     std::string save_folder,
@@ -528,30 +567,15 @@ ParameterStudy::ParameterStudy(
     const double timeout
 ):
     parameter_combinator(parameter_combinator),
+    save_folder(verify_save_folder(save_folder)),
     solver_factory(solver_factory),
     best_energy_demand(SimulationData::infinite_energy_demand),
     t_max(t_max),
     timeout(timeout)
 {
-    // check save_folder path validity, create if it does not exist, check if empty
-    this->save_folder = ""; // invalid path
-    std::filesystem::path save_folder_path(save_folder);
-    if (!std::filesystem::exists(save_folder_path))
-    {
-        if (!std::filesystem::create_directories(save_folder_path))
-        {
-            LOG_ERROR("Failed to create save folder: " + save_folder_path.string());
-            return;
-        }
-    }
-    if (!std::filesystem::is_empty(save_folder_path))
-    {
-        LOG_ERROR("Save folder is not empty: " + save_folder_path.string());
-        return;
-    }
-    this->save_folder = save_folder;
-
     // save general information
+    if (this->save_folder.empty()) return;
+    std::filesystem::path save_folder_path(this->save_folder);
     std::filesystem::path general_info_file_path = save_folder_path / "bruteforce_parameter_study_settings.txt";
     std::ofstream general_info_file(general_info_file_path);
     if (!general_info_file.is_open())
@@ -615,6 +639,7 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
     // run parameter study
     while(true)
     {
+        // simulation setup
         auto [success, cpar] = parameter_combinator.get_next_combination();
         if (!success) break;
 
@@ -622,6 +647,7 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
         x_0.resize(ode.par->num_species+4);
         ode.initial_conditions(x_0.data());
 
+        // run simulation and postprocess
         solver->solve(
             0.0,                        // t_int_0
             this->t_max,                // t_int_1
@@ -635,6 +661,7 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
         OdeSolution sol = solver->get_solution();
         SimulationData data(cpar, sol);
 
+        // save and print data
         csv_file << data.to_csv() << "\n";
         std::unique_lock<std::mutex> lock(this->output_mutex);
         this->best_energy_demand = std::min(this->best_energy_demand, data.energy_demand);
