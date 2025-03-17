@@ -3,7 +3,7 @@ A C++ powered version of [Bubble_dynamics_simulation](https://github.com/kozakar
 
 ## Prerequisits
 
- * Python3 (with numpy)
+ * Python3 (with numpy, pygments)
  * gnu g++/llvm clang++ compiler
  * gnu gdb/llvm lldb debugger
 

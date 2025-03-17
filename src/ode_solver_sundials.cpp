@@ -139,15 +139,13 @@ OdeSolverCVODE::OdeSolverCVODE(const size_t num_dim):
     t(0.0),
     x(nullptr),
     abstol(nullptr),
+    reltol(1.0e-8),
     A(nullptr),
     linear_solver(nullptr),
     cvode_mem(nullptr),
     init_error_ID(ErrorHandler::no_error),
     user_data{}
 {
-    const double _abstol = 1e-10;
-    const double _reltol = 1e-10;
-
     // Create the SUNDIALS context
     size_t* error_ID_ptr = &(init_error_ID);
     user_data.error_ID_ptr = error_ID_ptr;    // errors are saved in this->init_error_ID
@@ -157,17 +155,21 @@ OdeSolverCVODE::OdeSolverCVODE(const size_t num_dim):
 
     // Setup vectors
     HANDLE_RETURN_PTR(x, N_VNew_Serial(num_dim, sun_context));
-    /*HANDLE_RETURN_PTR(abstol, N_VNew_Serial(num_dim, sun_context))
+    HANDLE_RETURN_PTR(abstol, N_VNew_Serial(num_dim, sun_context))
     for (int i = 0; i < num_dim; i++)
-        NV_Ith_S(abstol, i) = _abstol;
-    HANDLE_ERROR_CODE(CVodeSVtolerances(cvode_mem, _reltol, abstol));
-    */ // TODO: set abstol elementwise for better performance
+        NV_Ith_S(abstol, i) = 1e-12;     // molar concentrations
+    NV_Ith_S(abstol, 0) = 1e-8;          // R
+    NV_Ith_S(abstol, 1) = 1e-8;          // R_dot
+    NV_Ith_S(abstol, 2) = 1e-6;          // T
+    NV_Ith_S(abstol, num_dim-2) = 1e-8;  // E_diss
 
     // Setup CVODE
     HANDLE_RETURN_PTR(cvode_mem, CVodeCreate(CV_BDF, sun_context));
     HANDLE_ERROR_CODE(CVodeInit(cvode_mem, right_hand_side, 0.0, x));
     HANDLE_ERROR_CODE(CVodeSetMaxNumSteps(cvode_mem, 10000000));
-    HANDLE_ERROR_CODE(CVodeSStolerances(cvode_mem, _reltol, _abstol));
+    HANDLE_ERROR_CODE(CVodeSetMaxHnilWarns(cvode_mem, 10));    // maximum number of warnings for t+h=t
+    HANDLE_ERROR_CODE(CVodeSVtolerances(cvode_mem, reltol, abstol));
+    //HANDLE_ERROR_CODE(CVodeSStolerances(cvode_mem, _reltol, _abstol));    // scalar tolerances
 
     // Setup linear solver
     HANDLE_RETURN_PTR(A, SUNDenseMatrix(num_dim, num_dim, sun_context));
