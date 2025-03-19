@@ -540,8 +540,7 @@ std::string verify_save_folder(const std::string save_folder)
     }
     
     // create folder name
-    std::string ret = save_folder_path.parent_path() / (save_folder_path.filename().string() + std::to_string(folder_count + 1));
-    save_folder_path = std::filesystem::path(ret);
+    save_folder_path = save_folder_path.parent_path() / (save_folder_path.filename().string() + std::to_string(folder_count + 1));
     if (std::filesystem::exists(save_folder_path))
     {
         LOG_ERROR("Save folder already exists: " + save_folder_path.string());
@@ -555,7 +554,7 @@ std::string verify_save_folder(const std::string save_folder)
         return "";
     }
 
-    return ret;
+    return save_folder_path.string();;
 }
 
 

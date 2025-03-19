@@ -15,7 +15,7 @@ class ControlParameters {
 public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
-    static constexpr size_t max_species = 4;
+    static constexpr size_t max_species = 5;
     static constexpr char csv_header[] = "ID,mechanism,R_E,species,fractions,P_amb,T_inf,alfa_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,target_specie,excitation_params,excitation_type";
 // Members
     size_t ID;                          // ID of control parameter
@@ -51,7 +51,7 @@ public:
         .ID = 1,
         .mechanism = Parameters::mechanism::chemkin_ar_he,
         ...
-    });
+    }};
     */
     struct Builder {
         size_t ID                               = 0;
