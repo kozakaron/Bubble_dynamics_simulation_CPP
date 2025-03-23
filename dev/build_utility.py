@@ -309,7 +309,7 @@ class Builder:
             
             core_lib = None
             for lib_file in os.listdir(lib_dir):
-                if not lib_file.endswith('.a') and not lib_file.endswith('.so') and not lib_file.endswith('.dll'):
+                if not lib_file.endswith('.a') and not lib_file.endswith('.so') and not lib_file.endswith('.dll') and not lib_file.endswith('.lib') and not lib_file.endswith('.o'):
                     continue
                 lib_file = os.path.join(lib_dir, lib_file)
                 if 'core' in lib_file:  # libsundials_core must be linked last
@@ -325,8 +325,9 @@ class Builder:
                 self.logger.log_error('core library not found', '')
                 self.logger.write_to_file()
                 return -1
-            linker_flags.append(core_lib)            
-            linker_flags.append('-lm')
+            linker_flags.append(core_lib)
+            if os.name != 'nt':
+                linker_flags.append('-lm')
 
         
         # determine output binary name

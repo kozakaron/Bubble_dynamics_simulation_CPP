@@ -14,12 +14,14 @@ int main(int argc, char **argv)
 {
     (void)argc; (void)argv;
     //ErrorHandler::set_log_file("log.txt");
-
+    
 // solve with cvode
-    ControlParameters cpar = ControlParameters{{ 
+    /*ControlParameters cpar = ControlParameters{{ 
         .mechanism = Parameters::mechanism::chemkin_otomo2018,
         .species = {"H2", "N2"},
         .fractions = {0.75, 0.25},
+        //.P_amb = 0.8 * 101325.0,
+        //.excitation_params = {-1.6e5, 30000, 1}
     }};
     OdeFun ode; ode.init(cpar);
 
@@ -29,7 +31,7 @@ int main(int argc, char **argv)
     OdeSolution solution = cvode.solve(1.0, &ode, 60.0, false);
     cout << solution << endl;
     //SimulationData data(cpar, solution);
-    //cout << data << endl;
+    //cout << data << endl;*/
 
     
 #ifdef TEST
@@ -48,7 +50,7 @@ int main(int argc, char **argv)
     benchmark_parameter_study();
 #endif  // BENCHMARK
 
-    //ErrorHandler::print_errors();
+    ErrorHandler::print_errors();
     if (ErrorHandler::get_error_count() != 0)  return 1;
     return 0;
 }
