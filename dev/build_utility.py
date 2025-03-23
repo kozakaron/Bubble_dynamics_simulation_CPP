@@ -379,8 +379,8 @@ class Builder:
                 color = red
             else:
                 color = green
-            self.logger.log(message=f'program returned with code {result.returncode}',
-                            formatted_message=color + bold + self.output_binary + ' program returned with code ' + str(result.returncode) + reset)
+            self.logger.log(message=f'{self.output_binary} returned with code {result.returncode}',
+                            formatted_message=color + bold + self.output_binary + ' returned with code ' + str(result.returncode) + reset)
             return result.returncode
         else:
             if not self._check_tool_exists(debugger):
