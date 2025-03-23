@@ -12,7 +12,7 @@ struct chemkin_otomo2018_without_o_struct{
     
     static constexpr index_t num_elements = 5;
     static constexpr index_t num_species = 12;
-    static constexpr index_t index_of_water = 12;
+    static constexpr index_t index_of_water = 65535;
     static constexpr index_t invalid_index = 65535;
     static constexpr std::pair<const char*, index_t> elements[5] = {{"O", 0}, {"H", 1}, {"N", 2}, {"HE", 3}, {"AR", 4}};
     static constexpr std::pair<const char*, index_t> species[12] = {{"NH3", 0}, {"H2", 1}, {"H", 2}, {"NH2", 3}, {"NH", 4}, {"N", 5}, {"NNH", 6}, {"N2H4", 7}, {"N2H3", 8}, {"N2H2", 9}, {"H2NN", 10}, {"N2", 11}};

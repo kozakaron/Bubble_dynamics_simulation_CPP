@@ -6,6 +6,8 @@ Note, that this script is multithreaded. The /bin directory is created if it doe
 Features:
 - Syntax highlighting for C++ when logging errors to terminal
 - Multithreaded compilation
+- Logging (./bin/build.log)
+- Automatically running the binary after compilation
 """
 
 # Define the compilers and debugger
@@ -37,7 +39,7 @@ compiler_flags = [
 ]
 linker_flags = [
     '-flto',                  # Enable link-time optimization
-    '-Wl,-O2',                # Linker optimization
+    '-Wl', '-O2',             # Linker optimization
 ]
 common_flags = [
 # Sanitizers: help identify issues in runtime, performance overhead

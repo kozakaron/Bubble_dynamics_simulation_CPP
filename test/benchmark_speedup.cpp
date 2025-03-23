@@ -5,6 +5,7 @@
 #include "control_parameters.h"
 #include "ode_fun.h"
 #include "ode_solver.h"
+#include "ode_solver_sundials.h"
 #include "test_list.h"
 
 #include <thread>
@@ -19,30 +20,28 @@ constexpr size_t task_per_thread = 4;
 
 void task()
 {
-    // Runtime of solver ~ 2.3 sec
-    // Runtime of setup ~ 0.000002 sec (2 us)
-    ControlParameters cpar;
+    ControlParameters cpar = ControlParameters{{ 
+        .mechanism = Parameters::mechanism::chemkin_otomo2018,
+        .species = {"H2", "N2"},
+        .fractions = {0.75, 0.25},
+    }};
     OdeFun ode;
-    double x[200];
     ode.init(cpar);
-    ode.initial_conditions(x);
-    auto ode_fun = [&ode](const double t, const double *x, double *dxdt) -> is_success { return ode(t, x, dxdt); };
-    RKCK45 solver;
+    OdeSolverCVODE solver(ode.par->num_species + 4);
 
     while(true)
     {
         const size_t task_ID = task_counter.fetch_add(1, std::memory_order_relaxed);
         if (task_ID >= num_tasks) break;
 
-        solver.solve(0.0, 100.0e-6, (double*)x, ode.par->num_species+4, ode_fun, &ode.cpar.error_ID, 60.0, false);
-        //OdeSolution sol = solver.get_solution();
+        OdeSolution sol = solver.solve(1.0, &ode, 100.0, false);
         //std::cout << task_ID << ". " << sol.runtime << "\n";
     }
 }
 
 void benchmark_speedup()
 {
-    std::cout << colors::bold << "Measure multithreaded runtime with RKCK45 solver and simple chemkin_ar_he mechanism" << colors::reset << std::endl;
+    std::cout << colors::bold << "Measure multithreaded runtime with SUNDIALS CVODE solver and simple chemkin_ar_he mechanism" << colors::reset << std::endl;
     std::cout << "    Number of threads: " << std::thread::hardware_concurrency() << std::endl;
     std::cout << "    Threads [-]     |  Runtime/task [s] |     Speedup [-]\n";
 
