@@ -1,3 +1,14 @@
+"""
+This is a simple script to check, download, build dependencies. Call from the command line as follows: ´python ./dev/build_submodules.py´. 
+You may have to use python3 instead. Make sure, all dependencies are ok, and sundials is built correctly.
+
+The following things should happen:
+- Check if all necessary tools are installed (git, make, cmake, gcc, g++, gdb, clang, clang++, lldb)
+- Check if all necessary python packages are installed (numpy, matplotlib, pygments)
+- Clone all submodules (sundials)
+- Build and install SUNDIALS from source
+"""
+
 submodules = ['submodules/sundials']
 
 # Only for Windows
@@ -45,11 +56,41 @@ cmake_command_list = [
 
 
 import shutil
-import time
 import os
 import sys
 import subprocess
 from build_utility import red, light_red, green, yellow, blue, magenta, cyan, grey, reset, white, bold, italic
+
+
+def main():
+# Check dependencies
+    check_tool_exists('git',        'sudo apt install git',         'https://git-scm.com/downloads/win')
+    check_tool_exists('make',       'sudo apt install make',        'https://www.mingw-w64.org/downloads/')
+    check_tool_exists('cmake',      'sudo apt install cmake',       'https://cmake.org/download/')
+    check_tool_exists('gcc',        'sudo apt install gcc',         'https://www.mingw-w64.org/downloads/')
+    check_tool_exists('g++',        'sudo apt install g++',         'https://www.mingw-w64.org/downloads/',         optinal=True)
+    check_tool_exists('gdb',        'sudo apt install gdb',         'https://www.mingw-w64.org/downloads/',         optinal=True)
+    check_tool_exists('clang',      'sudo apt install clang',       'https://releases.llvm.org/download.html',      optinal=True)
+    check_tool_exists('clang++',    'sudo apt install clang',       'https://releases.llvm.org/download.html',      optinal=True)
+    check_tool_exists('lldb',       'sudo apt install lldb',        'https://releases.llvm.org/download.html',      optinal=True)
+    check_python_package('numpy')
+    check_python_package('matplotlib')
+    check_python_package('pygments')
+
+# Clone submodules
+    run_command('git submodule update --init --recursive')
+    global submodules
+    for submodule in submodules:
+        if not os.path.exists(submodule):
+            print(f'{bold}{red}Error:{reset} Submodule {submodule} not found. Please run "git submodule update --init --recursive"')
+            return -1
+
+# Build SUNDIALS
+    print(f'{bold}Building SUNDIALS...{reset}')
+    build_sundials(src_dir, build_dir, install_dir, cmake_command_list, vs_path)
+
+
+# end of main()
 
 
 def run_command(command: str) -> bool:
@@ -146,6 +187,7 @@ def vs_build_command(vs_path: str, command: str) -> bool:
 def build_sundials(src_dir: str, build_dir: str, install_dir: str, cmake_command_list: list, vs_path: str = vs_path) -> bool:
     """Build SUNDIALS from source. """
 
+    # Check directories
     if not os.path.exists(src_dir):
         print(f'{bold}{red}Error:{reset} SUNDIALS source directory not found at {src_dir}.')
         return -1
@@ -162,6 +204,8 @@ def build_sundials(src_dir: str, build_dir: str, install_dir: str, cmake_command
        shutil.rmtree(install_dir)
     os.makedirs(install_dir)
     os.chdir(build_dir)
+
+    # Run CMake
     cmake_command_list = [
         'cmake',
         '-DCMAKE_INSTALL_PREFIX=' + install_dir,
@@ -170,12 +214,14 @@ def build_sundials(src_dir: str, build_dir: str, install_dir: str, cmake_command
     command = ' '.join(cmake_command_list)
     if not run_command(command):
         return False
-    if os.name == 'posix':
+    
+    # Build and install
+    if os.name == 'posix':  # Linux
         if not run_command('make'):
             return False
         if not run_command('make install'):
             return False
-    elif os.name == 'nt':
+    elif os.name == 'nt':   # Windows
         vs_build = os.path.join(build_dir, 'ALL_BUILD.vcxproj').replace('\\', '/')
         vs_install = os.path.join(build_dir, 'INSTALL.vcxproj').replace('\\', '/')
         if not os.path.exists(vs_build):
@@ -191,41 +237,6 @@ def build_sundials(src_dir: str, build_dir: str, install_dir: str, cmake_command
         
     return True
 
-
-def main():
-# Check dependencies
-    check_tool_exists('git',        'sudo apt install git',         'https://git-scm.com/downloads/win')
-    check_tool_exists('make',       'sudo apt install make',        'https://www.mingw-w64.org/downloads/')
-    check_tool_exists('cmake',      'sudo apt install cmake',       'https://cmake.org/download/')
-    check_tool_exists('gcc',        'sudo apt install gcc',         'https://www.mingw-w64.org/downloads/')
-    check_tool_exists('g++',        'sudo apt install g++',         'https://www.mingw-w64.org/downloads/',         optinal=True)
-    check_tool_exists('gdb',        'sudo apt install gdb',         'https://www.mingw-w64.org/downloads/',         optinal=True)
-    check_tool_exists('clang',      'sudo apt install clang',       'https://releases.llvm.org/download.html',      optinal=True)
-    check_tool_exists('clang++',    'sudo apt install clang',       'https://releases.llvm.org/download.html',      optinal=True)
-    check_tool_exists('lldb',       'sudo apt install lldb',        'https://releases.llvm.org/download.html',      optinal=True)
-    check_python_package('numpy')
-    check_python_package('matplotlib')
-    check_python_package('pygments')
-
-# Clone submodules
-    run_command('git submodule update --init --recursive')
-    global submodules
-    for submodule in submodules:
-        if not os.path.exists(submodule):
-            print(f'{bold}{red}Error:{reset} Submodule {submodule} not found. Please run "git submodule update --init --recursive"')
-            return -1
-
-# Build SUNDIALS
-    print(f'{bold}Building SUNDIALS...{reset}')
-    build_sundials(src_dir, build_dir, install_dir, cmake_command_list, vs_path)
-
-    
-
-    if os.name == 'nt':
-        pass
-
-
-    
 
 if __name__ == "__main__":
     main()
