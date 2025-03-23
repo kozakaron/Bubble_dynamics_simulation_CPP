@@ -1,14 +1,12 @@
+submodules = ['submodules/sundials']
+
 # Only for Windows
 vs_path = 'C:/Program Files/Microsoft Visual Studio/2022/'  # Path to Visual Studio 2022
 
-# Only for Linux
-
-
-
 # for building SUNDIALS:
-build_dir = "./sundials/build/"
-install_dir = "./sundials/install/"
-src_dir = "./sundials/"
+build_dir = "./submodules/sundials/build/"
+install_dir = "./submodules/sundials/install/"
+src_dir = "./submodules/sundials/"
 
 cmake_command_list = [
     "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
@@ -157,12 +155,12 @@ def build_sundials(src_dir: str, build_dir: str, install_dir: str, cmake_command
     print(f'    Source directory: {src_dir}')
     print(f'    Build directory: {build_dir}')
     print(f'    Install directory: {install_dir}')
-    #if os.path.exists(build_dir):
-    #    shutil.rmtree(build_dir)
-    #os.makedirs(build_dir)
-    #if os.path.exists(install_dir):
-    #   shutil.rmtree(install_dir)
-    #os.makedirs(install_dir)
+    if os.path.exists(build_dir):
+        shutil.rmtree(build_dir)
+    os.makedirs(build_dir)
+    if os.path.exists(install_dir):
+       shutil.rmtree(install_dir)
+    os.makedirs(install_dir)
     os.chdir(build_dir)
     cmake_command_list = [
         'cmake',
@@ -170,8 +168,8 @@ def build_sundials(src_dir: str, build_dir: str, install_dir: str, cmake_command
         '-DEXAMPLES_INSTALL_PATH=' + os.path.join(install_dir, "examples").replace("\\", "/")
     ] + cmake_command_list + [src_dir]
     command = ' '.join(cmake_command_list)
-    #if not run_command(command):
-    #    return False
+    if not run_command(command):
+        return False
     if os.name == 'posix':
         if not run_command('make'):
             return False
@@ -211,7 +209,7 @@ def main():
 
 # Clone submodules
     run_command('git submodule update --init --recursive')
-    submodules = ['sundials']
+    global submodules
     for submodule in submodules:
         if not os.path.exists(submodule):
             print(f'{bold}{red}Error:{reset} Submodule {submodule} not found. Please run "git submodule update --init --recursive"')
@@ -219,7 +217,7 @@ def main():
 
 # Build SUNDIALS
     print(f'{bold}Building SUNDIALS...{reset}')
-    #build_sundials(src_dir, build_dir, install_dir, cmake_command_list, vs_path)
+    build_sundials(src_dir, build_dir, install_dir, cmake_command_list, vs_path)
 
     
 

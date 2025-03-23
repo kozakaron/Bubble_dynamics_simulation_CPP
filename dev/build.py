@@ -16,8 +16,8 @@ linker = cpp_compiler
 
 # Define the source directory and output binary
 src_dirs = ['./src', './test']
-include_dirs = ['./include', './test', './src', './mechanism', './sundials/install/include']
-lib_dirs = ['./sundials/install/lib']
+include_dirs = ['./include', './test', './src', './mechanism', './submodules/sundials/install/include']
+lib_dirs = ['./submodules/sundials/install/lib']
 build_dir = './bin'
 output_binary_name = 'main'
 
