@@ -1,7 +1,3 @@
-#ifndef TEST
-#define TEST // TODO: remove this line when the test is complete
-#endif
-
 #ifdef TEST
 #include <vector>
 #include <string>
