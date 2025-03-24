@@ -170,6 +170,7 @@ OdeSolverCVODE::OdeSolverCVODE(const size_t num_dim):
     HANDLE_ERROR_CODE(CVodeSetMaxHnilWarns(cvode_mem, 10));    // maximum number of warnings for t+h=t
     HANDLE_ERROR_CODE(CVodeSVtolerances(cvode_mem, reltol, abstol));
     //HANDLE_ERROR_CODE(CVodeSStolerances(cvode_mem, _reltol, _abstol));    // scalar tolerances
+    //HANDLE_ERROR_CODE(CVodeSStolerances(cvode_mem, 1e-8, 1e-10));
 
     // Setup linear solver
     HANDLE_RETURN_PTR(A, SUNDenseMatrix(num_dim, num_dim, sun_context));
@@ -181,12 +182,13 @@ OdeSolverCVODE::OdeSolverCVODE(const size_t num_dim):
 
 OdeSolverCVODE::~OdeSolverCVODE()
 {
+    size_t* error_ID_ptr = &(init_error_ID);
     N_VDestroy(x);
     N_VDestroy(abstol);
     CVodeFree(&cvode_mem);
-    SUNLinSolFree(linear_solver);
+    HANDLE_ERROR_CODE(SUNLinSolFree(linear_solver));
     SUNMatDestroy(A);
-    SUNContext_Free(&sun_context);
+    HANDLE_ERROR_CODE(SUNContext_Free(&sun_context));
 }
 
 
@@ -200,6 +202,7 @@ void init_solve(
 {
     HANDLE_ERROR_CODE(CVodeReInit(cvode_mem, 0.0, x));
     HANDLE_ERROR_CODE(CVodeSetUserData(cvode_mem, user_data));
+    HANDLE_ERROR_CODE(CVodeSetInitStep(cvode_mem, 1.0e-20));
 }
 
 
@@ -208,7 +211,8 @@ void init_solve(
 void construct_solution(
     OdeSolution& solution,
     void* cvode_mem,
-    size_t* error_ID_ptr
+    size_t* error_ID_ptr,
+    N_Vector x
 )
 {
     long int helper1, helper2;
@@ -224,6 +228,12 @@ void construct_solution(
     solution.num_jac_evals = helper1 + helper2;
     HANDLE_ERROR_CODE(CVodeGetNumLinRhsEvals(cvode_mem, &helper1));
     solution.num_fun_evals_jac = helper1;
+    HANDLE_ERROR_CODE(CVodeGetNumLinIters(cvode_mem, &helper1));
+    solution.num_lin_iters = helper1;
+    HANDLE_ERROR_CODE(CVodeGetNumNonlinSolvIters(cvode_mem, &helper1));
+    solution.num_nonlin_iters = helper1;
+    HANDLE_ERROR_CODE(CVodeGetEstLocalErrors(cvode_mem, x));
+    solution.total_error = std::vector<double>(NV_DATA_S(x), NV_DATA_S(x) + NV_LENGTH_S(x));
 }
 
 
@@ -263,12 +273,10 @@ OdeSolution OdeSolverCVODE::solve(
     {
         // Integration (step)
         int retval = CVode(cvode_mem, t_max, x, &t, itask);
+        solution.push_t_x(t, NV_DATA_S(x));
 
         // Success
-        if (retval == CV_SUCCESS)
-        {
-            solution.push_t_x(t, NV_DATA_S(x));
-        }
+        if (retval == CV_SUCCESS) { }
 
         // Failure
         else
@@ -289,7 +297,7 @@ OdeSolution OdeSolverCVODE::solve(
     }
 
     // fill solution
-    construct_solution(solution, cvode_mem, &(solution.error_ID));
+    construct_solution(solution, cvode_mem, &(solution.error_ID), x);
     solution.runtime       = timer.lap();
     user_data.ode_ptr      = nullptr;
     user_data.timer_ptr    = nullptr;

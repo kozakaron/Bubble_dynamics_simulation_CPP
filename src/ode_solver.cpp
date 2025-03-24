@@ -12,9 +12,9 @@ OdeSolution::OdeSolution():
     num_fun_evals(0),
     num_fun_evals_jac(0),
     num_jac_evals(0),
-    num_plu(0),
-    num_solve_with_plu(0),
-    total_error(0.0),
+    num_lin_iters(0),
+    num_nonlin_iters(0),
+    total_error(),
     runtime(0.0),
     error_ID(ErrorHandler::no_error)
 {
@@ -45,9 +45,9 @@ void OdeSolution::clear()
     num_fun_evals = 0;
     num_fun_evals_jac = 0;
     num_jac_evals = 0;
-    num_plu = 0;
-    num_solve_with_plu = 0;
-    total_error = 0.0;
+    num_lin_iters = 0;
+    num_nonlin_iters = 0;
+    total_error.clear();
     runtime = 0.0;
     error_ID = ErrorHandler::no_error;
 }
@@ -86,7 +86,7 @@ std::string OdeSolution::to_csv() const
 
     ss << (this->success() ? "true" : "false") << "," << this->num_dim << "," << this->num_steps << ",";
     ss << this->num_repeats << "," << this->num_fun_evals << "," << this->num_fun_evals_jac << "," << this->num_jac_evals << ",";
-    ss << this->num_plu << "," << this->num_solve_with_plu << "," << format_double << this->total_error << ",";
+    ss << this->num_lin_iters << "," << this->num_nonlin_iters << ",";
     ss << format_double << this->runtime << "," << format_double;
     if (this->t.empty()) ss << format_double << 0.0 << ",";
     else ss << this->t.back() << ",";
@@ -133,16 +133,15 @@ std::string OdeSolution::to_string(const bool colored, const bool with_code) con
     }
 
     ss << std::setw(strw) << "    .runtime"            << " = \"" << Timer::format_time(runtime) << "\",\n";
-    ss << std::setw(strw) << "    .total_error"        << " = " << std::setw(intw) << std::scientific << total_error << ",\n";
     ss << std::setw(strw) << "    .num_steps"          << " = " << std::setw(intw) << std::to_string(num_steps)          + "," << percent(num_steps, num_steps) << "\n";
     ss << std::setw(strw) << "    .num_saved_steps"    << " = " << std::setw(intw) << std::to_string(x.size())           + "," << percent(x.size(), num_steps) << "\n";
     ss << std::setw(strw) << "    .num_repeats"        << " = " << std::setw(intw) << std::to_string(num_repeats)        + "," << percent(num_repeats, num_steps) << "\n";
     ss << std::setw(strw) << "    .num_fun_evals"      << " = " << std::setw(intw) << std::to_string(num_fun_evals)      + "," << percent(num_fun_evals, num_steps) << "\n";
     ss << std::setw(strw) << "    .num_fun_evals_jac"  << " = " << std::setw(intw) << std::to_string(num_fun_evals_jac)  + "," << percent(num_fun_evals_jac, num_steps) << "\n";
     ss << std::setw(strw) << "    .num_jac_evals"      << " = " << std::setw(intw) << std::to_string(num_jac_evals)      + "," << percent(num_jac_evals, num_steps) << "\n";
-    ss << std::setw(strw) << "    .num_plu"            << " = " << std::setw(intw) << std::to_string(num_plu)            + "," << percent(num_plu, num_steps) << "\n";
-    ss << std::setw(strw) << "    .num_solve_with_plu" << " = " << std::setw(intw) << std::to_string(num_solve_with_plu) + "," << percent(num_solve_with_plu, num_steps) << "\n";
-    
+    ss << std::setw(strw) << "    .num_lin_iters"      << " = " << std::setw(intw) << std::to_string(num_lin_iters)      + "," << percent(num_lin_iters, num_steps) << "\n";
+    ss << std::setw(strw) << "    .num_nonlin_iters"   << " = " << std::setw(intw) << std::to_string(num_nonlin_iters)   + "," << percent(num_nonlin_iters, num_steps) << "\n";
+
     if (this->t.size() >=2 && this->x.size() >= 2 && this->num_dim > 0)
     {
         ss << std::setw(strw) << "    .t" << " = " << "{";
@@ -152,8 +151,9 @@ std::string OdeSolution::to_string(const bool colored, const bool with_code) con
         ss << std::setw(strw+8) << " " << ::to_string((double*)this->x[0].data(),                  this->x[0].size())                  << ",\n";
         ss << std::setw(strw+8) << " " << " // ..., \n";
         ss << std::setw(strw+8) << " " << ::to_string((double*)this->x[this->x.size() - 1].data(), this->x[this->x.size() - 1].size()) << "\n";
-        ss << std::setw(strw+4) << " " << "}\n";
+        ss << std::setw(strw+4) << " " << "},\n";
     }
+    ss << std::setw(strw) << "    .total_error"        << " = " << "{" << ::to_string((double*)this->total_error.data(), this->total_error.size()) << "}\n";
 
     if (with_code) ss << "}";
     ss << std::right;
