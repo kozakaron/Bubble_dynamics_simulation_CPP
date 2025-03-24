@@ -41,7 +41,7 @@ public:
     UserData user_data;               // to pass data to the right_hand_side function and error_function
 
     OdeSolverCVODE(const size_t num_dim);
-    ~OdeSolverCVODE();
+    ~OdeSolverCVODE() override;
     OdeSolution solve(
         const double t_max,
         OdeFun* ode_ptr,

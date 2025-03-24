@@ -41,6 +41,7 @@ public:
 class OdeSolver
 {
 public:
+    virtual ~OdeSolver() = default;
     virtual OdeSolution solve(
         const double t_max,
         OdeFun* ode_ptr,

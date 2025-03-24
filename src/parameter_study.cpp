@@ -332,7 +332,7 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         cpar.excitation_params[i] = get_value(this->excitation_params[i]);
     }
 
-    is_success success = (combination_ID / prod % 2) == 0;
+    is_success success = combination_ID < this->total_combination_count;
 
     return {success, cpar};
 }
@@ -634,8 +634,6 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
     const Parameters* par = this->parameter_combinator.get_mechanism_parameters();
     if(par == nullptr) return;
     std::unique_ptr<OdeSolver> solver(this->solver_factory(4 + par->num_species));
-    std::vector<double> x_0;
-    auto ode_fun = [&ode](const double t, const double *x, double *dxdt) -> is_success { return ode(t, x, dxdt); };
 
     // open csv file
     std::filesystem::path save_folder_path(save_folder);
