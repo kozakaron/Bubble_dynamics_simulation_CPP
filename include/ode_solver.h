@@ -9,7 +9,7 @@
 class OdeSolution
 {
 public:
-    static constexpr char csv_header[] = "success,num_dim,num_steps,num_repeats,num_fun_evals,num_fun_evals_jac,num_jac_evals,num_plu,num_solve_with_plu,total_error,runtime,t_last,x_0,x_last";
+    static constexpr char csv_header[] = "success,num_dim,num_steps,num_repeats,num_fun_evals,num_fun_evals_jac,num_jac_evals,num_lin_iters,num_nonlin_iters,runtime,t_last,x_0,x_last";
 
     std::vector<double> t;
     std::vector<std::vector<double>> x;
@@ -19,9 +19,9 @@ public:
     size_t num_fun_evals;
     size_t num_fun_evals_jac;
     size_t num_jac_evals;
-    size_t num_plu; // TODO: change
-    size_t num_solve_with_plu;
-    double total_error;
+    size_t num_lin_iters;
+    size_t num_nonlin_iters;
+    std::vector<double> total_error;
     
     double runtime;
     size_t error_ID;
