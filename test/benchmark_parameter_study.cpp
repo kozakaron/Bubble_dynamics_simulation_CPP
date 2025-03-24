@@ -4,10 +4,11 @@
 #include <string>
 
 #include "parameter_study.h"
+#include "ode_solver_sundials.h"
 
 
 std::string save_folder_base_name = "./_parameter_studies/test";
-const double t_max = 1000.0e-6;
+const double t_max = 1.0;
 const double timeout = 60.0;
 const size_t num_threads = std::thread::hardware_concurrency();
 
@@ -38,15 +39,15 @@ ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinat
 }};
 
 
-OdeSolver* solver_factory()
+OdeSolver* solver_factory(size_t num_dim)
 {
-    return new RKCK45;
+    return new OdeSolverCVODE(num_dim);
 }
 
 
 void benchmark_parameter_study()
 {
-    std::cout << colors::bold << "Small parameter study with RKCK45 solver and chemkin_ar_he mechanism" << colors::reset << std::endl;
+    std::cout << colors::bold << "Small parameter study with SUNDIALS CVODE solver and chemkin_ar_he mechanism" << colors::reset << std::endl;
     std::cout << "total_combination_count = " << parameter_combinator.get_total_combination_count() << std::endl;
     
     ErrorHandler::print_when_log = true;
