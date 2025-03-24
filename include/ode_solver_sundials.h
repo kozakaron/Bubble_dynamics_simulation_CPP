@@ -26,7 +26,7 @@ struct UserData
 };
 
 
-class OdeSolverCVODE
+class OdeSolverCVODE: public OdeSolver
 {
 public:
     SUNContext sun_context;           // An opaque pointer used by SUNDIALS objects for error handling, logging, profiling, etc.
@@ -44,10 +44,10 @@ public:
     ~OdeSolverCVODE();
     OdeSolution solve(
         const double t_max,
-        OdeFun* ode,
+        OdeFun* ode_ptr,
         double timeout = 1.0e30,
         bool save_solution = false
-    );
+    ) override;
 };
 
 

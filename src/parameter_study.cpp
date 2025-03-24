@@ -338,6 +338,17 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
 }
 
 
+const Parameters* ParameterCombinator::get_mechanism_parameters() const
+{
+    const Parameters* par = Parameters::get_parameters(this->mechanism);
+    if (par == nullptr)
+    {
+        LOG_ERROR("Mechanism " + std::to_string(this->mechanism) + " is not found.");
+    }
+    return par;
+}
+
+
 double get_dissipated_energy(const OdeSolution &sol)
 {
     if (sol.x.empty()) return 0.0;
@@ -561,7 +572,7 @@ std::string verify_save_folder(const std::string save_folder)
 ParameterStudy::ParameterStudy(
     ParameterCombinator &parameter_combinator,
     std::string save_folder,
-    std::function<OdeSolver*()> solver_factory,
+    std::function<OdeSolver*(size_t)> solver_factory,
     const double t_max,
     const double timeout
 ):
@@ -620,7 +631,9 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
 {
     // setup ODE solver and ODE function
     OdeFun ode;
-    std::unique_ptr<OdeSolver> solver(this->solver_factory());
+    const Parameters* par = this->parameter_combinator.get_mechanism_parameters();
+    if(par == nullptr) return;
+    std::unique_ptr<OdeSolver> solver(this->solver_factory(4 + par->num_species));
     std::vector<double> x_0;
     auto ode_fun = [&ode](const double t, const double *x, double *dxdt) -> is_success { return ode(t, x, dxdt); };
 
@@ -641,23 +654,15 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
         // simulation setup
         auto [success, cpar] = parameter_combinator.get_next_combination();
         if (!success) break;
-
         ode.init(cpar);
-        x_0.resize(ode.par->num_species+4);
-        ode.initial_conditions(x_0.data());
 
         // run simulation and postprocess
-        solver->solve(
-            0.0,                        // t_int_0
-            this->t_max,                // t_int_1
-            (double*)x_0.data(),        // x_0
-            ode.par->num_species+4,     // num_dim
-            ode_fun,                    // ode_fun
-            &ode.cpar.error_ID,         // error_ID ptr
+        OdeSolution sol = solver->solve(
+            this->t_max,                // t_max [s]
+            &ode,                       // ode_ptr
             this->timeout,              // timeout [s]
-            false                       // save all steps
+            false                       // save solution
         );
-        OdeSolution sol = solver->get_solution();
         SimulationData data(cpar, sol);
 
         // save and print data

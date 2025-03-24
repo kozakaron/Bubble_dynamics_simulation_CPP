@@ -130,6 +130,7 @@ public:
     size_t get_total_combination_count() const;
     size_t get_next_combination_ID() const;
     std::pair<is_success, ControlParameters> get_next_combination();
+    const Parameters* get_mechanism_parameters() const;
 };
 
 
@@ -164,7 +165,7 @@ private:
     std::string save_folder;
     std::ofstream output_log_file;
     std::mutex output_mutex;
-    std::function<OdeSolver*()> solver_factory;
+    std::function<OdeSolver*(size_t)> solver_factory;
     double best_energy_demand;
     const double t_max;
     const double timeout;
@@ -174,7 +175,7 @@ public:
     ParameterStudy(
         ParameterCombinator &parameter_combinator,
         std::string save_folder,
-        std::function<OdeSolver*()> solver_factory,
+        std::function<OdeSolver*(size_t)> solver_factory,
         const double t_max = 1.0,
         const double timeout = 60.0
     );
