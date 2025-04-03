@@ -291,7 +291,7 @@ class Builder:
     def link(self,
              linker: str,
              obj_files: list[str],
-             lib_dirs: list[str],
+             submodules: dict[str, dict[str, str]],
              output_binary_name: str,
              linker_flags: list[str],
              shared: bool = False
@@ -310,36 +310,38 @@ class Builder:
             return -1
         
         # gather library directories
-        for lib_dir in lib_dirs:
-            if not os.path.exists(lib_dir):
-                self.logger.log_error('library directory not found', lib_dir)
+        for name, submodule in submodules.items():
+            if not os.path.exists(submodule['lib_dir']):
+                self.logger.log_error(f'{name} library directory not found', submodule['lib_dir'])
                 return -1
-            linker_flags.append('-L' + os.path.abspath(lib_dir).replace('\\', '/'))
-            
+            linker_flags.append('-L' + os.path.abspath(submodule['lib_dir']).replace('\\', '/'))
+
             core_lib = None
             lib_files = []
-            for lib_file in os.listdir(lib_dir):
+            for lib_file in os.listdir(submodule['lib_dir']):
                 if not lib_file.endswith('.a') and not lib_file.endswith('.so') and not lib_file.endswith('.dll') and not lib_file.endswith('.lib') and not lib_file.endswith('.o'):
                     continue
-                lib_file = os.path.join(lib_dir, lib_file)
-                if 'core' in lib_file:  # libsundials_core must be linked last
+                orig_lib_file = lib_file
+                lib_file = os.path.join(submodule['lib_dir'], lib_file)
+                if submodule['core_lib'] == orig_lib_file.split('.')[0]:
                     if core_lib is not None:
                         self.logger.log_error('multiple core libraries found', f'{core_lib}, {lib_file}')
                         return -1
                     core_lib = lib_file
                     continue
                 lib_files.append(lib_file)
-            
+          
             if len(lib_files) == 0:
-                self.logger.log_error('no library files found', lib_dir + ' (Perhaps try to run ./bin/build_submodules.py)')
+                self.logger.log_error('no library files found', submodule['lib_dir'] + ' (Perhaps try to run ./bin/build_submodules.py)')
             if core_lib is None:
-                self.logger.log_error('core library not found', '')
+                self.logger.log_error('core library not found, but sundials needs core library', '')
                 return -1
-            lib_files.append(core_lib)
+            if core_lib is not None:
+                lib_files.append(core_lib)
             linker_flags += lib_files
-            if os.name != 'nt':
-                linker_flags.append('-lm')
 
+        if os.name != 'nt':
+            linker_flags.append('-lm')
         
         # determine output binary name
         output_binary_name = os.path.basename(output_binary_name).split('.')[0]

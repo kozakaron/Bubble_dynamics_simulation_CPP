@@ -14,46 +14,70 @@ submodules = ['submodules/sundials']
 # Only for Windows
 vs_path = 'C:/Program Files/Microsoft Visual Studio/2022/'  # Path to Visual Studio 2022
 
-# for building SUNDIALS:
-build_dir = "./submodules/sundials/build/"
-install_dir = "./submodules/sundials/install/"
-src_dir = "./submodules/sundials/"
+submodules = dict(
+    # for building SUNDIALS:
+    sundials = dict(
+        dir = "./submodules/sundials/",
+        build_dir = "./submodules/sundials/build/",
+        install_dir = "./submodules/sundials/install/",
+        src_dir = "./submodules/sundials/",
+        cmake_command_list = [
+            "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+            "-DBUILD_ARKODE=ON",
+            "-DBUILD_CVODE=ON",
+            "-DBUILD_CVODES=OFF",
+            "-DBUILD_IDA=OFF",
+            "-DBUILD_IDAS=OFF",
+            "-DBUILD_KINSOL=OFF",
+            "-DBUILD_SUNLINSOL=ON",
+            "-DBUILD_SUNMATRIX=ON",
+            "-DBUILD_SHARED_LIBS=OFF",
+            "-DBUILD_STATIC_LIBS=ON",
+            "-DEXAMPLES_ENABLE_C=OFF",
+            "-DEXAMPLES_ENABLE_CXX=OFF",
+            "-DEXAMPLES_ENABLE_F2003=OFF",
+            "-DEXAMPLES_INSTALL=OFF",   # requires '-DEXAMPLES_INSTALL_PATH=' + os.path.join(install_dir, "examples").replace("\\", "/")
+            "-DENABLE_MPI=OFF",
+            "-DENABLE_LAPACK=OFF",
+            "-DENABLE_KLU=OFF",
+            "-DENABLE_HYPRE=OFF",
+            "-DENABLE_OPENMP=OFF",
+            "-DENABLE_PTHREAD=OFF",
+            "-DENABLE_SUPERLUMT=OFF",
+            "-DENABLE_PETSC=OFF",
+            #'-DKLU_INCLUDE_DIR=/usr/casc/sundials/apps/rh6/suitesparse/4.5.3/include',
+            #'-DKLU_LIBRARY_DIR=/usr/casc/sundials/apps/rh6/suitesparse/4.5.3/lib',
+            #'-DHYPRE_INCLUDE_DIR=/usr/casc/sundials/apps/rh6/hypre/2.11.1/include',
+            #'-DHYPRE_LIBRARY=/usr/casc/sundials/apps/rh6/hypre/2.11.1/lib/libHYPRE.a',
+            #'-DSUPERLUMT_INCLUDE_DIR=/usr/casc/sundials/apps/rh6/superlu_mt/SuperLU_MT_3.1/SRC',
+            #'-DSUPERLUMT_LIBRARY_DIR=/usr/casc/sundials/apps/rh6/superlu_mt/SuperLU_MT_3.1/lib',
+            #'-DSUPERLUMT_THREAD_TYPE=Pthread',
+            #'-DPETSC_INCLUDE_DIR=/usr/casc/sundials/apps/rh6/petsc/3.7.2/include',
+            #'-DPETSC_LIBRARY_DIR=/usr/casc/sundials/apps/rh6/petsc/3.7.2/lib'
+        ]
+    ),
 
-cmake_command_list = [
-    "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
-    "-DBUILD_ARKODE=ON",
-    "-DBUILD_CVODE=ON",
-    "-DBUILD_CVODES=OFF",
-    "-DBUILD_IDA=OFF",
-    "-DBUILD_IDAS=OFF",
-    "-DBUILD_KINSOL=OFF",
-    "-DBUILD_SUNLINSOL=ON",
-    "-DBUILD_SUNMATRIX=ON",
-    "-DBUILD_SHARED_LIBS=OFF",
-    "-DBUILD_STATIC_LIBS=ON",
-    "-DEXAMPLES_ENABLE_C=ON",
-    "-DEXAMPLES_ENABLE_CXX=ON",
-    "-DEXAMPLES_INSTALL=ON",
-    "-DENABLE_MPI=OFF",
-    "-DENABLE_LAPACK=OFF",
-    "-DENABLE_KLU=OFF",
-    "-DENABLE_HYPRE=OFF",
-    "-DENABLE_OPENMP=OFF",
-    "-DENABLE_PTHREAD=OFF",
-    "-DENABLE_SUPERLUMT=OFF",
-    "-DENABLE_PETSC=OFF",
-    "-DEXAMPLES_ENABLE_F2003=OFF"
-    #'-DKLU_INCLUDE_DIR=/usr/casc/sundials/apps/rh6/suitesparse/4.5.3/include',
-    #'-DKLU_LIBRARY_DIR=/usr/casc/sundials/apps/rh6/suitesparse/4.5.3/lib',
-    #'-DHYPRE_INCLUDE_DIR=/usr/casc/sundials/apps/rh6/hypre/2.11.1/include',
-    #'-DHYPRE_LIBRARY=/usr/casc/sundials/apps/rh6/hypre/2.11.1/lib/libHYPRE.a',
-    #'-DSUPERLUMT_INCLUDE_DIR=/usr/casc/sundials/apps/rh6/superlu_mt/SuperLU_MT_3.1/SRC',
-    #'-DSUPERLUMT_LIBRARY_DIR=/usr/casc/sundials/apps/rh6/superlu_mt/SuperLU_MT_3.1/lib',
-    #'-DSUPERLUMT_THREAD_TYPE=Pthread',
-    #'-DPETSC_INCLUDE_DIR=/usr/casc/sundials/apps/rh6/petsc/3.7.2/include',
-    #'-DPETSC_LIBRARY_DIR=/usr/casc/sundials/apps/rh6/petsc/3.7.2/lib'
-]
-
+    # for building HDF5:
+    hdf5 = dict(
+        dir = "./submodules/hdf5/",
+        build_dir = "./submodules/hdf5_build/",
+        src_dir = "./submodules/hdf5/",
+        cmake_command_list = [
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DBUILD_SHARED_LIBS=OFF",
+            "-DBUILD_STATIC_LIBS=ON",
+            "-DBUILD_TESTING=OFF",
+            "-DHDF5_BUILD_EXAMPLES=OFF",
+            "-DHDF5_BUILD_DOC=OFF",
+            "-DHDF5_BUILD_CPP_LIB=ON",
+            "-DHDF5_BUILD_HL_LIB=ON",
+            "-DHDF5_ENABLE_THREADSAFE=OFF",
+            "-DHDF5_ENABLE_PARALLEL=OFF",
+            "-DHDF5_BUILD_TOOLS=OFF",
+            "-DHDF5_BUILD_UTILS=OFF",
+        ]
+    ),
+)
 
 import shutil
 import os
@@ -77,18 +101,22 @@ def main():
     check_python_package('matplotlib')
     check_python_package('pygments')
 
+# Check if we are in a Git repository
+    if not os.path.exists('.git'):
+        print(f'{bold}{red}Error:{reset} This is not a Git repository. Please clone the repository using Git instead of downloading it as a ZIP file.')
+        return -1
+
 # Clone submodules
     run_command('git submodule update --init --recursive')
     global submodules
-    for submodule in submodules:
-        if not os.path.exists(submodule):
-            print(f'{bold}{red}Error:{reset} Submodule {submodule} not found. Please run "git submodule update --init --recursive"')
+    for name, settings in submodules.items():
+        if not os.path.exists(settings['dir']):
+            print(f'{bold}{red}Error:{reset} Submodule {name} not found at {settings["dir"]}. Please run "git submodule update --init --recursive"')
             return -1
 
-# Build SUNDIALS
-    print(f'{bold}Building SUNDIALS...{reset}')
-    build_sundials(src_dir, build_dir, install_dir, cmake_command_list, vs_path)
-
+# Build submodules
+    ask_to_build('SUNDIALS', submodules['sundials'])
+    ask_to_build('HDF5',     submodules['hdf5'])
 
 # end of main()
 
@@ -184,16 +212,21 @@ def vs_build_command(vs_path: str, command: str) -> bool:
         return True
 
 
-def build_sundials(src_dir: str, build_dir: str, install_dir: str, cmake_command_list: list, vs_path: str = vs_path) -> bool:
-    """Build SUNDIALS from source. """
+def build_with_cmake(name: str, src_dir: str, build_dir: str, install_dir: str, cmake_command_list: list, vs_path: str = vs_path) -> bool:
+    """Build submodule (sundials, hdf5) from source with cmake. """
 
     # Check directories
     if not os.path.exists(src_dir):
-        print(f'{bold}{red}Error:{reset} SUNDIALS source directory not found at {src_dir}.')
-        return -1
-    src_dir = os.path.abspath(src_dir).replace('\\', '/')
-    build_dir = os.path.abspath(build_dir).replace('\\', '/')
-    install_dir = os.path.abspath(install_dir).replace('\\', '/')
+        print(f'{bold}{red}Error:{reset} {name} source directory not found at {src_dir}.')
+        return False
+    if src_dir:
+        src_dir = os.path.abspath(src_dir).replace('\\', '/')
+    if build_dir:
+        build_dir = os.path.abspath(build_dir).replace('\\', '/')
+    if install_dir:
+        install_dir = os.path.abspath(install_dir).replace('\\', '/')
+    else:
+        install_dir = build_dir
     print(f'    Source directory: {src_dir}')
     print(f'    Build directory: {build_dir}')
     print(f'    Install directory: {install_dir}')
@@ -201,15 +234,17 @@ def build_sundials(src_dir: str, build_dir: str, install_dir: str, cmake_command
         shutil.rmtree(build_dir)
     os.makedirs(build_dir)
     if os.path.exists(install_dir):
-       shutil.rmtree(install_dir)
+        shutil.rmtree(install_dir)
     os.makedirs(install_dir)
     os.chdir(build_dir)
 
     # Run CMake
+    generator = 'Unix Makefiles' if os.name == 'posix' else 'Visual Studio 17 2022'
     cmake_command_list = [
         'cmake',
         '-DCMAKE_INSTALL_PREFIX=' + install_dir,
-        '-DEXAMPLES_INSTALL_PATH=' + os.path.join(install_dir, "examples").replace("\\", "/")
+        f'-G "{generator}"',
+        '-A "x64"' if os.name == 'nt' else '',
     ] + cmake_command_list + [src_dir]
     command = ' '.join(cmake_command_list)
     if not run_command(command):
@@ -237,6 +272,23 @@ def build_sundials(src_dir: str, build_dir: str, install_dir: str, cmake_command
         
     return True
 
+
+def ask_to_build(name: str, settings: dict):
+    print(f'{bold}Do you want to build {name} from source? [y/n]{reset}', end=' ')
+    if input().strip().lower() == 'y':
+        if not build_with_cmake(
+            name,
+            settings.get('src_dir', ''),
+            settings.get('build_dir', ''),
+            settings.get('install_dir', ''),
+            settings.get('cmake_command_list', []),
+            vs_path
+        ):
+            print(f'{bold}{red}Error:{reset} Building {name} failed.')
+        else:
+            print(f'{bold}{green}Success:{reset} {name} built successfully.')
+    else:
+        print(f'skipping building {name}')
 
 if __name__ == "__main__":
     main()
