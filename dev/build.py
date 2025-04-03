@@ -18,10 +18,21 @@ linker = cpp_compiler
 
 # Define the source directory and output binary
 src_dirs = ['./src', './test']
-include_dirs = ['./include', './test', './src', './mechanism', './submodules/sundials/install/include']
-lib_dirs = ['./submodules/sundials/install/lib']
+include_dirs = ['./include', './test', './mechanism']
 build_dir = './bin'
 output_binary_name = 'main'
+submodules = dict(
+    sundials = dict(
+        include_dir = './submodules/sundials/install/include',
+        lib_dir = './submodules/sundials/install/lib',
+        core_lib = 'libsundials_core',
+    ),
+    hdf5 = dict(
+        include_dir = './submodules/hdf5_build/include',
+        lib_dir = './submodules/hdf5_build/bin',
+        core_lib = 'libhdf5',
+    ),
+)
 
 # Other settings
 compiler_flags = [
@@ -51,6 +62,7 @@ common_flags = [
 
 
 import argparse
+import json
 from build_utility import Builder, Logger
 
 def main():
@@ -76,6 +88,8 @@ def main():
     builder = Builder(build_dir)
     log_global_settings(builder.logger)
 
+    for submodule in submodules.values():
+        include_dirs.append(submodule['include_dir'])
     cpp_files, cuda_files, include_flags = builder.gather_files(src_dirs, include_dirs)
     compiler_flags += common_flags + include_flags
     linker_flags += common_flags
@@ -89,7 +103,7 @@ def main():
     builder.link(
         linker=linker,
         obj_files=object_files,
-        lib_dirs=lib_dirs,
+        submodules=submodules,
         output_binary_name=output_binary_name,
         linker_flags=linker_flags,
         shared=args.shared
@@ -119,6 +133,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def log_global_settings(logger: Logger):
+    submodules_str = json.dumps(submodules, indent=4)
     logger.log(f'cpp_compiler = \'{cpp_compiler}\'')
     logger.log(f'cuda_compiler = \'{cuda_compiler}\'')
     logger.log(f'linker = \'{linker}\'')
@@ -126,6 +141,7 @@ def log_global_settings(logger: Logger):
     logger.log(f'include_dirs = {include_dirs}')
     logger.log(f'build_dir = \'{build_dir}\'')
     logger.log(f'output_binary_name = \'{output_binary_name}\'')
+    logger.log(f'submodules = {submodules_str}')
     logger.log(f'compiler_flags = {compiler_flags}')
     logger.log(f'linker_flags = {linker_flags}')
     logger.log(f'common_flags = {common_flags}\n')
