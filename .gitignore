@@ -1,0 +1,24 @@
+# Python garbage
+*__pycache__
+*.ipynb_checkpoints
+.vscode/*
+
+# Folders (keep here, whatever you don't want to push)
+bin/*
+!bin/.gitkeep
+temp/*
+submodules/*
+CMakeFiles/*
+Bubble_dynamics_simulation/*
+*parameter_studies/*
+
+# Unwanted file formats
+*.csv
+*.out
+
+# Unwanted files
+*log*
+*parameters.py*
+*copy*
+*ignore*
+!.gitignore
