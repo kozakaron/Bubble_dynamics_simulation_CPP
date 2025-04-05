@@ -311,6 +311,8 @@ class Builder:
         
         # gather library directories
         for name, submodule in submodules.items():
+            if 'lib_dir' not in submodule:
+                continue
             if not os.path.exists(submodule['lib_dir']):
                 self.logger.log_error(f'{name} library directory not found', submodule['lib_dir'])
                 return -1
@@ -323,7 +325,7 @@ class Builder:
                     continue
                 orig_lib_file = lib_file
                 lib_file = os.path.join(submodule['lib_dir'], lib_file)
-                if submodule['core_lib'] == orig_lib_file.split('.')[0]:
+                if submodule['core_lib'] in orig_lib_file:
                     if core_lib is not None:
                         self.logger.log_error('multiple core libraries found', f'{core_lib}, {lib_file}')
                         return -1

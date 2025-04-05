@@ -57,26 +57,7 @@ submodules = dict(
         ]
     ),
 
-    # for building HDF5:
-    hdf5 = dict(
-        dir = "./submodules/hdf5/",
-        build_dir = "./submodules/hdf5_build/",
-        src_dir = "./submodules/hdf5/",
-        cmake_command_list = [
-            "-DCMAKE_BUILD_TYPE=Release",
-            "-DBUILD_SHARED_LIBS=OFF",
-            "-DBUILD_STATIC_LIBS=ON",
-            "-DBUILD_TESTING=OFF",
-            "-DHDF5_BUILD_EXAMPLES=OFF",
-            "-DHDF5_BUILD_DOC=OFF",
-            "-DHDF5_BUILD_CPP_LIB=ON",
-            "-DHDF5_BUILD_HL_LIB=ON",
-            "-DHDF5_ENABLE_THREADSAFE=OFF",
-            "-DHDF5_ENABLE_PARALLEL=OFF",
-            "-DHDF5_BUILD_TOOLS=OFF",
-            "-DHDF5_BUILD_UTILS=OFF",
-        ]
-    ),
+    
 )
 
 import shutil
@@ -116,7 +97,6 @@ def main():
 
 # Build submodules
     ask_to_build('SUNDIALS', submodules['sundials'])
-    ask_to_build('HDF5',     submodules['hdf5'])
 
 # end of main()
 
