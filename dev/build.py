@@ -25,12 +25,7 @@ submodules = dict(
     sundials = dict(
         include_dir = './submodules/sundials/install/include',
         lib_dir = './submodules/sundials/install/lib',
-        core_lib = 'libsundials_core',
-    ),
-    hdf5 = dict(
-        include_dir = './submodules/hdf5_build/include',
-        lib_dir = './submodules/hdf5_build/bin',
-        core_lib = 'libhdf5',
+        core_lib = 'sundials_core',
     ),
 )
 

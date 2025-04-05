@@ -581,7 +581,9 @@ ParameterStudy::ParameterStudy(
     solver_factory(solver_factory),
     best_energy_demand(SimulationData::infinite_energy_demand),
     t_max(t_max),
-    timeout(timeout)
+    timeout(timeout),
+    successful_simulations(0),
+    total_simulations(0)
 {
     // save general information
     if (this->save_folder.empty()) return;
@@ -669,9 +671,15 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
         this->best_energy_demand = std::min(this->best_energy_demand, data.energy_demand);
         lock.unlock();
 
+        if (data.sol.success())
+        {
+            this->successful_simulations.fetch_add(1, std::memory_order_relaxed); ;
+        }
+        this->total_simulations.fetch_add(1, std::memory_order_relaxed); ;
+
         if (this->output_log_file.is_open())
             this->output_log_file << data.to_small_string(parameter_combinator, best_energy_demand, false) << "\n";
-       
+
         if (print_output)
         {
             lock.lock();
@@ -712,6 +720,8 @@ void ParameterStudy::run(const size_t num_threads, const bool print_output)
     }
 
     double runtime = timer.lap();
-    std::cout << "\n\nTotal runtime: " << Timer::format_time(runtime) << std::endl;
-    std::cout << "\nAverage runtime per combination: " << Timer::format_time(runtime / parameter_combinator.get_total_combination_count()) << std::endl;
+    std::cout << "\n\n";
+    std::cout << "Successful simulations: " << this->successful_simulations << "/" << this->total_simulations << " (" << std::setprecision(2) << 100.0 * this->successful_simulations / this->total_simulations << " %)" << std::endl;
+    std::cout << "Total runtime: " << Timer::format_time(runtime) << std::endl;
+    std::cout << "Average runtime per combination: " << Timer::format_time(runtime / parameter_combinator.get_total_combination_count()) << std::endl;
 }

@@ -169,6 +169,8 @@ private:
     double best_energy_demand;
     const double t_max;
     const double timeout;
+    std::atomic<size_t> successful_simulations;
+    std::atomic<size_t> total_simulations;
     
     void parameter_study_task(const bool print_output, const size_t thread_id);
 public:
