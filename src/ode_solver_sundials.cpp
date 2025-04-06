@@ -259,6 +259,11 @@ OdeSolution OdeSolverCVODE::solve(
         solution.error_ID = init_error_ID;
         return solution;
     }
+    if (ode_ptr->cpar.error_ID != ErrorHandler::no_error)
+    {
+        solution.error_ID = ode_ptr->cpar.error_ID;
+        return solution;
+    }
 
     // Setup CVODE resources and initial conditions
     solution.num_dim = NV_LENGTH_S(x);
