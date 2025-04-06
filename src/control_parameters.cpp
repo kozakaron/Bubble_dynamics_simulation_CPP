@@ -1,8 +1,14 @@
+#include <string>
 #include <sstream>
 #include <numeric>
 #include <iomanip>
 
+#include "nlohmann/json.hpp"
+#include "common.h"
+#include "parameters.h"
 #include "control_parameters.h"
+
+using json = nlohmann::json;
 
 
 ControlParameters::ControlParameters()
@@ -14,6 +20,81 @@ ControlParameters::ControlParameters()
 
 ControlParameters::ControlParameters(const Builder& builder)
 {
+    this->init(builder);
+}
+
+
+// Helper function to convert string to enum
+Parameters::mechanism string_to_mechanism(std::string mechanism_str) {
+    std::transform(mechanism_str.begin(), mechanism_str.end(), mechanism_str.begin(), ::tolower);
+    std::replace(mechanism_str.begin(), mechanism_str.end(), ' ', '_');
+    auto it = std::find(Parameters::mechanism_names.begin(), Parameters::mechanism_names.end(), mechanism_str);
+    if (it != Parameters::mechanism_names.end()) {
+        return static_cast<Parameters::mechanism>(std::distance(Parameters::mechanism_names.begin(), it));
+    }
+
+    // Error handling
+    std::stringstream ss;
+    ss << "Invalid mechanism: " << mechanism_str << ". Valid options are: ";
+    ss << ::to_string((char**)Parameters::mechanism_names.data(), Parameters::mechanism_names.size());
+    LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
+    return Parameters::mechanism::chemkin_ar_he; // Default to first mechanism
+}
+
+
+// Helper function to convert string to excitation type
+Parameters::excitation string_to_excitation(std::string excitation_str) {
+    std::transform(excitation_str.begin(), excitation_str.end(), excitation_str.begin(), ::tolower);
+    std::replace(excitation_str.begin(), excitation_str.end(), ' ', '_');
+    auto it = std::find(Parameters::excitation_names.begin(), Parameters::excitation_names.end(), excitation_str);
+    if (it != Parameters::excitation_names.end()) {
+        return static_cast<Parameters::excitation>(std::distance(Parameters::excitation_names.begin(), it));
+    }
+
+    // Error handling
+    std::stringstream ss;
+    ss << "Invalid excitation type: " << excitation_str << ". Valid options are: ";
+    ss << ::to_string((char**)Parameters::excitation_names.data(), Parameters::excitation_names.size());
+    LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
+    return Parameters::excitation::no_excitation; // Default to no excitation
+}
+
+
+ControlParameters::ControlParameters(const json& j)
+{
+    auto builder = ControlParameters::Builder{};
+    try
+    {
+        builder.ID =                        j.value("ID",                       builder.ID);
+        builder.mechanism = string_to_mechanism(
+                                            j.value("mechanism",                Parameters::mechanism_names.at(builder.mechanism))
+        );
+        builder.R_E =                       j.value("R_E",                      builder.R_E);
+        builder.species =                   j.value("species",                  builder.species);
+        builder.fractions =                 j.value("fractions",                builder.fractions);
+        builder.P_amb =                     j.value("P_amb",                    builder.P_amb);
+        builder.T_inf =                     j.value("T_inf",                    builder.T_inf);
+        builder.alfa_M =                    j.value("alfa_M",                   builder.alfa_M);
+        builder.P_v =                       j.value("P_v",                      builder.P_v);
+        builder.mu_L =                      j.value("mu_L",                     builder.mu_L);
+        builder.rho_L =                     j.value("rho_L",                    builder.rho_L);
+        builder.c_L =                       j.value("c_L",                      builder.c_L);
+        builder.surfactant =                j.value("surfactant",               builder.surfactant);
+        builder.enable_heat_transfer =      j.value("enable_heat_transfer",     builder.enable_heat_transfer);
+        builder.enable_evaporation =        j.value("enable_evaporation",       builder.enable_evaporation);
+        builder.enable_reactions =          j.value("enable_reactions",         builder.enable_reactions);
+        builder.enable_dissipated_energy =  j.value("enable_dissipated_energy", builder.enable_dissipated_energy);
+        builder.target_specie =             j.value("target_specie",            builder.target_specie);
+        builder.excitation_params =         j.value("excitation_params",        builder.excitation_params);
+        builder.excitation_type = string_to_excitation(
+                                            j.value("excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
+        );
+    }
+    catch(const std::exception& e)
+    {
+        builder.error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, "Error parsing JSON file: " + std::string(e.what()));
+    }
+
     this->init(builder);
 }
 
@@ -271,6 +352,50 @@ std::string ControlParameters::to_string(const bool with_code) const
     return ss.str();
 }
 
+
+json ControlParameters::to_json() const
+{
+    json j;
+    const Parameters* par = Parameters::get_parameters(this->mechanism);
+    if (par == nullptr)
+    {
+        LOG_ERROR("Invalid mechanism: " + std::to_string((int)this->mechanism), this->ID);
+        return j;
+    }
+    std::vector<std::string> species_names;
+    for (size_t index = 0; index < this->num_initial_species; ++index)
+    {
+        if (this->species[index] == par->invalid_index || this->species[index] >= par->num_species)
+        {
+            LOG_ERROR("Invalid species index: " + std::to_string(this->species[index]), this->ID);
+            return j;
+        }
+        species_names.push_back(par->species_names.at(this->species[index]));
+    }
+
+    j["ID"] = this->ID;
+    j["mechanism"] = Parameters::mechanism_names.at(this->mechanism);
+    j["R_E"] = this->R_E;
+    j["species"] = species_names;
+    j["fractions"] = std::vector<double>(this->fractions, this->fractions + this->num_initial_species);
+    j["P_amb"] = this->P_amb;
+    j["T_inf"] = this->T_inf;
+    j["alfa_M"] = this->alfa_M;
+    j["P_v"] = this->P_v;
+    j["mu_L"] = this->mu_L;
+    j["rho_L"] = this->rho_L;
+    j["c_L"] = this->c_L;
+    j["surfactant"] = this->surfactant;
+    j["enable_heat_transfer"] = this->enable_heat_transfer;
+    j["enable_evaporation"] = this->enable_evaporation;
+    j["enable_reactions"] = this->enable_reactions;
+    j["enable_dissipated_energy"] = this->enable_dissipated_energy;
+    j["target_specie"] = par->species_names.at(this->target_specie);
+    j["excitation_params"] = std::vector<double>(this->excitation_params, this->excitation_params + Parameters::excitation_arg_nums.at(this->excitation_type));
+    j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
+    
+    return j;
+}
 
 std::ostream& operator<<(std::ostream& os, const ControlParameters& cpar)
 {

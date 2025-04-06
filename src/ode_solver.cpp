@@ -1,6 +1,10 @@
-#include "ode_solver.h"
 #include <sstream>
 #include <iomanip>
+
+#include "nlohmann/json.hpp"
+#include "ode_solver.h"
+
+using json = nlohmann::json;
 
 
 OdeSolution::OdeSolution():
@@ -159,6 +163,29 @@ std::string OdeSolution::to_string(const bool colored, const bool with_code) con
     ss << std::right;
     return ss.str();
 }
+
+
+json OdeSolution::to_json() const
+{
+    json j;
+    j["success"] = this->success();
+    j["error"] = ErrorHandler::get_error(this->error_ID).to_string();
+    j["runtime"] = this->runtime;
+    j["num_steps"] = this->num_steps;
+    j["num_saved_steps"] = this->x.size();
+    j["num_repeats"] = this->num_repeats;
+    j["num_fun_evals"] = this->num_fun_evals;
+    j["num_fun_evals_jac"] = this->num_fun_evals_jac;
+    j["num_jac_evals"] = this->num_jac_evals;
+    j["num_lin_iters"] = this->num_lin_iters;
+    j["num_nonlin_iters"] = this->num_nonlin_iters;
+    j["total_error"] = this->total_error;
+    j["t"] = std::vector<double>({this->t.front(), this->t.back()});
+    j["x"] = std::vector<std::vector<double>>({this->x.front(), this->x.back()});
+    
+    return j;
+}
+
 
 
 std::ostream &operator<<(std::ostream &os, const OdeSolution &ode)

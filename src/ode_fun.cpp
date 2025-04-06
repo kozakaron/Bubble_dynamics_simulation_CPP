@@ -122,14 +122,19 @@ is_success OdeFun::check_after_call(
 
 is_success OdeFun::init(const ControlParameters& cpar)
 {
+    this->cpar = cpar;
     const Parameters *old_par = this->par;
     this->par = Parameters::get_parameters(cpar.mechanism);
-    if(this->par == nullptr)
+    if (this->par == nullptr)
     {
         this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Invalid mechanism: " + std::to_string(cpar.mechanism), cpar.ID);
         return false;
     }
     this->num_species = this->par->num_species;
+    if (this->cpar.enable_evaporation && this->par->index_of_water == this->par->invalid_index)
+    {
+        LOG_ERROR(Error::severity::warning, Error::type::odefun, "Water is not in the mechanism, but evaporation is enabled.", cpar.ID);
+    }
     
     if (old_par != this->par || this->omega_dot == nullptr)
     {
@@ -144,7 +149,6 @@ is_success OdeFun::init(const ControlParameters& cpar)
         this->net_rates  = new double[par->num_reactions];
         this->omega_dot  = new double[par->num_species];
     }
-    this->cpar = cpar;
     if(this->cpar.error_ID != ErrorHandler::no_error)
     {
         return false;

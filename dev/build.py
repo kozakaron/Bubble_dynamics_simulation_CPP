@@ -27,6 +27,10 @@ submodules = dict(
         lib_dir = './submodules/sundials/install/lib',
         core_lib = 'sundials_core',
     ),
+    json = dict(
+        include_dir = './submodules/json/include'
+        # header only library
+    ),
 )
 
 # Other settings

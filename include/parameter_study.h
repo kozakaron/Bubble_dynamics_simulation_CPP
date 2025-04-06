@@ -1,5 +1,6 @@
 #ifndef PARAMETER_STUDY_H
 #define PARAMETER_STUDY_H
+#include "nlohmann/json_fwd.hpp"
 #include "common.h"
 #include "parameters.h"
 #include "control_parameters.h"
@@ -154,6 +155,7 @@ public:
     std::string to_csv() const;
     std::string to_string() const;
     std::string to_small_string(const ParameterCombinator &ps, const double best_energy_demand, const bool colored=true) const;
+    nlohmann::json to_json() const;
     friend std::ostream &operator<<(std::ostream &os, const SimulationData &data);
 };
 

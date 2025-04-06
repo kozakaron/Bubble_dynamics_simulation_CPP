@@ -56,7 +56,9 @@ submodules = dict(
             #'-DPETSC_LIBRARY_DIR=/usr/casc/sundials/apps/rh6/petsc/3.7.2/lib'
         ]
     ),
-
+    json = dict(
+        dir = "./submodules/json/"
+    ),
     
 )
 

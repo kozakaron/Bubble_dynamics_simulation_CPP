@@ -7,8 +7,12 @@
 #include <filesystem>
 #include <thread>
 
+#include "nlohmann/json.hpp"
 #include "parameter_study.h"
 #include "ode_fun.h"
+
+using json = nlohmann::json;
+
 
 Range::Range():
     start(0.0),
@@ -521,6 +525,19 @@ std::string SimulationData::to_small_string(const ParameterCombinator &ps, const
         ss << "(best=" << format_double << best_energy_demand << " MJ/kg)";
 
     return ss.str();
+}
+
+
+json SimulationData::to_json() const
+{
+    json j;
+    j["dissipated_energy"] = this->dissipated_energy;
+    j["n_target_specie"] = this->n_target_specie;
+    j["energy_demand"] = this->energy_demand;
+    j["cpar"] = this->cpar.to_json();
+    j["sol"] = this->sol.to_json();
+
+    return j;
 }
 
 
