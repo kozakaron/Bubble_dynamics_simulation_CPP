@@ -31,6 +31,10 @@ submodules = dict(
         include_dir = './submodules/json/include'
         # header only library
     ),
+    cxxopt = dict(
+        include_dir = './submodules/cxxopt/include'
+        # header only library
+    ),
 )
 
 # Other settings

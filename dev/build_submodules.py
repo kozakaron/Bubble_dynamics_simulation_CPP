@@ -59,7 +59,9 @@ submodules = dict(
     json = dict(
         dir = "./submodules/json/"
     ),
-    
+    cxxopt = dict(
+        dir = "./submodules/cxxopt/"
+    ),
 )
 
 import shutil
@@ -96,6 +98,8 @@ def main():
         if not os.path.exists(settings['dir']):
             print(f'{bold}{red}Error:{reset} Submodule {name} not found at {settings["dir"]}. Please run "git submodule update --init --recursive"')
             return -1
+        else:
+            print(f'submodule {name}: {bold}{green}found{reset}')
 
 # Build submodules
     ask_to_build('SUNDIALS', submodules['sundials'])

@@ -156,6 +156,7 @@ public:
     std::string to_string() const;
     std::string to_small_string(const ParameterCombinator &ps, const double best_energy_demand, const bool colored=true) const;
     nlohmann::ordered_json to_json() const;
+    void save_json_with_binary(const std::string &json_path) const;
     friend std::ostream &operator<<(std::ostream &os, const SimulationData &data);
 };
 

@@ -1,5 +1,6 @@
 #include <iomanip>
 #include <sstream>
+#include <fstream>
 #include <numbers>
 #include <cmath>
 #include <regex>
@@ -538,6 +539,52 @@ ordered_json SimulationData::to_json() const
     j["sol"] = this->sol.to_json();
 
     return j;
+}
+
+
+void SimulationData::save_json_with_binary(const std::string &json_path) const
+{
+    // Open file as text
+    std::ofstream output_file(json_path, std::ios::out);
+    if (!output_file.is_open())
+    {
+        LOG_ERROR("Could not open output JSON file: " + json_path);
+        return;
+    }
+
+    // Save JSON data + <BINARY> marker
+    ordered_json j = this->to_json();
+    output_file << std::setw(4) << j << std::endl;
+    output_file << std::endl << "<BINARY>";
+    output_file.close();
+
+    // Open file as binary
+    std::ofstream binary_output_file(json_path, std::ios::app | std::ios::binary);
+    if (!binary_output_file.is_open())
+    {
+        LOG_ERROR("Could not open output file as binary: " + json_path);
+        return;
+    }
+
+    // Save sol.t (1D array)
+    if (this->sol.t.size() != this->sol.x.size())
+    {
+        LOG_ERROR("Mismatch between sol.t.size() and sol.x.size(): " + std::to_string(this->sol.t.size()) + " != " + std::to_string(this->sol.x.size()));
+        return;
+    }
+    binary_output_file.write(reinterpret_cast<const char*>(this->sol.t.data()), this->sol.t.size() * sizeof(double));
+
+    // Save sol.x (2D array)
+    for (const auto& row : this->sol.x)
+    {
+        if (row.size() != this->sol.num_dim)
+        {
+            LOG_ERROR("Mismatch between sol.x[].size() and sol.num_dim: " + std::to_string(row.size()) + " != " + std::to_string(this->sol.num_dim));
+            return;
+        }
+        binary_output_file.write(reinterpret_cast<const char*>(row.data()), row.size() * sizeof(double));
+    }
+    binary_output_file.close();
 }
 
 

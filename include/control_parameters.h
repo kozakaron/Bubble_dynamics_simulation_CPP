@@ -82,7 +82,11 @@ public:
     ControlParameters();
     // Constructor with Builder. See Builder struct for more details.
     ControlParameters(const Builder& builder);
+    // Constructor from JSON (ordered_json). Input should contains that same keys as in Builder struct, but mechanism and excitation_type are strings.
+    // Example: {"ID": 1, "mechanism": "chemkin_ar_he", "species": ["O2"], "fractions": [1.0], ...}
     ControlParameters(const nlohmann::ordered_json& j);
+    // Constructor from JSON file (using 'cpar' key)
+    ControlParameters(const std::string& json_path);
     ~ControlParameters();
     // Set species and their fractions like this: set_species({"H2", "N2"}, {0.75, 0.25}); or set_species({par->get_species("O2")}, {1.0});
     void set_species(const std::vector<std::string> species_list, const std::vector<double> fractions_list);

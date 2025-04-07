@@ -7,7 +7,6 @@
 bin/*
 !bin/.gitkeep
 temp/*
-submodules/*
 CMakeFiles/*
 Bubble_dynamics_simulation/*
 *parameter_studies/*
