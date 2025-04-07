@@ -11,7 +11,7 @@
 #include "parameter_study.h"
 #include "ode_fun.h"
 
-using json = nlohmann::json;
+using ordered_json = nlohmann::ordered_json;
 
 
 Range::Range():
@@ -528,9 +528,9 @@ std::string SimulationData::to_small_string(const ParameterCombinator &ps, const
 }
 
 
-json SimulationData::to_json() const
+ordered_json SimulationData::to_json() const
 {
-    json j;
+    ordered_json j;
     j["dissipated_energy"] = this->dissipated_energy;
     j["n_target_specie"] = this->n_target_specie;
     j["energy_demand"] = this->energy_demand;

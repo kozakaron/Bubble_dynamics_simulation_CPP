@@ -8,7 +8,7 @@
 #include "parameters.h"
 #include "control_parameters.h"
 
-using json = nlohmann::json;
+using ordered_json = nlohmann::ordered_json;
 
 
 ControlParameters::ControlParameters()
@@ -38,7 +38,8 @@ Parameters::mechanism string_to_mechanism(std::string mechanism_str) {
     ss << "Invalid mechanism: " << mechanism_str << ". Valid options are: ";
     ss << ::to_string((char**)Parameters::mechanism_names.data(), Parameters::mechanism_names.size());
     LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
-    return Parameters::mechanism::chemkin_ar_he; // Default to first mechanism
+    ControlParameters::Builder default_builder;
+    return default_builder.mechanism;
 }
 
 
@@ -56,11 +57,12 @@ Parameters::excitation string_to_excitation(std::string excitation_str) {
     ss << "Invalid excitation type: " << excitation_str << ". Valid options are: ";
     ss << ::to_string((char**)Parameters::excitation_names.data(), Parameters::excitation_names.size());
     LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
-    return Parameters::excitation::no_excitation; // Default to no excitation
+    ControlParameters::Builder default_builder;
+    return default_builder.excitation_type;
 }
 
 
-ControlParameters::ControlParameters(const json& j)
+ControlParameters::ControlParameters(const ordered_json& j)
 {
     auto builder = ControlParameters::Builder{};
     try
@@ -353,9 +355,9 @@ std::string ControlParameters::to_string(const bool with_code) const
 }
 
 
-json ControlParameters::to_json() const
+ordered_json ControlParameters::to_json() const
 {
-    json j;
+    ordered_json j;
     const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
     {
