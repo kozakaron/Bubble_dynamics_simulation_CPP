@@ -181,10 +181,9 @@ ordered_json OdeSolution::to_json() const
     j["num_lin_iters"] = this->num_lin_iters;
     j["num_nonlin_iters"] = this->num_nonlin_iters;
     j["total_error"] = this->total_error;
+    // Saved as binary data in SimulationData:
     //j["t"] = std::vector<double>({this->t.front(), this->t.back()});
     //j["x"] = std::vector<std::vector<double>>({this->x.front(), this->x.back()});
-    //j["t"] = this->t;
-    //j["x"] = this->x;
     
     return j;
 }

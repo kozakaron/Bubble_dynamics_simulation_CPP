@@ -1,5 +1,6 @@
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <numeric>
 #include <iomanip>
 
@@ -94,10 +95,63 @@ ControlParameters::ControlParameters(const ordered_json& j)
     }
     catch(const std::exception& e)
     {
-        builder.error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, "Error parsing JSON file: " + std::string(e.what()));
+        builder.error_ID = LOG_ERROR(
+            Error::severity::error,
+            Error::type::preprocess,
+            "Error parsing JSON file: " + std::string(e.what())
+        );
     }
 
     this->init(builder);
+}
+
+
+ControlParameters::ControlParameters(const std::string& json_path)
+{
+    // Open JSON file
+    std::ifstream input_file(json_path);
+    if (!input_file.is_open())
+    {
+        *this = ControlParameters();
+        this->error_ID = LOG_ERROR(
+            Error::severity::error,
+            Error::type::preprocess,
+            "Could not open JSON file: " + json_path
+        );
+        return;
+    }
+
+    // Read JSON data
+    ordered_json j;
+    try
+    {
+        j = ordered_json::parse(input_file);
+    }
+    catch (const std::exception& e)
+    {
+        *this = ControlParameters();
+        this->error_ID = LOG_ERROR(
+            Error::severity::error,
+            Error::type::preprocess,
+            "Error parsing JSON file: " + std::string(e.what())
+        );
+        return;
+    }
+    input_file.close();
+
+    // Parse JSON data
+    if (!j.contains("cpar"))
+    {
+        *this = ControlParameters();
+        this->error_ID = LOG_ERROR(
+            Error::severity::error,
+            Error::type::preprocess,
+            "JSON file does not contain 'cpar' key: " + j.dump()
+        );
+        return;
+    }
+
+    *this = ControlParameters(j.at("cpar"));
 }
 
 
