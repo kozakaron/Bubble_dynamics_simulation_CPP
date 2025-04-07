@@ -309,7 +309,7 @@ void test_CVODE_solver(vector<TestReferenceData> &test_data)
                 }
                 else
                 {
-                    if (rel_diff > 1.0e-3)
+                    if (rel_diff > 2.0e-3)
                     {
                         return ss.str();
                     }

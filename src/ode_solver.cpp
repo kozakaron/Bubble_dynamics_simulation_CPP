@@ -4,7 +4,7 @@
 #include "nlohmann/json.hpp"
 #include "ode_solver.h"
 
-using json = nlohmann::json;
+using ordered_json = nlohmann::ordered_json;
 
 
 OdeSolution::OdeSolution():
@@ -165,12 +165,13 @@ std::string OdeSolution::to_string(const bool colored, const bool with_code) con
 }
 
 
-json OdeSolution::to_json() const
+ordered_json OdeSolution::to_json() const
 {
-    json j;
+    ordered_json j;
     j["success"] = this->success();
     j["error"] = ErrorHandler::get_error(this->error_ID).to_string();
     j["runtime"] = this->runtime;
+    j["num_dim"] = this->num_dim;
     j["num_steps"] = this->num_steps;
     j["num_saved_steps"] = this->x.size();
     j["num_repeats"] = this->num_repeats;
@@ -180,8 +181,10 @@ json OdeSolution::to_json() const
     j["num_lin_iters"] = this->num_lin_iters;
     j["num_nonlin_iters"] = this->num_nonlin_iters;
     j["total_error"] = this->total_error;
-    j["t"] = std::vector<double>({this->t.front(), this->t.back()});
-    j["x"] = std::vector<std::vector<double>>({this->x.front(), this->x.back()});
+    //j["t"] = std::vector<double>({this->t.front(), this->t.back()});
+    //j["x"] = std::vector<std::vector<double>>({this->x.front(), this->x.back()});
+    //j["t"] = this->t;
+    //j["x"] = this->x;
     
     return j;
 }

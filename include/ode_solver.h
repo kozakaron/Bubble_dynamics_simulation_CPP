@@ -35,7 +35,7 @@ public:
     void clear();
     std::string to_csv() const;
     std::string to_string(const bool colored=true, const bool with_code=true) const;
-    nlohmann::json to_json() const;
+    nlohmann::ordered_json to_json() const;
     friend std::ostream &operator<<(std::ostream &os, const OdeSolution &ode);
 };
 

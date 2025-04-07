@@ -155,7 +155,7 @@ public:
     std::string to_csv() const;
     std::string to_string() const;
     std::string to_small_string(const ParameterCombinator &ps, const double best_energy_demand, const bool colored=true) const;
-    nlohmann::json to_json() const;
+    nlohmann::ordered_json to_json() const;
     friend std::ostream &operator<<(std::ostream &os, const SimulationData &data);
 };
 

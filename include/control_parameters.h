@@ -82,7 +82,7 @@ public:
     ControlParameters();
     // Constructor with Builder. See Builder struct for more details.
     ControlParameters(const Builder& builder);
-    ControlParameters(const nlohmann::json& j);
+    ControlParameters(const nlohmann::ordered_json& j);
     ~ControlParameters();
     // Set species and their fractions like this: set_species({"H2", "N2"}, {0.75, 0.25}); or set_species({par->get_species("O2")}, {1.0});
     void set_species(const std::vector<std::string> species_list, const std::vector<double> fractions_list);
@@ -97,7 +97,7 @@ public:
     // Convert to string. with_code: ready to copy to constructor; one_line: without newlines
     std::string to_string(const bool with_code=false) const;
     // Convert to JSON
-    nlohmann::json to_json() const;
+    nlohmann::ordered_json to_json() const;
     // Ostream overload
     friend std::ostream& operator<<(std::ostream& os, const ControlParameters& cpar);
 private:
