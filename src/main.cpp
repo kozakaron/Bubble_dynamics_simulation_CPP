@@ -7,31 +7,74 @@
 #include "parameter_study.h"
 #include "test_list.h"
 
+#include "nlohmann/json.hpp"
+#include "cxxopts.hpp"
+
 
 using namespace std;
+using namespace nlohmann;
+
 
 int main(int argc, char **argv)
 {
-    (void)argc; (void)argv;
-    //ErrorHandler::set_log_file("log.txt");
+    // Initialize logging
+    cxxopts::ParseResult result;
+    cxxopts::Options options("Bubble dynamics simulation C++", "A high performance SUNDIALS CVODE powered zero dimensional (ODE) sonochemistry simulation of an acustically excited bubble.");
+    options.add_options()
+        ("h,help", "Show help")
+        ("r,run", "Run a simulation with the given JSON file", cxxopts::value<std::string>())
+        ("tmax", "Simulation end time in seconds", cxxopts::value<double>()->default_value("1.0"))
+        ("timeout", "Timeout in seconds", cxxopts::value<double>()->default_value("60.0"))
+        ("save", "Set this flag to save all timesteps, skip it to save only the first and last steps", cxxopts::value<bool>()->default_value("false"))
+        ("log", "Set log file", cxxopts::value<std::string>())
+        ;
     
-// solve with cvode
-    /*ControlParameters cpar = ControlParameters{{ 
-        .mechanism = Parameters::mechanism::chemkin_otomo2018,
-        .species = {"H2", "N2"},
-        .fractions = {0.75, 0.25},
-        //.P_amb = 0.8 * 101325.0,
-        //.excitation_params = {-1.6e5, 30000, 1}
-    }};
-    OdeFun ode; ode.init(cpar);
+    // Parse command line arguments
+    try
+    {
+        result = options.parse(argc, argv);
+    }
+    catch(const std::exception& e)
+    {
+        LOG_ERROR("Error parsing command line arguments: " + std::string(e.what()));
+        return 1;
+    }
+    
+    // Print help
+    if (result.count("help"))
+    {
+        std::cout << options.help() << std::endl;
+        return 0;
+    }
 
-    OdeSolverCVODE cvode(ode.par->num_species+4);
-    //cout << cpar << endl;
+    // Init logging
+    if (result.count("log"))
+    {
+        std::string log_path = result["log"].as<std::string>();
+        ErrorHandler::set_log_file(log_path);
+    }
 
-    OdeSolution solution = cvode.solve(1.0, &ode, 60.0, false);
-    cout << solution << endl;
-    //SimulationData data(cpar, solution);
-    //cout << data << endl;*/
+    // Run simulation
+    if (result.count("run"))
+    {
+        std::string json_path = result["run"].as<std::string>();
+
+        // Run simulation
+        ControlParameters cpar(json_path);        
+        OdeFun ode; ode.init(cpar);
+        OdeSolverCVODE solver(ode.par->num_species+4);
+        OdeSolution solution = solver.solve(
+            result["tmax"].as<double>(),    // t_max [s]
+            &ode,                           // ode_ptr
+            result["timeout"].as<double>(), // timeout [s]
+            result["save"].as<bool>()       // save solution
+        );
+        SimulationData data(cpar, solution);
+
+        // Save results
+        data.save_json_with_binary(json_path);        
+    }
+    
 
     
 #ifdef TEST
@@ -50,7 +93,6 @@ int main(int argc, char **argv)
     benchmark_parameter_study();
 #endif  // BENCHMARK
 
-    ErrorHandler::print_errors();
     if (ErrorHandler::get_error_count() != 0)  return 1;
     return 0;
 }
