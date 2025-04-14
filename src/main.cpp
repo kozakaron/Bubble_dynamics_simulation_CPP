@@ -1,3 +1,5 @@
+#include <thread>
+
 #include "common.h"
 #include "parameters.h"
 #include "control_parameters.h"
@@ -15,6 +17,12 @@ using namespace std;
 using namespace nlohmann;
 
 
+OdeSolver* solver_factory(size_t num_dim)
+{
+    return new OdeSolverCVODE(num_dim);
+}
+
+
 int main(int argc, char **argv)
 {
     // Initialize logging
@@ -27,6 +35,8 @@ int main(int argc, char **argv)
         ("timeout", "Timeout in seconds", cxxopts::value<double>()->default_value("60.0"))
         ("save", "Set this flag to save all timesteps, skip it to save only the first and last steps", cxxopts::value<bool>()->default_value("false"))
         ("log", "Set log file", cxxopts::value<std::string>())
+        ("parameter_study", "Run a parameter study with the given JSON file", cxxopts::value<std::string>())
+        ("directory", "Set save directory for parameter_study", cxxopts::value<std::string>()->default_value("./_parameter_studies/test"))
         ;
     
     // Parse command line arguments
@@ -72,10 +82,26 @@ int main(int argc, char **argv)
         SimulationData data(cpar, solution);
 
         // Save results
-        data.save_json_with_binary(json_path);        
+        data.save_json_with_binary(json_path);
+    }
+
+    // Run parameter study
+    else if (result.count("parameter_study"))
+    {
+        std::string json_path = result["parameter_study"].as<std::string>();
+        ParameterCombinator parameter_combinator(json_path);
+        if (ErrorHandler::get_error_count() != 0) return 1;
+        const size_t num_threads = std::thread::hardware_concurrency();
+        ParameterStudy parameter_study(
+            parameter_combinator,
+            result["directory"].as<std::string>(),  // save_folder_base_name
+            solver_factory,                         // solver_factory
+            result["tmax"].as<double>(),            // t_max [s]
+            result["timeout"].as<double>()          // timeout [s]
+        );
+        parameter_study.run(num_threads, true);
     }
     
-
     
 #ifdef TEST
     testing::test_common();
