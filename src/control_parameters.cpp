@@ -25,51 +25,13 @@ ControlParameters::ControlParameters(const Builder& builder)
 }
 
 
-// Helper function to convert string to enum
-Parameters::mechanism string_to_mechanism(std::string mechanism_str) {
-    std::transform(mechanism_str.begin(), mechanism_str.end(), mechanism_str.begin(), ::tolower);
-    std::replace(mechanism_str.begin(), mechanism_str.end(), ' ', '_');
-    auto it = std::find(Parameters::mechanism_names.begin(), Parameters::mechanism_names.end(), mechanism_str);
-    if (it != Parameters::mechanism_names.end()) {
-        return static_cast<Parameters::mechanism>(std::distance(Parameters::mechanism_names.begin(), it));
-    }
-
-    // Error handling
-    std::stringstream ss;
-    ss << "Invalid mechanism: " << mechanism_str << ". Valid options are: ";
-    ss << ::to_string((char**)Parameters::mechanism_names.data(), Parameters::mechanism_names.size());
-    LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
-    ControlParameters::Builder default_builder;
-    return default_builder.mechanism;
-}
-
-
-// Helper function to convert string to excitation type
-Parameters::excitation string_to_excitation(std::string excitation_str) {
-    std::transform(excitation_str.begin(), excitation_str.end(), excitation_str.begin(), ::tolower);
-    std::replace(excitation_str.begin(), excitation_str.end(), ' ', '_');
-    auto it = std::find(Parameters::excitation_names.begin(), Parameters::excitation_names.end(), excitation_str);
-    if (it != Parameters::excitation_names.end()) {
-        return static_cast<Parameters::excitation>(std::distance(Parameters::excitation_names.begin(), it));
-    }
-
-    // Error handling
-    std::stringstream ss;
-    ss << "Invalid excitation type: " << excitation_str << ". Valid options are: ";
-    ss << ::to_string((char**)Parameters::excitation_names.data(), Parameters::excitation_names.size());
-    LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
-    ControlParameters::Builder default_builder;
-    return default_builder.excitation_type;
-}
-
-
 ControlParameters::ControlParameters(const ordered_json& j)
 {
     auto builder = ControlParameters::Builder{};
     try
     {
         builder.ID =                        j.value("ID",                       builder.ID);
-        builder.mechanism = string_to_mechanism(
+        builder.mechanism = Parameters::string_to_mechanism(
                                             j.value("mechanism",                Parameters::mechanism_names.at(builder.mechanism))
         );
         builder.R_E =                       j.value("R_E",                      builder.R_E);
@@ -89,7 +51,7 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.enable_dissipated_energy =  j.value("enable_dissipated_energy", builder.enable_dissipated_energy);
         builder.target_specie =             j.value("target_specie",            builder.target_specie);
         builder.excitation_params =         j.value("excitation_params",        builder.excitation_params);
-        builder.excitation_type = string_to_excitation(
+        builder.excitation_type = Parameters::string_to_excitation(
                                             j.value("excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
         );
     }

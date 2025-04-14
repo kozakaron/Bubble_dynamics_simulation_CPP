@@ -140,6 +140,8 @@ public:
     Parameters(Parameters_struct dummy);
     ~Parameters();
     static const Parameters *get_parameters(const Parameters::mechanism mech);
+    static Parameters::mechanism string_to_mechanism(std::string mechanism_str);
+    static Parameters::excitation string_to_excitation(std::string excitation_str);
 };
 
 #endif // PARAMETERS_H

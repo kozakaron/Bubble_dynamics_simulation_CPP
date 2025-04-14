@@ -170,28 +170,30 @@ std::unique_ptr<Range> get_unique_ptr(const ParameterCombinator::AnyRange range)
     return nullptr;
 }
 
-ParameterCombinator::ParameterCombinator(const ParameterCombinator::Builder &builder):
-    combination_ID(0),
-    total_combination_count(1),
-    mechanism(builder.mechanism),
-    R_E(get_unique_ptr(builder.R_E)),
-    species(builder.species),
-    fractions(builder.fractions),
-    P_amb(get_unique_ptr(builder.P_amb)),
-    T_inf(get_unique_ptr(builder.T_inf)),
-    alfa_M(get_unique_ptr(builder.alfa_M)),
-    P_v(get_unique_ptr(builder.P_v)),
-    mu_L(get_unique_ptr(builder.mu_L)),
-    rho_L(get_unique_ptr(builder.rho_L)),
-    c_L(get_unique_ptr(builder.c_L)),
-    surfactant(get_unique_ptr(builder.surfactant)),
-    enable_heat_transfer(builder.enable_heat_transfer),
-    enable_evaporation(builder.enable_evaporation),
-    enable_reactions(builder.enable_reactions),
-    enable_dissipated_energy(builder.enable_dissipated_energy),
-    target_specie(builder.target_specie),
-    excitation_type(builder.excitation_type)
+
+void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
 {
+    this->combination_ID =              0;
+    this->total_combination_count =     1;
+    this->mechanism =                   builder.mechanism;
+    this->R_E =                         get_unique_ptr(builder.R_E);
+    this->species =                     builder.species;
+    this->fractions =                   builder.fractions;
+    this->P_amb =                       get_unique_ptr(builder.P_amb);
+    this->T_inf =                       get_unique_ptr(builder.T_inf);
+    this->alfa_M =                      get_unique_ptr(builder.alfa_M);
+    this->P_v =                         get_unique_ptr(builder.P_v);
+    this->mu_L =                        get_unique_ptr(builder.mu_L);
+    this->rho_L =                       get_unique_ptr(builder.rho_L);
+    this->c_L =                         get_unique_ptr(builder.c_L);
+    this->surfactant =                  get_unique_ptr(builder.surfactant);
+    this->enable_heat_transfer =        builder.enable_heat_transfer;
+    this->enable_evaporation =          builder.enable_evaporation;
+    this->enable_reactions =            builder.enable_reactions;
+    this->enable_dissipated_energy =    builder.enable_dissipated_energy;
+    this->target_specie =               builder.target_specie;
+    this->excitation_type =             builder.excitation_type;
+
     this->excitation_params.reserve(builder.excitation_params.size());
     for (const auto &excitation_param : builder.excitation_params)
     {
@@ -211,6 +213,235 @@ ParameterCombinator::ParameterCombinator(const ParameterCombinator::Builder &bui
     {
         this->total_combination_count *= excitation_param->get_num_steps();
     }
+}
+
+
+ParameterCombinator::ParameterCombinator(const ParameterCombinator::Builder &builder)
+{
+    this->init(builder);
+}
+
+
+ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinator::AnyRange default_range)
+{
+    if (!j.is_object())
+    {
+        LOG_ERROR(
+            "Expected JSON object, instead found " + j.dump() + \
+            ". Available options: Const(value), LinearRange(start, end, num_steps), PowRange(start, end, num_steps, base). " + \
+            "E.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
+        );
+        return default_range;
+    }
+    if (!j.contains("type") || !j.at("type").is_string())
+    {
+        LOG_ERROR(
+            "Invalid \"type\" in JSON object " + j.dump() + \
+            ". Available options: Const(value), LinearRange(start, end, num_steps), PowRange(start, end, num_steps, base). " + \
+            "e.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
+        );
+        return default_range;
+    }
+    std::string type = j.at("type").get<std::string>();
+    std::transform(type.begin(), type.end(), type.begin(), ::tolower);
+    std::replace(type.begin(), type.end(), '_', ' ');
+    type.erase(std::remove_if(type.begin(), type.end(), [](unsigned char c) { return std::isspace(c); }), type.end());
+    
+    if (type == "const")
+    {
+        if (!j.contains("value") || !j.at("value").is_number())
+        {
+            LOG_ERROR(
+                "Invalid arguments for JSON object " + j.dump() + \
+                ". For Const, you must provide a value of type double. " + \
+                "e.g.: {\"type\": \"Const\", \"value\": 0.0}"
+            );
+            return default_range;
+        }
+        return Const(j.at("value").get<double>());
+    }
+    else if (type == "linearrange")
+    {
+        if (
+            !j.contains("start") || !j.contains("end") || !j.contains("num_steps")
+            || !j.at("start").is_number() || !j.at("end").is_number() || !j.at("num_steps").is_number()
+        )
+        {
+            LOG_ERROR(
+                "Invalid arguments for JSON object " + j.dump() + \
+                ". For LinearRange, you must provide start, end and num_steps of type double. " + \
+                "e.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
+            );
+            return default_range;
+        }
+        return LinearRange(
+            j.at("start").get<double>(),
+            j.at("end").get<double>(),
+            j.at("num_steps").get<size_t>()
+        );
+    }
+    else if (type == "powrange")
+    {
+        if (
+            !j.contains("start") || !j.contains("end") || !j.contains("num_steps")
+            || !j.at("start").is_number() || !j.at("end").is_number() || !j.at("num_steps").is_number()
+            || (j.contains("base") && !j.at("base").is_number())
+        )
+        {
+            LOG_ERROR(
+                "Invalid arguments for JSON onject " + j.dump() + \
+                ". For PowRange, you must provide start, end, num_steps and optionally base of type double. " + \
+                "e.g.: {\"type\": \"PowRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10, \"base\": 2.0}"
+            );
+            return default_range;
+        }
+        return PowRange(
+            j.at("start").get<double>(),
+            j.at("end").get<double>(),
+            j.at("num_steps").get<size_t>(),
+            j.value("base", 2.0)
+        );
+    }
+    else
+    {
+        LOG_ERROR("Invalid Range type: " + type + \
+            ". Available options: Const(value), LinearRange(start, end, num_steps), PowRange(start, end, num_steps, base). " + \
+            "e.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
+        );
+        return default_range;
+    }
+}
+
+
+ParameterCombinator::AnyRange get_range(const ordered_json& j, const std::string &key, ParameterCombinator::AnyRange default_range)
+{
+    if (!j.contains(key))
+    {
+        return default_range;
+    }
+    else
+    {
+        return get_range(j.at(key), default_range);
+    }
+}
+
+
+void ParameterCombinator::init(const ordered_json& j)
+{
+    auto builder = ParameterCombinator::Builder{};
+    try
+    {
+        builder.mechanism = Parameters::string_to_mechanism(
+                                            j.value(     "mechanism",                Parameters::mechanism_names.at(builder.mechanism))
+        );
+        builder.R_E =                       get_range(j, "R_E",                      builder.R_E);
+        builder.species =                   j.value(     "species",                  builder.species);
+        builder.fractions =                 j.value(     "fractions",                builder.fractions);
+        builder.P_amb =                     get_range(j, "P_amb",                    builder.P_amb);
+        builder.T_inf =                     get_range(j, "T_inf",                    builder.T_inf);
+        builder.alfa_M =                    get_range(j, "alfa_M",                   builder.alfa_M);
+        builder.P_v =                       get_range(j, "P_v",                      builder.P_v);
+        builder.mu_L =                      get_range(j, "mu_L",                     builder.mu_L);
+        builder.rho_L =                     get_range(j, "rho_L",                    builder.rho_L);
+        builder.c_L =                       get_range(j, "c_L",                      builder.c_L);
+        builder.surfactant =                get_range(j, "surfactant",               builder.surfactant);
+        builder.enable_heat_transfer =      j.value(     "enable_heat_transfer",     builder.enable_heat_transfer);
+        builder.enable_evaporation =        j.value(     "enable_evaporation",       builder.enable_evaporation);
+        builder.enable_reactions =          j.value(     "enable_reactions",         builder.enable_reactions);
+        builder.enable_dissipated_energy =  j.value(     "enable_dissipated_energy", builder.enable_dissipated_energy);
+        builder.target_specie =             j.value(     "target_specie",            builder.target_specie);
+        builder.excitation_type = Parameters::string_to_excitation(
+                                            j.value("excitation_type",               Parameters::excitation_names.at(builder.excitation_type))
+        );
+
+        if (j.contains("excitation_params"))
+        {
+            if (!j.at("excitation_params").is_array())
+            {
+                LOG_ERROR(
+                    "\"excitation_params\" should be a list, instead it is " + j.at("excitation_params").dump() + \
+                    ". E.g.: {\"excitation_params\": [{\"type\": \"Const\", \"value\": 0.0}, ...]}"
+                );
+            }
+            else if (j.at("excitation_params").size() != Parameters::excitation_arg_nums.at(builder.excitation_type))
+            {
+                LOG_ERROR(
+                    "Invalid number of excitation parameters for excitation type " + std::string(Parameters::excitation_names.at(builder.excitation_type)) + \
+                    ". Expected " + std::to_string(Parameters::excitation_arg_nums.at(builder.excitation_type)) + \
+                    ", but got " + std::to_string(j.at("excitation_params").size()) + \
+                    ". Excitation params are: " + Parameters::excitation_arg_names.at(builder.excitation_type)
+                );
+            }
+            else
+            {
+                for (size_t i=0; i < j.at("excitation_params").size(); ++i)
+                {
+                    ordered_json param = j.at("excitation_params").at(i);
+                    if (param != nullptr)
+                        builder.excitation_params[i] = get_range(param, builder.excitation_params.at(i));
+                    
+                }
+            }
+        }
+    }
+    catch(const std::exception& e)
+    {
+        LOG_ERROR(
+            "Error parsing JSON file: " + std::string(e.what())
+        );
+    }
+
+    this->init(builder);
+}
+
+
+ParameterCombinator::ParameterCombinator(const ordered_json& j)
+{
+    this->init(j);
+}
+
+
+
+ParameterCombinator::ParameterCombinator(const std::string& json_path)
+{
+    // Open JSON file
+    std::ifstream input_file(json_path);
+    if (!input_file.is_open())
+    {
+        this->init(ParameterCombinator::Builder());
+        LOG_ERROR(
+            "Could not open JSON file: " + json_path
+        );
+        return;
+    }
+
+    // Read JSON data
+    ordered_json j;
+    try
+    {
+        j = ordered_json::parse(input_file);
+    }
+    catch (const std::exception& e)
+    {
+        this->init(ParameterCombinator::Builder());
+        LOG_ERROR(
+            "Error parsing JSON file: " + std::string(e.what())
+        );
+        return;
+    }
+    input_file.close();
+
+    // Parse JSON data
+    if (!j.contains("parameter_study"))
+    {
+        this->init(ParameterCombinator::Builder());
+        LOG_ERROR(
+            "JSON file does not contain 'parameter_study' key: " + j.dump()
+        );
+        return;
+    }
+
+    this->init(j.at("parameter_study"));
 }
 
 

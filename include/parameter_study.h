@@ -124,6 +124,8 @@ public:
     };
 
     ParameterCombinator(const Builder &builder);
+    ParameterCombinator(const nlohmann::ordered_json& j);
+    ParameterCombinator(const std::string& json_path);
     std::string to_string(const bool with_code=false) const;
     friend std::ostream &operator<<(std::ostream &os, const ParameterCombinator &pc);
     friend class SimulationData;
@@ -132,6 +134,10 @@ public:
     size_t get_next_combination_ID() const;
     std::pair<is_success, ControlParameters> get_next_combination();
     const Parameters* get_mechanism_parameters() const;
+
+private:
+    void init(const ParameterCombinator::Builder &builder);
+    void init(const nlohmann::ordered_json &j);
 };
 
 
