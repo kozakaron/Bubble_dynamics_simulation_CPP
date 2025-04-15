@@ -10,7 +10,6 @@
 #include "common.h"
 #include "parameters.h"
 
-/*________________________________control_parameters________________________________*/
 
 class ControlParameters {
 public:
