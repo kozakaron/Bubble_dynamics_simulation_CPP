@@ -92,6 +92,15 @@ std::string Const::to_string() const
 }
 
 
+ordered_json Const::to_json() const
+{
+    return {
+        {"type", "Const"},
+        {"value", this->start}
+    };
+}
+
+
 LinearRange::LinearRange(double start, double end, size_t num_steps):
     Range(start, end, std::max(num_steps, (size_t)1))
 {}
@@ -115,6 +124,17 @@ double LinearRange::operator[](size_t i) const
 std::string LinearRange::to_string() const
 {
     return "LinearRange(" + std::to_string(this->start) + ", " + std::to_string(this->end) + ", " + std::to_string(this->num_steps) + ")";
+}
+
+
+ordered_json LinearRange::to_json() const
+{
+    return {
+        {"type", "LinearRange"},
+        {"start", this->start},
+        {"end", this->end},
+        {"num_steps", this->num_steps}
+    };
 }
 
 
@@ -150,6 +170,18 @@ double PowRange::operator[](size_t i) const
 std::string PowRange::to_string() const
 {
     return "PowRange(" + std::to_string(this->start) + ", " + std::to_string(this->end) + ", " + std::to_string(this->num_steps) + ", " + std::to_string(this->base) + ")";
+}
+
+
+ordered_json PowRange::to_json() const
+{
+    return {
+        {"type", "PowRange"},
+        {"start", this->start},
+        {"end", this->end},
+        {"num_steps", this->num_steps},
+        {"base", this->base}
+    };
 }
 
 
@@ -509,6 +541,38 @@ std::string ParameterCombinator::to_string(const bool with_code) const
     if (with_code) ss << "}";
     ss << std::right;
     return ss.str();
+}
+
+
+ordered_json ParameterCombinator::to_json() const
+{
+    ordered_json j;
+
+    j["mechanism"] = Parameters::mechanism_names.at(this->mechanism);
+    j["R_E"] = this->R_E->to_json();
+    j["species"] = this->species;
+    j["fractions"] = this->fractions;
+    j["P_amb"] = this->P_amb->to_json();
+    j["T_inf"] = this->T_inf->to_json();
+    j["alfa_M"] = this->alfa_M->to_json();
+    j["P_v"] = this->P_v->to_json();
+    j["mu_L"] = this->mu_L->to_json();
+    j["rho_L"] = this->rho_L->to_json();
+    j["c_L"] = this->c_L->to_json();
+    j["surfactant"] = this->surfactant->to_json();
+    j["enable_heat_transfer"] = this->enable_heat_transfer;
+    j["enable_evaporation"] = this->enable_evaporation;
+    j["enable_reactions"] = this->enable_reactions;
+    j["enable_dissipated_energy"] = this->enable_dissipated_energy;
+    j["target_specie"] = this->target_specie;
+    j["excitation_params"] = ordered_json::array();
+    for (const auto& excitation_param : this->excitation_params)
+    {
+        j["excitation_params"].push_back(excitation_param->to_json());
+    }
+    j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
+
+    return {{"parameter_study", j}};
 }
 
 
@@ -903,6 +967,29 @@ ParameterStudy::ParameterStudy(
         general_info_file.close();
     }
 
+    // save JSON file
+    std::filesystem::path json_file_path = save_folder_path / "bruteforce_parameter_study_settings.json";
+    std::ofstream json_file(json_file_path);
+    if (!json_file.is_open())
+    {
+        LOG_ERROR("Failed to open file: " + json_file_path.string());
+    } else {
+        ordered_json j = parameter_combinator.to_json();
+        j["info"] = ordered_json::object({
+            {"datetime", Timer::current_time()},
+            {"total_combination_count", parameter_combinator.get_total_combination_count()},
+            {"t_max", t_max},
+            {"timeout", timeout},
+            {"max_threads", std::thread::hardware_concurrency()},
+            {"mechanism", Parameters::mechanism_names.at(parameter_combinator.mechanism)},
+            {"number_of_species", parameter_combinator.get_mechanism_parameters()->num_species},
+            {"number_of_reactions", parameter_combinator.get_mechanism_parameters()->num_reactions},
+            {"species", ::to_string((std::string*)parameter_combinator.get_mechanism_parameters()->species_names.data(), parameter_combinator.get_mechanism_parameters()->num_species)}
+        });
+        json_file << std::setw(4) << j << std::endl;
+        json_file.close();
+    }
+
     // open log file
     std::filesystem::path log_file_path = save_folder_path / "output.log";
     std::filesystem::path error_file_path = save_folder_path / "errors.log";
@@ -988,6 +1075,7 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
 
 void ParameterStudy::run(const size_t num_threads, const bool print_output)
 {
+    // Checks
     if (this->save_folder.empty()) return;
     if (num_threads == 0)
     {
@@ -1001,6 +1089,7 @@ void ParameterStudy::run(const size_t num_threads, const bool print_output)
     }
     ErrorHandler::print_when_log = print_output;
 
+    // Run tasks
     Timer timer;
     timer.start();
     std::vector<std::thread> threads(num_threads);
@@ -1014,9 +1103,24 @@ void ParameterStudy::run(const size_t num_threads, const bool print_output)
         threads[i].join();
     }
 
+    // Print summary
     double runtime = timer.lap();
     std::cout << "\n\n";
-    std::cout << "Successful simulations: " << this->successful_simulations << "/" << this->total_simulations << " (" << std::setprecision(2) << 100.0 * this->successful_simulations / this->total_simulations << " %)" << std::endl;
-    std::cout << "Total runtime: " << Timer::format_time(runtime) << std::endl;
-    std::cout << "Average runtime per combination: " << Timer::format_time(runtime / parameter_combinator.get_total_combination_count()) << std::endl;
+    std::stringstream ss;
+    ss << "Successful simulations: " << this->successful_simulations << "/" << this->total_simulations << " (" << std::setprecision(2) << 100.0 * this->successful_simulations / this->total_simulations << " %)" << std::endl;
+    ss << "Total runtime: " << Timer::format_time(runtime) << std::endl;
+    ss << "Average runtime per combination: " << Timer::format_time(runtime / parameter_combinator.get_total_combination_count()) << std::endl;
+    std::cout << ss.str();
+
+    // Save summary in txt
+    std::filesystem::path save_folder_path(this->save_folder);
+    std::filesystem::path summary_file_path = save_folder_path / "summary.txt";
+    std::ofstream summary_file(summary_file_path);
+    if (!summary_file.is_open())
+    {
+        LOG_ERROR("Failed to open file: " + summary_file_path.string());
+    } else {
+        summary_file << ss.str();
+        summary_file.close();
+    }
 }
