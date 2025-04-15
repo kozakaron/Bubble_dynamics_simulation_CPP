@@ -31,6 +31,7 @@ public:
     Range(double start, double end, size_t num_steps);
     virtual ~Range() = default;
     virtual std::string to_string() const = 0;
+    virtual nlohmann::ordered_json to_json() const = 0;
     virtual std::string to_array() const;
     friend std::ostream &operator<<(std::ostream &os, const Range &range);
     virtual double operator[](size_t i) const = 0;
@@ -45,6 +46,7 @@ public:
     Const(double value);
     double operator[](size_t i) const override;
     std::string to_string() const override;
+    nlohmann::ordered_json to_json() const override;
 };
 
 // Represents an even subdivision of an interval. f(x) = a * x + b
@@ -55,6 +57,7 @@ public:
     LinearRange(double start, double end, size_t num_steps);
     double operator[](size_t i) const override;
     std::string to_string() const override;
+    nlohmann::ordered_json to_json() const override;
 };
 
 // Represents an uneven subdivision of an interval. f(x) = a * x^b + c
@@ -71,6 +74,7 @@ public:
     PowRange(double start, double end, size_t num_steps, double base=2.0);
     double operator[](size_t i) const override;
     std::string to_string() const override;
+    nlohmann::ordered_json to_json() const override;
 };
 
 
@@ -127,6 +131,7 @@ public:
     ParameterCombinator(const nlohmann::ordered_json& j);
     ParameterCombinator(const std::string& json_path);
     std::string to_string(const bool with_code=false) const;
+    nlohmann::ordered_json to_json() const;
     friend std::ostream &operator<<(std::ostream &os, const ParameterCombinator &pc);
     friend class SimulationData;
     friend class ParameterStudy;
