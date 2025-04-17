@@ -1,0 +1,32 @@
+{    
+    "cpar": {
+        "ID": 0,
+        "mechanism": "chemkin_ar_he",
+        "R_E": 10.0e-6,
+        "species": [
+            "O2"
+        ],
+        "fractions": [
+            1.0
+        ],
+        "P_amb": 101325.0,
+        "T_inf": 293.15,
+        "alfa_M": 0.35,
+        "P_v": 2338.1,
+        "mu_L": 0.001,
+        "rho_L": 998.2,
+        "c_L": 1483.0,
+        "surfactant": 1.0,
+        "enable_heat_transfer": true,
+        "enable_evaporation": true,
+        "enable_reactions": true,
+        "enable_dissipated_energy": true,
+        "target_specie": "H2",
+        "excitation_params": [
+            -200000.0,
+            30000.0,
+            1.0
+        ],
+        "excitation_type": "sin_impulse"
+    }
+}
