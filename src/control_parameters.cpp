@@ -25,34 +25,51 @@ ControlParameters::ControlParameters(const Builder& builder)
 }
 
 
+template<typename T>
+T get_value(const ordered_json& j, const std::string& key, const T& default_value)
+{
+    if (j.contains(key))
+    {
+        return j.at(key).get<T>();
+    }
+
+    LOG_ERROR(
+        Error::severity::warning,
+        Error::type::preprocess,
+        "Key \"" + key + "\" not found in JSON object. Using default value. "
+    );
+    return default_value;
+}
+
+
 ControlParameters::ControlParameters(const ordered_json& j)
 {
     auto builder = ControlParameters::Builder{};
     try
     {
-        builder.ID =                        j.value("ID",                       builder.ID);
+        builder.ID =                        get_value<size_t>                   (j, "ID",                       builder.ID);
         builder.mechanism = Parameters::string_to_mechanism(
-                                            j.value("mechanism",                Parameters::mechanism_names.at(builder.mechanism))
+                                            get_value<std::string>              (j, "mechanism",                Parameters::mechanism_names.at(builder.mechanism))
         );
-        builder.R_E =                       j.value("R_E",                      builder.R_E);
-        builder.species =                   j.value("species",                  builder.species);
-        builder.fractions =                 j.value("fractions",                builder.fractions);
-        builder.P_amb =                     j.value("P_amb",                    builder.P_amb);
-        builder.T_inf =                     j.value("T_inf",                    builder.T_inf);
-        builder.alfa_M =                    j.value("alfa_M",                   builder.alfa_M);
-        builder.P_v =                       j.value("P_v",                      builder.P_v);
-        builder.mu_L =                      j.value("mu_L",                     builder.mu_L);
-        builder.rho_L =                     j.value("rho_L",                    builder.rho_L);
-        builder.c_L =                       j.value("c_L",                      builder.c_L);
-        builder.surfactant =                j.value("surfactant",               builder.surfactant);
-        builder.enable_heat_transfer =      j.value("enable_heat_transfer",     builder.enable_heat_transfer);
-        builder.enable_evaporation =        j.value("enable_evaporation",       builder.enable_evaporation);
-        builder.enable_reactions =          j.value("enable_reactions",         builder.enable_reactions);
-        builder.enable_dissipated_energy =  j.value("enable_dissipated_energy", builder.enable_dissipated_energy);
-        builder.target_specie =             j.value("target_specie",            builder.target_specie);
-        builder.excitation_params =         j.value("excitation_params",        builder.excitation_params);
+        builder.R_E =                       get_value<double>                   (j, "R_E",                      builder.R_E);
+        builder.species =                   get_value<std::vector<std::string>> (j, "species",                  builder.species);
+        builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
+        builder.P_amb =                     get_value<double>                   (j, "P_amb",                    builder.P_amb);
+        builder.T_inf =                     get_value<double>                   (j, "T_inf",                    builder.T_inf);
+        builder.alfa_M =                    get_value<double>                   (j, "alfa_M",                   builder.alfa_M);
+        builder.P_v =                       get_value<double>                   (j, "P_v",                      builder.P_v);
+        builder.mu_L =                      get_value<double>                   (j, "mu_L",                     builder.mu_L);
+        builder.rho_L =                     get_value<double>                   (j, "rho_L",                    builder.rho_L);
+        builder.c_L =                       get_value<double>                   (j, "c_L",                      builder.c_L);
+        builder.surfactant =                get_value<double>                   (j, "surfactant",               builder.surfactant);
+        builder.enable_heat_transfer =      get_value<bool>                     (j, "enable_heat_transfer",     builder.enable_heat_transfer);
+        builder.enable_evaporation =        get_value<bool>                     (j, "enable_evaporation",       builder.enable_evaporation);
+        builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
+        builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
+        builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
+        builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params);
         builder.excitation_type = Parameters::string_to_excitation(
-                                            j.value("excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
+                                            get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
         );
     }
     catch(const std::exception& e)

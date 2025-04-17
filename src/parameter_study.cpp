@@ -349,6 +349,12 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, const std::string
 {
     if (!j.contains(key))
     {
+        LOG_ERROR(
+            Error::severity::warning,
+            Error::type::preprocess,
+            "Key \"" + key + "\" not found in JSON object. " + \
+            "Using default value. "
+        );
         return default_range;
     }
     else
@@ -358,32 +364,49 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, const std::string
 }
 
 
+template<typename T>
+T get_value(const ordered_json& j, const std::string& key, const T& default_value)
+{
+    if (j.contains(key))
+    {
+        return j.at(key).get<T>();
+    }
+
+    LOG_ERROR(
+        Error::severity::warning,
+        Error::type::preprocess,
+        "Key \"" + key + "\" not found in JSON object. Using default value. "
+    );
+    return default_value;
+}
+
+
 void ParameterCombinator::init(const ordered_json& j)
 {
     auto builder = ParameterCombinator::Builder{};
     try
     {
         builder.mechanism = Parameters::string_to_mechanism(
-                                            j.value(     "mechanism",                Parameters::mechanism_names.at(builder.mechanism))
+                                            get_value<std::string>              (j, "mechanism",                Parameters::mechanism_names.at(builder.mechanism))
         );
         builder.R_E =                       get_range(j, "R_E",                      builder.R_E);
-        builder.species =                   j.value(     "species",                  builder.species);
-        builder.fractions =                 j.value(     "fractions",                builder.fractions);
-        builder.P_amb =                     get_range(j, "P_amb",                    builder.P_amb);
-        builder.T_inf =                     get_range(j, "T_inf",                    builder.T_inf);
-        builder.alfa_M =                    get_range(j, "alfa_M",                   builder.alfa_M);
-        builder.P_v =                       get_range(j, "P_v",                      builder.P_v);
-        builder.mu_L =                      get_range(j, "mu_L",                     builder.mu_L);
-        builder.rho_L =                     get_range(j, "rho_L",                    builder.rho_L);
-        builder.c_L =                       get_range(j, "c_L",                      builder.c_L);
-        builder.surfactant =                get_range(j, "surfactant",               builder.surfactant);
-        builder.enable_heat_transfer =      j.value(     "enable_heat_transfer",     builder.enable_heat_transfer);
-        builder.enable_evaporation =        j.value(     "enable_evaporation",       builder.enable_evaporation);
-        builder.enable_reactions =          j.value(     "enable_reactions",         builder.enable_reactions);
-        builder.enable_dissipated_energy =  j.value(     "enable_dissipated_energy", builder.enable_dissipated_energy);
-        builder.target_specie =             j.value(     "target_specie",            builder.target_specie);
+        builder.species =                   get_value<std::vector<std::string>> (j, "species",                  builder.species);
+        builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
+        builder.P_amb =                     get_range                           (j, "P_amb",                    builder.P_amb);
+        builder.T_inf =                     get_range                           (j, "T_inf",                    builder.T_inf);
+        builder.alfa_M =                    get_range                           (j, "alfa_M",                   builder.alfa_M);
+        builder.P_v =                       get_range                           (j, "P_v",                      builder.P_v);
+        builder.mu_L =                      get_range                           (j, "mu_L",                     builder.mu_L);
+        builder.rho_L =                     get_range                           (j, "rho_L",                    builder.rho_L);
+        builder.c_L =                       get_range                           (j, "c_L",                      builder.c_L);
+        builder.surfactant =                get_range                           (j, "surfactant",               builder.surfactant);
+        builder.enable_heat_transfer =      get_value<bool>                     (j, "enable_heat_transfer",     builder.enable_heat_transfer);
+        builder.enable_evaporation =        get_value<bool>                     (j, "enable_evaporation",       builder.enable_evaporation);
+        builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
+        builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
+        builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
         builder.excitation_type = Parameters::string_to_excitation(
-                                            j.value("excitation_type",               Parameters::excitation_names.at(builder.excitation_type))
+                                            get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
         );
 
         if (j.contains("excitation_params"))
@@ -824,6 +847,18 @@ std::string SimulationData::to_small_string(const ParameterCombinator &ps, const
 }
 
 
+// Helper function to split a space-separated string into a vector of strings
+std::vector<std::string> split_string(const std::string& str) {
+    std::vector<std::string> result;
+    std::stringstream sstream(str);
+    std::string token;
+    while (sstream >> token) {
+        result.push_back(token);
+    }
+    return result;
+}
+
+
 ordered_json SimulationData::to_json() const
 {
     ordered_json j;
@@ -832,6 +867,34 @@ ordered_json SimulationData::to_json() const
     j["energy_demand"] = this->energy_demand;
     j["cpar"] = this->cpar.to_json();
     j["sol"] = this->sol.to_json();
+    j["excitation"] = ordered_json::object({
+        {"type", Parameters::excitation_names.at(this->cpar.excitation_type)},
+        {
+            "names",
+            split_string(
+                Parameters::excitation_arg_names.at(this->cpar.excitation_type)
+            )
+        },
+        {
+            "units",
+            split_string(
+                Parameters::excitation_arg_units.at(this->cpar.excitation_type)
+            )
+        }
+    });
+
+    const Parameters* par = Parameters::get_parameters(this->cpar.mechanism);
+    if (par == nullptr)
+    {
+        LOG_ERROR("Mechanism " + std::to_string(this->cpar.mechanism) + " is not found.");
+        return j;
+    }
+    j["mechanism"] = ordered_json::object({
+        {"model", par->model},
+        {"num_species", par->num_species},
+        {"num_reactions", par->num_reactions},
+        {"species_names", par->species_names}
+    });
 
     return j;
 }
