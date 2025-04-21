@@ -9,6 +9,10 @@
 
 typedef bool is_success;
 
+#define MAJOR_VERSION 1
+#define MINOR_VERSION 0
+#define VERSION (std::to_string(MAJOR_VERSION) + "." + std::to_string(MINOR_VERSION))
+
 namespace colors
 {
     const std::string white =       "\033[0m";

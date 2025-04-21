@@ -243,10 +243,6 @@ def run_parameter_study(
         t_max (float): Maximum simulation time.
         timeout (float): Timeout for the simulation.
         save_steps (bool): Whether to save the simulation steps.
-
-    Returns:
-        dict: A dictionary containing the simulation results.
-              See key 'sol' for the numerical solution and 'cpar' for the original control parameters.
     """
     
     # Write the JSON file
