@@ -28,6 +28,19 @@ ControlParameters::ControlParameters(const Builder& builder)
 template<typename T>
 T get_value(const ordered_json& j, const std::string& key, const T& default_value)
 {
+    if constexpr (std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<std::string>>)
+    {
+        if (j.contains(key) && !j.at(key).is_array())
+        {
+            LOG_ERROR(
+                Error::severity::warning,
+                Error::type::preprocess,
+                "Expected JSON array for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+            );
+            return default_value;
+        }
+    }
+
     if (j.contains(key))
     {
         return j.at(key).get<T>();

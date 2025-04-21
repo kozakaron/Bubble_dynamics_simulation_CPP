@@ -367,6 +367,19 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, const std::string
 template<typename T>
 T get_value(const ordered_json& j, const std::string& key, const T& default_value)
 {
+    if constexpr (std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<std::string>>)
+    {
+        if (j.contains(key) && !j.at(key).is_array())
+        {
+            LOG_ERROR(
+                Error::severity::warning,
+                Error::type::preprocess,
+                "Expected JSON array for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+            );
+            return default_value;
+        }
+    }
+    
     if (j.contains(key))
     {
         return j.at(key).get<T>();
@@ -895,6 +908,7 @@ ordered_json SimulationData::to_json() const
         {"num_reactions", par->num_reactions},
         {"species_names", par->species_names}
     });
+    j["version"] = VERSION;
 
     return j;
 }
@@ -1017,6 +1031,7 @@ ParameterStudy::ParameterStudy(
         LOG_ERROR("Failed to open file: " + general_info_file_path.string());
     } else {
         const Parameters* par = Parameters::get_parameters(parameter_combinator.mechanism);
+        general_info_file << "version: " << VERSION << "\n";
         general_info_file << "datetime: " << Timer::current_time() << "\n";
         general_info_file << "total_combination_count: " << parameter_combinator.get_total_combination_count() << "\n";
         general_info_file << "t_max: " << t_max << "\n";
@@ -1039,6 +1054,7 @@ ParameterStudy::ParameterStudy(
     } else {
         ordered_json j = parameter_combinator.to_json();
         j["info"] = ordered_json::object({
+            {"version", VERSION},
             {"datetime", Timer::current_time()},
             {"total_combination_count", parameter_combinator.get_total_combination_count()},
             {"t_max", t_max},
