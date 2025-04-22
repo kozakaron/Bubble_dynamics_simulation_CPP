@@ -237,12 +237,12 @@ def run_parameter_study(
     Captures stdout and stderr in real-time and prints them as they arrive.
 
     Args:
-        cpar (dict): Parameters for the simulation.
+        parameter_study (dict): Parameters for the simulation.
         json_path (str): Path to the JSON file.
         executable_path (str): Path to the executable.
         t_max (float): Maximum simulation time.
         timeout (float): Timeout for the simulation.
-        save_steps (bool): Whether to save the simulation steps.
+        save_directory (str): Where to save the parameter study.
     """
     
     # Write the JSON file
@@ -330,8 +330,6 @@ def plot(data, n=5.0, base_name='', format='png',
     This funfction plots the results of the simulation form data (returned by run_simulation()).
     Parameters:
      * data: data dictionary (returned by run_simulation()) | 
-     * t_int: time interval to solve the diffeq in (default: [0, 1] [s]) | 
-           graphs will be plotted in this intervall, if not default
      * n: how long should the plotted time interval be compared to the collapse time (default: 5 [-])
      * base_name: save plots as image (default: '' alias do not save) | 
                use base_name='plot' --> plot_1.png, plot_2.png |  

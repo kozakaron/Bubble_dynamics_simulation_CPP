@@ -30,6 +30,7 @@ int main(int argc, char **argv)
     cxxopts::Options options("Bubble dynamics simulation C++", "A high performance SUNDIALS CVODE powered zero dimensional (ODE) sonochemistry simulation of an acustically excited bubble.");
     options.add_options()
         ("h,help", "Show help")
+        ("v,version", "Show version")
         ("r,run", "Run a simulation with the given JSON file", cxxopts::value<std::string>())
         ("tmax", "Simulation end time in seconds", cxxopts::value<double>()->default_value("1.0"))
         ("timeout", "Timeout in seconds", cxxopts::value<double>()->default_value("60.0"))
@@ -54,6 +55,13 @@ int main(int argc, char **argv)
     if (result.count("help"))
     {
         std::cout << options.help() << std::endl;
+        return 0;
+    }
+
+    // Print version
+    if (result.count("version"))
+    {
+        std::cout << "Version: " << VERSION << std::endl;
         return 0;
     }
 

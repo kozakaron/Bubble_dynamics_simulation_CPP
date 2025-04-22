@@ -99,6 +99,7 @@ static_assert(std::is_same<decltype(&right_hand_side), CVRhsFn>::value, "right_h
 // Error handling function for CVODE (SUNErrHandlerFn)
 void error_function(int line, const char* func, const char* file, const char* msg, SUNErrCode err_code, void* err_user_data, SUNContext sunctx)
 {
+    (void) sunctx;
     if (!check_user_data(err_user_data))  return;
     UserData* user_data = (UserData*)err_user_data;
     size_t* error_ID_ptr = user_data->error_ID_ptr;
@@ -156,7 +157,7 @@ OdeSolverCVODE::OdeSolverCVODE(const size_t num_dim):
     // Setup vectors
     HANDLE_RETURN_PTR(x, N_VNew_Serial(num_dim, sun_context));
     HANDLE_RETURN_PTR(abstol, N_VNew_Serial(num_dim, sun_context))
-    for (int i = 0; i < num_dim; i++)
+    for (size_t i = 0; i < num_dim; i++)
         NV_Ith_S(abstol, i) = 1e-12;     // molar concentrations
     NV_Ith_S(abstol, 0) = 1e-8;          // R
     NV_Ith_S(abstol, 1) = 1e-8;          // R_dot
