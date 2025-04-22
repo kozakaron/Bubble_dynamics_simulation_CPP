@@ -303,8 +303,10 @@ void ControlParameters::set_excitation_params(const std::vector<double>& params_
     if (params_list.size() != Parameters::excitation_arg_nums[this->excitation_type])
     {
         std::stringstream ss;
-        ss << "The number of excitation parameters must be equal to " << Parameters::excitation_arg_nums[this->excitation_type] << ": params_list=";
-        ss << ::to_string((double*)params_list.data(), params_list.size());
+        ss << "The number of excitation parameters must be equal to " << Parameters::excitation_arg_nums.at(this->excitation_type) << ": params_list=";
+        ss << ::to_string((double*)params_list.data(), params_list.size()) << "; param_names={";
+        ss << Parameters::excitation_arg_names.at(this->excitation_type) << "}; param_units={";
+        ss << Parameters::excitation_arg_units.at(this->excitation_type) << "}";
         this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str(), this->ID);
         return;
     }

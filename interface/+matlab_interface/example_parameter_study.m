@@ -1,5 +1,5 @@
 function parameter_study = example_parameter_study()
-    % EXAMPLE_PARAMETER_STUDY Returns an example dictionary for a parameter study.
+    % EXAMPLE_PARAMETER_STUDY Returns an example struct for a brutefrce parameter study.
     % Usage: parameter_study = example_parameter_study();
 
     file_name = fullfile('interface', 'example_parameter_study.json');

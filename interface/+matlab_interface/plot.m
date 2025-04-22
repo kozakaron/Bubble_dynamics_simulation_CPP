@@ -1,9 +1,8 @@
-function plot_simulation(data, n, show_cpar)
-    % PLOT_SIMULATION Plots the results of the simulation from data.
+function plot(data, n, show_cpar)
+    % PLOT Plots the results of the simulation from data.
     % Arguments:
     %   data: struct containing the simulation data.
     %   n: how long the plotted time interval should be compared to the collapse time (default: 5).
-    %   show_legend: if true, the legend will be visible with every single species (default: false).
     %   show_cpar: if true, the control parameters will be printed on the plot (default: false).
 
     if nargin < 2, n = 5.0; end
