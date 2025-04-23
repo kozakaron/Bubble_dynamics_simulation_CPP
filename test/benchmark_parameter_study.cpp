@@ -39,7 +39,7 @@ ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinat
 }};
 
 
-OdeSolver* solver_factory(size_t num_dim)
+inline OdeSolver* solver_factory(size_t num_dim)
 {
     return new OdeSolverCVODE(num_dim);
 }
