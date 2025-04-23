@@ -37,6 +37,7 @@ template std::string to_string(unsigned* arr, size_t len);
 template std::string to_string(unsigned long* arr, size_t len);
 template std::string to_string(unsigned long long* arr, size_t len);
 template std::string to_string(std::string* arr, size_t len);
+template std::string to_string(char** arr, size_t len);
 
 
 template <typename T>

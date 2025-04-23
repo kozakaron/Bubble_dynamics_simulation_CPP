@@ -4,9 +4,10 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <cstdint>
 
-typedef short unsigned int index_t;   // Type for indexes (like size_t)
-typedef char stoich_t;                // Type for stoichiometric coefficients (type of constants in reactions: 2*H2 + O2 -> 2*H2O)
+typedef uint16_t index_t;   // Type for indexes (like size_t)
+typedef int8_t stoich_t;    // Type for stoichiometric coefficients (type of constants in reactions: 2*H2 + O2 -> 2*H2O)
 
 class Parameters
 {
@@ -47,6 +48,12 @@ public:
         "Pa Pa Hz Hz rad",                      // two_sinusoids
         "Pa Hz -",                              // sin_impulse
         "Pa - -"                                // sin_impulse_logf
+    };
+    static constexpr std::array<const char*, 4> mechanism_names = {
+        "chemkin_ar_he",
+        "chemkin_kaust2023_n2",
+        "chemkin_otomo2018_without_o",
+        "chemkin_otomo2018"
     };
 
 // PHYSICAL CONSTANTS
@@ -132,7 +139,11 @@ public:
     template <typename Parameters_struct>
     Parameters(Parameters_struct dummy);
     ~Parameters();
+
+// GETTERS
     static const Parameters *get_parameters(const Parameters::mechanism mech);
+    static Parameters::mechanism string_to_mechanism(std::string mechanism_str);
+    static Parameters::excitation string_to_excitation(std::string excitation_str);
 };
 
 #endif // PARAMETERS_H

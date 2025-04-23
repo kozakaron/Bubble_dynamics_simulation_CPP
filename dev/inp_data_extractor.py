@@ -691,7 +691,7 @@ def extract(path, name=''):
     text += line_start + 'SPECIES' + line_end
     text += f'static constexpr index_t num_elements = {len(elements)};\n'
     text += f'static constexpr index_t num_species = {len(species)};\n'
-    text += f'static constexpr index_t index_of_water = ' + ( str(len(species)) if not 'H2O' in species else str(species.index('H2O')) ) + ';\n'
+    text += f'static constexpr index_t index_of_water = ' + ( str(invalid_index) if not 'H2O' in species else str(species.index('H2O')) ) + ';\n'
     text += f'static constexpr index_t invalid_index = {invalid_index};\n'
     text += f'static constexpr std::pair<const char*, index_t> elements[{len(elements)}] = ' + '{' + ''.join(['{'+f'"{element}", {i}'+'}, ' for i, element in enumerate(elements)])[:-2] + '};\n'
     text += f'static constexpr std::pair<const char*, index_t> species[{len(species)}] = ' + '{' + ''.join(['{'+f'"{specie}", {i}'+'}, ' for i, specie in enumerate(species)])[:-2] + '};\n'

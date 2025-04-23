@@ -1,5 +1,6 @@
 #include <iomanip>
 #include <sstream>
+#include <fstream>
 #include <numbers>
 #include <cmath>
 #include <regex>
@@ -7,8 +8,12 @@
 #include <filesystem>
 #include <thread>
 
+#include "nlohmann/json.hpp"
 #include "parameter_study.h"
 #include "ode_fun.h"
+
+using ordered_json = nlohmann::ordered_json;
+
 
 Range::Range():
     start(0.0),
@@ -87,6 +92,15 @@ std::string Const::to_string() const
 }
 
 
+ordered_json Const::to_json() const
+{
+    return {
+        {"type", "Const"},
+        {"value", this->start}
+    };
+}
+
+
 LinearRange::LinearRange(double start, double end, size_t num_steps):
     Range(start, end, std::max(num_steps, (size_t)1))
 {}
@@ -110,6 +124,17 @@ double LinearRange::operator[](size_t i) const
 std::string LinearRange::to_string() const
 {
     return "LinearRange(" + std::to_string(this->start) + ", " + std::to_string(this->end) + ", " + std::to_string(this->num_steps) + ")";
+}
+
+
+ordered_json LinearRange::to_json() const
+{
+    return {
+        {"type", "LinearRange"},
+        {"start", this->start},
+        {"end", this->end},
+        {"num_steps", this->num_steps}
+    };
 }
 
 
@@ -148,6 +173,18 @@ std::string PowRange::to_string() const
 }
 
 
+ordered_json PowRange::to_json() const
+{
+    return {
+        {"type", "PowRange"},
+        {"start", this->start},
+        {"end", this->end},
+        {"num_steps", this->num_steps},
+        {"base", this->base}
+    };
+}
+
+
 std::unique_ptr<Range> get_unique_ptr(const ParameterCombinator::AnyRange range)
 {
     if (std::holds_alternative<Const>(range))
@@ -165,28 +202,30 @@ std::unique_ptr<Range> get_unique_ptr(const ParameterCombinator::AnyRange range)
     return nullptr;
 }
 
-ParameterCombinator::ParameterCombinator(const ParameterCombinator::Builder &builder):
-    combination_ID(0),
-    total_combination_count(1),
-    mechanism(builder.mechanism),
-    R_E(get_unique_ptr(builder.R_E)),
-    species(builder.species),
-    fractions(builder.fractions),
-    P_amb(get_unique_ptr(builder.P_amb)),
-    T_inf(get_unique_ptr(builder.T_inf)),
-    alfa_M(get_unique_ptr(builder.alfa_M)),
-    P_v(get_unique_ptr(builder.P_v)),
-    mu_L(get_unique_ptr(builder.mu_L)),
-    rho_L(get_unique_ptr(builder.rho_L)),
-    c_L(get_unique_ptr(builder.c_L)),
-    surfactant(get_unique_ptr(builder.surfactant)),
-    enable_heat_transfer(builder.enable_heat_transfer),
-    enable_evaporation(builder.enable_evaporation),
-    enable_reactions(builder.enable_reactions),
-    enable_dissipated_energy(builder.enable_dissipated_energy),
-    target_specie(builder.target_specie),
-    excitation_type(builder.excitation_type)
+
+void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
 {
+    this->combination_ID =              0;
+    this->total_combination_count =     1;
+    this->mechanism =                   builder.mechanism;
+    this->R_E =                         get_unique_ptr(builder.R_E);
+    this->species =                     builder.species;
+    this->fractions =                   builder.fractions;
+    this->P_amb =                       get_unique_ptr(builder.P_amb);
+    this->T_inf =                       get_unique_ptr(builder.T_inf);
+    this->alfa_M =                      get_unique_ptr(builder.alfa_M);
+    this->P_v =                         get_unique_ptr(builder.P_v);
+    this->mu_L =                        get_unique_ptr(builder.mu_L);
+    this->rho_L =                       get_unique_ptr(builder.rho_L);
+    this->c_L =                         get_unique_ptr(builder.c_L);
+    this->surfactant =                  get_unique_ptr(builder.surfactant);
+    this->enable_heat_transfer =        builder.enable_heat_transfer;
+    this->enable_evaporation =          builder.enable_evaporation;
+    this->enable_reactions =            builder.enable_reactions;
+    this->enable_dissipated_energy =    builder.enable_dissipated_energy;
+    this->target_specie =               builder.target_specie;
+    this->excitation_type =             builder.excitation_type;
+
     this->excitation_params.reserve(builder.excitation_params.size());
     for (const auto &excitation_param : builder.excitation_params)
     {
@@ -206,6 +245,271 @@ ParameterCombinator::ParameterCombinator(const ParameterCombinator::Builder &bui
     {
         this->total_combination_count *= excitation_param->get_num_steps();
     }
+}
+
+
+ParameterCombinator::ParameterCombinator(const ParameterCombinator::Builder &builder)
+{
+    this->init(builder);
+}
+
+
+ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinator::AnyRange default_range)
+{
+    if (!j.is_object())
+    {
+        LOG_ERROR(
+            "Expected JSON object, instead found " + j.dump() + \
+            ". Available options: Const(value), LinearRange(start, end, num_steps), PowRange(start, end, num_steps, base). " + \
+            "E.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
+        );
+        return default_range;
+    }
+    if (!j.contains("type") || !j.at("type").is_string())
+    {
+        LOG_ERROR(
+            "Invalid \"type\" in JSON object " + j.dump() + \
+            ". Available options: Const(value), LinearRange(start, end, num_steps), PowRange(start, end, num_steps, base). " + \
+            "e.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
+        );
+        return default_range;
+    }
+    std::string type = j.at("type").get<std::string>();
+    std::transform(type.begin(), type.end(), type.begin(), ::tolower);
+    std::replace(type.begin(), type.end(), '_', ' ');
+    type.erase(std::remove_if(type.begin(), type.end(), [](unsigned char c) { return std::isspace(c); }), type.end());
+    
+    if (type == "const")
+    {
+        if (!j.contains("value") || !j.at("value").is_number())
+        {
+            LOG_ERROR(
+                "Invalid arguments for JSON object " + j.dump() + \
+                ". For Const, you must provide a value of type double. " + \
+                "e.g.: {\"type\": \"Const\", \"value\": 0.0}"
+            );
+            return default_range;
+        }
+        return Const(j.at("value").get<double>());
+    }
+    else if (type == "linearrange")
+    {
+        if (
+            !j.contains("start") || !j.contains("end") || !j.contains("num_steps")
+            || !j.at("start").is_number() || !j.at("end").is_number() || !j.at("num_steps").is_number()
+        )
+        {
+            LOG_ERROR(
+                "Invalid arguments for JSON object " + j.dump() + \
+                ". For LinearRange, you must provide start, end and num_steps of type double. " + \
+                "e.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
+            );
+            return default_range;
+        }
+        return LinearRange(
+            j.at("start").get<double>(),
+            j.at("end").get<double>(),
+            j.at("num_steps").get<size_t>()
+        );
+    }
+    else if (type == "powrange")
+    {
+        if (
+            !j.contains("start") || !j.contains("end") || !j.contains("num_steps")
+            || !j.at("start").is_number() || !j.at("end").is_number() || !j.at("num_steps").is_number()
+            || (j.contains("base") && !j.at("base").is_number())
+        )
+        {
+            LOG_ERROR(
+                "Invalid arguments for JSON onject " + j.dump() + \
+                ". For PowRange, you must provide start, end, num_steps and optionally base of type double. " + \
+                "e.g.: {\"type\": \"PowRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10, \"base\": 2.0}"
+            );
+            return default_range;
+        }
+        return PowRange(
+            j.at("start").get<double>(),
+            j.at("end").get<double>(),
+            j.at("num_steps").get<size_t>(),
+            j.value("base", 2.0)
+        );
+    }
+    else
+    {
+        LOG_ERROR("Invalid Range type: " + type + \
+            ". Available options: Const(value), LinearRange(start, end, num_steps), PowRange(start, end, num_steps, base). " + \
+            "e.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
+        );
+        return default_range;
+    }
+}
+
+
+ParameterCombinator::AnyRange get_range(const ordered_json& j, const std::string &key, ParameterCombinator::AnyRange default_range)
+{
+    if (!j.contains(key))
+    {
+        LOG_ERROR(
+            Error::severity::warning,
+            Error::type::preprocess,
+            "Key \"" + key + "\" not found in JSON object. " + \
+            "Using default value. "
+        );
+        return default_range;
+    }
+    else
+    {
+        return get_range(j.at(key), default_range);
+    }
+}
+
+
+template<typename T>
+T get_value(const ordered_json& j, const std::string& key, const T& default_value)
+{
+    if constexpr (std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<std::string>>)
+    {
+        if (j.contains(key) && !j.at(key).is_array())
+        {
+            LOG_ERROR(
+                Error::severity::warning,
+                Error::type::preprocess,
+                "Expected JSON array for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+            );
+            return default_value;
+        }
+    }
+    
+    if (j.contains(key))
+    {
+        return j.at(key).get<T>();
+    }
+
+    LOG_ERROR(
+        Error::severity::warning,
+        Error::type::preprocess,
+        "Key \"" + key + "\" not found in JSON object. Using default value. "
+    );
+    return default_value;
+}
+
+
+void ParameterCombinator::init(const ordered_json& j)
+{
+    auto builder = ParameterCombinator::Builder{};
+    try
+    {
+        builder.mechanism = Parameters::string_to_mechanism(
+                                            get_value<std::string>              (j, "mechanism",                Parameters::mechanism_names.at(builder.mechanism))
+        );
+        builder.R_E =                       get_range(j, "R_E",                      builder.R_E);
+        builder.species =                   get_value<std::vector<std::string>> (j, "species",                  builder.species);
+        builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
+        builder.P_amb =                     get_range                           (j, "P_amb",                    builder.P_amb);
+        builder.T_inf =                     get_range                           (j, "T_inf",                    builder.T_inf);
+        builder.alfa_M =                    get_range                           (j, "alfa_M",                   builder.alfa_M);
+        builder.P_v =                       get_range                           (j, "P_v",                      builder.P_v);
+        builder.mu_L =                      get_range                           (j, "mu_L",                     builder.mu_L);
+        builder.rho_L =                     get_range                           (j, "rho_L",                    builder.rho_L);
+        builder.c_L =                       get_range                           (j, "c_L",                      builder.c_L);
+        builder.surfactant =                get_range                           (j, "surfactant",               builder.surfactant);
+        builder.enable_heat_transfer =      get_value<bool>                     (j, "enable_heat_transfer",     builder.enable_heat_transfer);
+        builder.enable_evaporation =        get_value<bool>                     (j, "enable_evaporation",       builder.enable_evaporation);
+        builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
+        builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
+        builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
+        builder.excitation_type = Parameters::string_to_excitation(
+                                            get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
+        );
+
+        if (j.contains("excitation_params"))
+        {
+            if (!j.at("excitation_params").is_array())
+            {
+                LOG_ERROR(
+                    "\"excitation_params\" should be a list, instead it is " + j.at("excitation_params").dump() + \
+                    ". E.g.: {\"excitation_params\": [{\"type\": \"Const\", \"value\": 0.0}, ...]}"
+                );
+            }
+            else if (j.at("excitation_params").size() != Parameters::excitation_arg_nums.at(builder.excitation_type))
+            {
+                LOG_ERROR(
+                    "Invalid number of excitation parameters for excitation type " + std::string(Parameters::excitation_names.at(builder.excitation_type)) + \
+                    ". Expected " + std::to_string(Parameters::excitation_arg_nums.at(builder.excitation_type)) + \
+                    ", but got " + std::to_string(j.at("excitation_params").size()) + \
+                    ". Excitation params are: " + Parameters::excitation_arg_names.at(builder.excitation_type)
+                );
+            }
+            else
+            {
+                for (size_t i=0; i < j.at("excitation_params").size(); ++i)
+                {
+                    ordered_json param = j.at("excitation_params").at(i);
+                    if (param != nullptr)
+                        builder.excitation_params[i] = get_range(param, builder.excitation_params.at(i));
+                    
+                }
+            }
+        }
+    }
+    catch(const std::exception& e)
+    {
+        LOG_ERROR(
+            "Error parsing JSON file: " + std::string(e.what())
+        );
+    }
+
+    this->init(builder);
+}
+
+
+ParameterCombinator::ParameterCombinator(const ordered_json& j)
+{
+    this->init(j);
+}
+
+
+
+ParameterCombinator::ParameterCombinator(const std::string& json_path)
+{
+    // Open JSON file
+    std::ifstream input_file(json_path);
+    if (!input_file.is_open())
+    {
+        this->init(ParameterCombinator::Builder());
+        LOG_ERROR(
+            "Could not open JSON file: " + json_path
+        );
+        return;
+    }
+
+    // Read JSON data
+    ordered_json j;
+    try
+    {
+        j = ordered_json::parse(input_file);
+    }
+    catch (const std::exception& e)
+    {
+        this->init(ParameterCombinator::Builder());
+        LOG_ERROR(
+            "Error parsing JSON file: " + std::string(e.what())
+        );
+        return;
+    }
+    input_file.close();
+
+    // Parse JSON data
+    if (!j.contains("parameter_study"))
+    {
+        this->init(ParameterCombinator::Builder());
+        LOG_ERROR(
+            "JSON file does not contain 'parameter_study' key: " + j.dump()
+        );
+        return;
+    }
+
+    this->init(j.at("parameter_study"));
 }
 
 
@@ -276,6 +580,38 @@ std::string ParameterCombinator::to_string(const bool with_code) const
 }
 
 
+ordered_json ParameterCombinator::to_json() const
+{
+    ordered_json j;
+
+    j["mechanism"] = Parameters::mechanism_names.at(this->mechanism);
+    j["R_E"] = this->R_E->to_json();
+    j["species"] = this->species;
+    j["fractions"] = this->fractions;
+    j["P_amb"] = this->P_amb->to_json();
+    j["T_inf"] = this->T_inf->to_json();
+    j["alfa_M"] = this->alfa_M->to_json();
+    j["P_v"] = this->P_v->to_json();
+    j["mu_L"] = this->mu_L->to_json();
+    j["rho_L"] = this->rho_L->to_json();
+    j["c_L"] = this->c_L->to_json();
+    j["surfactant"] = this->surfactant->to_json();
+    j["enable_heat_transfer"] = this->enable_heat_transfer;
+    j["enable_evaporation"] = this->enable_evaporation;
+    j["enable_reactions"] = this->enable_reactions;
+    j["enable_dissipated_energy"] = this->enable_dissipated_energy;
+    j["target_specie"] = this->target_specie;
+    j["excitation_params"] = ordered_json::array();
+    for (const auto& excitation_param : this->excitation_params)
+    {
+        j["excitation_params"].push_back(excitation_param->to_json());
+    }
+    j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
+
+    return {{"parameter_study", j}};
+}
+
+
 std::ostream &operator<<(std::ostream &os, const ParameterCombinator &pc)
 {
     os << pc.to_string(true);
@@ -332,9 +668,20 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         cpar.excitation_params[i] = get_value(this->excitation_params[i]);
     }
 
-    is_success success = (combination_ID / prod % 2) == 0;
+    is_success success = combination_ID < this->total_combination_count;
 
     return {success, cpar};
+}
+
+
+const Parameters* ParameterCombinator::get_mechanism_parameters() const
+{
+    const Parameters* par = Parameters::get_parameters(this->mechanism);
+    if (par == nullptr)
+    {
+        LOG_ERROR("Mechanism " + std::to_string(this->mechanism) + " is not found.");
+    }
+    return par;
 }
 
 
@@ -377,8 +724,17 @@ double get_energy_demand(const OdeSolution &sol, const ControlParameters &cpar)
     if (n_target < -1.0e-8)
         LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Target specie concentration is negative: " + std::to_string(n_target), cpar.ID);
 
-    if (m_target < 10*std::numeric_limits<double>::min()) return SimulationData::infinite_energy_demand;
-    return 1.0e-6 * dissipated_energy / m_target;  // [MJ/kg]
+    if (m_target < 10*std::numeric_limits<double>::min())
+        return SimulationData::infinite_energy_demand;
+
+    double energy_demand = 1.0e-6 * dissipated_energy / m_target;  // [MJ/kg]
+    if (energy_demand < 0.0)
+    {
+        LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Energy demand is negative: " + std::to_string(energy_demand), cpar.ID);
+        return SimulationData::infinite_energy_demand;
+    }
+
+    return energy_demand;
 }
 
 
@@ -513,6 +869,106 @@ std::string SimulationData::to_small_string(const ParameterCombinator &ps, const
 }
 
 
+// Helper function to split a space-separated string into a vector of strings
+std::vector<std::string> split_string(const std::string& str) {
+    std::vector<std::string> result;
+    std::stringstream sstream(str);
+    std::string token;
+    while (sstream >> token) {
+        result.push_back(token);
+    }
+    return result;
+}
+
+
+ordered_json SimulationData::to_json() const
+{
+    ordered_json j;
+    j["dissipated_energy"] = this->dissipated_energy;
+    j["n_target_specie"] = this->n_target_specie;
+    j["energy_demand"] = this->energy_demand;
+    j["cpar"] = this->cpar.to_json();
+    j["sol"] = this->sol.to_json();
+    j["excitation"] = ordered_json::object({
+        {"type", Parameters::excitation_names.at(this->cpar.excitation_type)},
+        {
+            "names",
+            split_string(
+                Parameters::excitation_arg_names.at(this->cpar.excitation_type)
+            )
+        },
+        {
+            "units",
+            split_string(
+                Parameters::excitation_arg_units.at(this->cpar.excitation_type)
+            )
+        }
+    });
+
+    const Parameters* par = Parameters::get_parameters(this->cpar.mechanism);
+    if (par == nullptr)
+    {
+        LOG_ERROR("Mechanism " + std::to_string(this->cpar.mechanism) + " is not found.");
+        return j;
+    }
+    j["mechanism"] = ordered_json::object({
+        {"model", par->model},
+        {"num_species", par->num_species},
+        {"num_reactions", par->num_reactions},
+        {"species_names", par->species_names}
+    });
+    j["version"] = VERSION;
+
+    return j;
+}
+
+
+void SimulationData::save_json_with_binary(const std::string &json_path) const
+{
+    // Open file as text
+    std::ofstream output_file(json_path, std::ios::out);
+    if (!output_file.is_open())
+    {
+        LOG_ERROR("Could not open output JSON file: " + json_path);
+        return;
+    }
+
+    // Save JSON data + <BINARY> marker
+    ordered_json j = this->to_json();
+    output_file << std::setw(4) << j << std::endl;
+    output_file << std::endl << "<BINARY>";
+    output_file.close();
+
+    // Open file as binary
+    std::ofstream binary_output_file(json_path, std::ios::app | std::ios::binary);
+    if (!binary_output_file.is_open())
+    {
+        LOG_ERROR("Could not open output file as binary: " + json_path);
+        return;
+    }
+
+    // Save sol.t (1D array)
+    if (this->sol.t.size() != this->sol.x.size())
+    {
+        LOG_ERROR("Mismatch between sol.t.size() and sol.x.size(): " + std::to_string(this->sol.t.size()) + " != " + std::to_string(this->sol.x.size()));
+        return;
+    }
+    binary_output_file.write(reinterpret_cast<const char*>(this->sol.t.data()), this->sol.t.size() * sizeof(double));
+
+    // Save sol.x (2D array)
+    for (const auto& row : this->sol.x)
+    {
+        if (row.size() != this->sol.num_dim)
+        {
+            LOG_ERROR("Mismatch between sol.x[].size() and sol.num_dim: " + std::to_string(row.size()) + " != " + std::to_string(this->sol.num_dim));
+            return;
+        }
+        binary_output_file.write(reinterpret_cast<const char*>(row.data()), row.size() * sizeof(double));
+    }
+    binary_output_file.close();
+}
+
+
 std::ostream &operator<<(std::ostream &os, const SimulationData &data)
 {
     os << data.to_string();
@@ -520,38 +976,63 @@ std::ostream &operator<<(std::ostream &os, const SimulationData &data)
 }
 
 
+// Verify, that the path provided as string is valid. Automatically count folders with the same base name. 
+// Create a new folder, return the path to the new folder.
+std::string verify_save_folder(const std::string save_folder)
+{
+    std::filesystem::path save_folder_path(save_folder);
+
+    // count existing folders with the same base name
+    size_t folder_count = 0;
+    if (std::filesystem::exists(save_folder_path.parent_path()))
+    {
+        for (const auto& entry : std::filesystem::directory_iterator(save_folder_path.parent_path()))
+        {
+            if (entry.is_directory() && entry.path().filename().string().find(save_folder_path.filename().string()) == 0)
+            {
+                folder_count++;
+            }
+        }
+    }
+    
+    // create folder name
+    save_folder_path = save_folder_path.parent_path() / (save_folder_path.filename().string() + std::to_string(folder_count + 1));
+    if (std::filesystem::exists(save_folder_path))
+    {
+        LOG_ERROR("Save folder already exists: " + save_folder_path.string());
+        return "";
+    }
+
+    // create save folder
+    if (!std::filesystem::create_directories(save_folder_path))
+    {
+        LOG_ERROR("Failed to create save folder: " + save_folder_path.string());
+        return "";
+    }
+
+    return save_folder_path.string();;
+}
+
+
 ParameterStudy::ParameterStudy(
     ParameterCombinator &parameter_combinator,
     std::string save_folder,
-    std::function<OdeSolver*()> solver_factory,
+    std::function<OdeSolver*(size_t)> solver_factory,
     const double t_max,
     const double timeout
 ):
     parameter_combinator(parameter_combinator),
+    save_folder(verify_save_folder(save_folder)),
     solver_factory(solver_factory),
     best_energy_demand(SimulationData::infinite_energy_demand),
     t_max(t_max),
-    timeout(timeout)
+    timeout(timeout),
+    successful_simulations(0),
+    total_simulations(0)
 {
-    // check save_folder path validity, create if it does not exist, check if empty
-    this->save_folder = ""; // invalid path
-    std::filesystem::path save_folder_path(save_folder);
-    if (!std::filesystem::exists(save_folder_path))
-    {
-        if (!std::filesystem::create_directories(save_folder_path))
-        {
-            LOG_ERROR("Failed to create save folder: " + save_folder_path.string());
-            return;
-        }
-    }
-    if (!std::filesystem::is_empty(save_folder_path))
-    {
-        LOG_ERROR("Save folder is not empty: " + save_folder_path.string());
-        return;
-    }
-    this->save_folder = save_folder;
-
     // save general information
+    if (this->save_folder.empty()) return;
+    std::filesystem::path save_folder_path(this->save_folder);
     std::filesystem::path general_info_file_path = save_folder_path / "bruteforce_parameter_study_settings.txt";
     std::ofstream general_info_file(general_info_file_path);
     if (!general_info_file.is_open())
@@ -559,6 +1040,7 @@ ParameterStudy::ParameterStudy(
         LOG_ERROR("Failed to open file: " + general_info_file_path.string());
     } else {
         const Parameters* par = Parameters::get_parameters(parameter_combinator.mechanism);
+        general_info_file << "version: " << VERSION << "\n";
         general_info_file << "datetime: " << Timer::current_time() << "\n";
         general_info_file << "total_combination_count: " << parameter_combinator.get_total_combination_count() << "\n";
         general_info_file << "t_max: " << t_max << "\n";
@@ -570,6 +1052,30 @@ ParameterStudy::ParameterStudy(
         general_info_file << "species: " << ::to_string((std::string*)par->species_names.data(), par->num_species) << "\n\n";
         general_info_file << parameter_combinator.to_string(true);
         general_info_file.close();
+    }
+
+    // save JSON file
+    std::filesystem::path json_file_path = save_folder_path / "bruteforce_parameter_study_settings.json";
+    std::ofstream json_file(json_file_path);
+    if (!json_file.is_open())
+    {
+        LOG_ERROR("Failed to open file: " + json_file_path.string());
+    } else {
+        ordered_json j = parameter_combinator.to_json();
+        j["info"] = ordered_json::object({
+            {"version", VERSION},
+            {"datetime", Timer::current_time()},
+            {"total_combination_count", parameter_combinator.get_total_combination_count()},
+            {"t_max", t_max},
+            {"timeout", timeout},
+            {"max_threads", std::thread::hardware_concurrency()},
+            {"mechanism", Parameters::mechanism_names.at(parameter_combinator.mechanism)},
+            {"number_of_species", parameter_combinator.get_mechanism_parameters()->num_species},
+            {"number_of_reactions", parameter_combinator.get_mechanism_parameters()->num_reactions},
+            {"species", ::to_string((std::string*)parameter_combinator.get_mechanism_parameters()->species_names.data(), parameter_combinator.get_mechanism_parameters()->num_species)}
+        });
+        json_file << std::setw(4) << j << std::endl;
+        json_file.close();
     }
 
     // open log file
@@ -597,9 +1103,9 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
 {
     // setup ODE solver and ODE function
     OdeFun ode;
-    std::unique_ptr<OdeSolver> solver(this->solver_factory());
-    std::vector<double> x_0;
-    auto ode_fun = [&ode](const double t, const double *x, double *dxdt) -> is_success { return ode(t, x, dxdt); };
+    const Parameters* par = this->parameter_combinator.get_mechanism_parameters();
+    if(par == nullptr) return;
+    std::unique_ptr<OdeSolver> solver(this->solver_factory(4 + par->num_species));
 
     // open csv file
     std::filesystem::path save_folder_path(save_folder);
@@ -615,38 +1121,43 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
     // run parameter study
     while(true)
     {
+        // simulation setup
         auto [success, cpar] = parameter_combinator.get_next_combination();
         if (!success) break;
-
         ode.init(cpar);
-        x_0.resize(ode.par->num_species+4);
-        ode.initial_conditions(x_0.data());
 
-        solver->solve(
-            0.0,                        // t_int_0
-            this->t_max,                // t_int_1
-            (double*)x_0.data(),        // x_0
-            ode.par->num_species+4,     // num_dim
-            ode_fun,                    // ode_fun
-            &ode.cpar.error_ID,         // error_ID ptr
+        // run simulation and postprocess
+        OdeSolution sol = solver->solve(
+            this->t_max,                // t_max [s]
+            &ode,                       // ode_ptr
             this->timeout,              // timeout [s]
-            false                       // save all steps
+            false                       // save solution
         );
-        OdeSolution sol = solver->get_solution();
         SimulationData data(cpar, sol);
 
+        // save and print data
         csv_file << data.to_csv() << "\n";
-        std::unique_lock<std::mutex> lock(this->output_mutex);
-        this->best_energy_demand = std::min(this->best_energy_demand, data.energy_demand);
-        lock.unlock();
+        if (data.sol.success())
+        {
+            std::unique_lock<std::mutex> lock(this->output_mutex);
+            this->best_energy_demand = std::min(this->best_energy_demand, data.energy_demand);
+            lock.unlock();
+        }
+
+        if (data.sol.success())
+        {
+            this->successful_simulations.fetch_add(1, std::memory_order_relaxed); ;
+        }
+        this->total_simulations.fetch_add(1, std::memory_order_relaxed); ;
 
         if (this->output_log_file.is_open())
             this->output_log_file << data.to_small_string(parameter_combinator, best_energy_demand, false) << "\n";
-       
+
         if (print_output)
         {
-            lock.lock();
+            std::unique_lock<std::mutex> lock(this->output_mutex);
             std::cout << data.to_small_string(parameter_combinator, best_energy_demand, true) << "\n";
+            lock.unlock();
         }
     }
 
@@ -656,6 +1167,7 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
 
 void ParameterStudy::run(const size_t num_threads, const bool print_output)
 {
+    // Checks
     if (this->save_folder.empty()) return;
     if (num_threads == 0)
     {
@@ -669,6 +1181,7 @@ void ParameterStudy::run(const size_t num_threads, const bool print_output)
     }
     ErrorHandler::print_when_log = print_output;
 
+    // Run tasks
     Timer timer;
     timer.start();
     std::vector<std::thread> threads(num_threads);
@@ -682,7 +1195,24 @@ void ParameterStudy::run(const size_t num_threads, const bool print_output)
         threads[i].join();
     }
 
+    // Print summary
     double runtime = timer.lap();
-    std::cout << "\n\nTotal runtime: " << Timer::format_time(runtime) << std::endl;
-    std::cout << "\nAverage runtime per combination: " << Timer::format_time(runtime / parameter_combinator.get_total_combination_count()) << std::endl;
+    std::cout << "\n\n";
+    std::stringstream ss;
+    ss << "Successful simulations: " << this->successful_simulations << "/" << this->total_simulations << " (" << std::setprecision(2) << 100.0 * this->successful_simulations / this->total_simulations << " %)" << std::endl;
+    ss << "Total runtime: " << Timer::format_time(runtime) << std::endl;
+    ss << "Average runtime per combination: " << Timer::format_time(runtime / parameter_combinator.get_total_combination_count()) << std::endl;
+    std::cout << ss.str();
+
+    // Save summary in txt
+    std::filesystem::path save_folder_path(this->save_folder);
+    std::filesystem::path summary_file_path = save_folder_path / "summary.txt";
+    std::ofstream summary_file(summary_file_path);
+    if (!summary_file.is_open())
+    {
+        LOG_ERROR("Failed to open file: " + summary_file_path.string());
+    } else {
+        summary_file << ss.str();
+        summary_file.close();
+    }
 }

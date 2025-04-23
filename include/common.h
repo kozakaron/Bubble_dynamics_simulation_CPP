@@ -9,6 +9,10 @@
 
 typedef bool is_success;
 
+#define MAJOR_VERSION 1
+#define MINOR_VERSION 0
+#define VERSION (std::to_string(MAJOR_VERSION) + "." + std::to_string(MINOR_VERSION))
+
 namespace colors
 {
     const std::string white =       "\033[0m";
@@ -62,10 +66,10 @@ class Error
 public:
     static constexpr char csv_header[] = "time,severity,type,message,function,file,line";
     enum severity {info=0, warning, error};
-    enum type {general=0, preprocess, odefun, timeout, convergence, postprocess};
+    enum type {general=0, preprocess, odefun, timeout, cvode, postprocess};
     static constexpr std::array<const char*, 3> severity_names = {"info", "warning", "error"};
     static constexpr std::array<const char*, 6> type_names = {
-        "general", "preprocess", "odefun", "timeout", "convergence", "postprocess"
+        "general", "preprocess", "odefun", "timeout", "cvode", "postprocess"
     };
 
     Error::severity error_severity;

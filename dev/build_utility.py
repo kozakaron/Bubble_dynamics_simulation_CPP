@@ -29,6 +29,8 @@ debugger_help = f'''{bold}Debugger help:{reset}
     {bold}backtrace{reset} show stack trace (bt)
     {bold}list{reset}      show source code (l): {italic}list{reset} or {italic}list 1, 10{reset}'''
 
+object_files_dir = 'object_files'
+
 
 
 from pygments import highlight
@@ -38,11 +40,17 @@ from pygments.lexers import CppLexer
 from pygments.formatters import Terminal256Formatter
 import re
 import os
+import threading
 
 class Logger:
     def __init__(self, log_file: str):
+        if not os.path.exists(os.path.dirname(log_file)):
+            os.mkdir(os.path.dirname(log_file))
+        if os.path.exists(log_file):
+            os.remove(log_file)
         self.log_file = log_file
-        self.log_str = ''
+        self.lock = threading.Lock()
+
         _white =     '#fff'
         _black =     '#000'
         _grey =      '#aaa'
@@ -72,31 +80,38 @@ class Logger:
         self.lexer = CppLexer()
 
 
+    def _write_to_file(self, message: str):
+        with self.lock:
+            with open(self.log_file, 'a') as file:
+                file.write(message + '\n')
+
+
     def log_error(self, error: str, description: str = ''):
         global red, bold, reset
-        if description == '' or description == None:
-            print(red + bold + error + reset)
-            self.log_str += f'ERROR: {error}\n'
+        if description == '' or description is None:
+            formatted_message = f'{red}{bold}{error}{reset}'
+            log_message = f'ERROR: {error}'
         else:
-            print(red + bold + error + reset + ': ' + description)
-            self.log_str += f'ERROR: {error}: {description}\n'
+            formatted_message = f'{red}{bold}{error}{reset}: {description}'
+            log_message = f'ERROR: {error}: {description}'
+
+        print(formatted_message)
+        self._write_to_file(log_message)
     
 
     def log(self, message: str, formatted_message: str = ''):
         if formatted_message != '':
             print(formatted_message)
-        self.log_str += message + '\n'
+        self._write_to_file(message)
+
+
+    def silent_log(self, message: str):
+        self._write_to_file(message)
 
 
     def log_compiler_output(self, text: str, indent: bool = True, linker: bool = False):
         print(self._compiler_output_formatter(text, indent, linker))
-        self.log_str += text + '\n'
-
-
-    def write_to_file(self):
-        if self.log_file is not None and self.log_file != '':
-            with open(self.log_file, 'w') as file:
-                file.write(self.log_str)
+        self._write_to_file(text)
 
 
     def _syntax_highlight_cpp(self, code_line: str) -> str:
@@ -164,11 +179,18 @@ class Builder:
         self.compile_times = dict()
         self.thread_pool_args = []
         self.output_binary = ''
-        self.logger = Logger(os.path.join(build_dir, '.build.log'))
+        self.logger = Logger(os.path.join(build_dir, 'build.log'))
         if not os.path.exists(build_dir):
             os.mkdir(build_dir)
         else:
             self._clean_build_dir(build_dir)
+
+
+    def _log_command(self, command_list: list[str], comment: str = ''):
+        command = os.getcwd().replace('\\', '/') + '> ' + ' '.join(command_list)
+        if comment != '':
+            command = '# ' + comment + '\n' + command
+        self.logger.silent_log(command + '\n')
 
 
     def _clean_build_dir(self, build_dir: str):
@@ -178,6 +200,7 @@ class Builder:
                     os.remove(os.path.join(root, name))
             for name in dirs:
                 shutil.rmtree(os.path.join(root, name))
+        os.mkdir(os.path.join(build_dir, object_files_dir))
 
 
     def _check_tool_exists(self, tool: str) -> bool:
@@ -201,13 +224,18 @@ class Builder:
         # compile
         base_name = os.path.basename(source_file)
         object_file = os.path.splitext(base_name)[0] + '.o'
-        object_file = os.path.join(self.build_dir, object_file)
+        object_file = os.path.join(self.build_dir, object_files_dir, object_file)
         command_list = [compiler, '-c'] + compiler_flags + [source_file, '-o', object_file]
+        self._log_command(command_list, f'compiling {source_file}')
         result = subprocess.run(command_list, capture_output=True, text=True)
         if result.returncode != 0:
             self.logger.log(message = 'error compiling ' + f'{source_file}:',
                             formatted_message = light_red + 'error compiling ' + bold + f'{source_file}:' + reset)
             self.logger.log_compiler_output(result.stderr, indent=True)
+            if result.stdout != '':
+                self.logger.log_compiler_output(result.stdout, indent=True)
+        elif result.stdout != '':
+            self.logger.silent_log(result.stdout)
 
         # log compile time
         end = time.time()
@@ -254,27 +282,68 @@ class Builder:
             for _, source_file, _ in self.thread_pool_args:
                 base_name = os.path.basename(source_file)
                 object_file = os.path.splitext(base_name)[0] + '.o'
-                object_file = os.path.join(self.build_dir, object_file).replace('\\', '/')
+                object_file = os.path.join(self.build_dir, object_files_dir, object_file).replace('\\', '/')
                 object_files.append(object_file)
 
         return object_files
     
 
-    def link_object_files(self, linker: str, obj_files: list[str], output_binary_name: str, linker_flags: list[str], shared: bool = False) -> bool:
+    def link(self,
+             linker: str,
+             obj_files: list[str],
+             submodules: dict[str, dict[str, str]],
+             output_binary_name: str,
+             linker_flags: list[str],
+             shared: bool = False
+            ) -> bool:
         start = time.time()
 
         #checks
         for obj_file in obj_files:
             if not os.path.exists(obj_file):
                 self.logger.log_error('object file not found', obj_file)
-                self.logger.write_to_file()
                 return -1
         if not self._check_tool_exists(linker):
-            self.logger.write_to_file()
             return -1
         if len(obj_files) == 0:
-            self.logger.write_to_file()
+            self.logger.log_error('no object files to link', '')
             return -1
+        
+        # gather library directories
+        for name, submodule in submodules.items():
+            if 'lib_dir' not in submodule:
+                continue
+            if not os.path.exists(submodule['lib_dir']):
+                self.logger.log_error(f'{name} library directory not found', submodule['lib_dir'])
+                return -1
+            linker_flags.append('-L' + os.path.abspath(submodule['lib_dir']).replace('\\', '/'))
+
+            core_lib = None
+            lib_files = []
+            for lib_file in os.listdir(submodule['lib_dir']):
+                if not lib_file.endswith('.a') and not lib_file.endswith('.so') and not lib_file.endswith('.dll') and not lib_file.endswith('.lib') and not lib_file.endswith('.o'):
+                    continue
+                orig_lib_file = lib_file
+                lib_file = os.path.join(submodule['lib_dir'], lib_file)
+                if submodule['core_lib'] in orig_lib_file:
+                    if core_lib is not None:
+                        self.logger.log_error('multiple core libraries found', f'{core_lib}, {lib_file}')
+                        return -1
+                    core_lib = lib_file
+                    continue
+                lib_files.append(lib_file)
+          
+            if len(lib_files) == 0:
+                self.logger.log_error('no library files found', submodule['lib_dir'] + ' (Perhaps try to run ./bin/build_submodules.py)')
+            if core_lib is None:
+                self.logger.log_error('core library not found, but sundials needs core library', '')
+                return -1
+            if core_lib is not None:
+                lib_files.append(core_lib)
+            linker_flags += lib_files
+
+        if os.name != 'nt':
+            linker_flags.append('-lm')
         
         # determine output binary name
         output_binary_name = os.path.basename(output_binary_name).split('.')[0]
@@ -287,11 +356,16 @@ class Builder:
 
         # link
         command_list = [linker] + obj_files + ['-o', output_binary] + linker_flags
+        self._log_command(command_list, f'linking {output_binary}')
         result = subprocess.run(command_list, capture_output=True, text=True)
         if result.returncode != 0:
             self.logger.log(message = 'Error linking:',
                             formatted_message = light_red + 'Error linking:' + reset)
             self.logger.log_compiler_output(result.stderr, indent=True, linker=True)
+            if result.stdout != '':
+                self.logger.log_compiler_output(result.stdout, indent=True, linker=True)
+        elif result.stdout != '':
+            self.logger.silent_log(result.stdout)
         end = time.time()
 
         # log compile times
@@ -300,15 +374,13 @@ class Builder:
         compile_times_str = ''
         for cpp_file, compile_time in self.compile_times.items():
             compile_times_str += f'{cpp_file: >40}: {compile_time:5.2f} s\n'
-        self.logger.log(message = 'bbject file compilation times: \n' + compile_times_str)
+        self.logger.log(message = 'object file compilation times: \n' + compile_times_str)
         if result.returncode != 0:
             self.logger.log_error('linking failed', '')
-            self.logger.write_to_file()
             return False
         else:
             self.logger.log(message=f'build succeeded in {self.compile_times["total"]:.2f} seconds',
                             formatted_message=green + 'Build succeeded in ' + bold + f'{self.compile_times["total"]:.2f}' + reset + green + ' seconds' + reset)
-            self.logger.write_to_file()
             return True
     
 
@@ -324,8 +396,8 @@ class Builder:
                 color = red
             else:
                 color = green
-            self.logger.log(message=f'program returned with code {result.returncode}',
-                            formatted_message=color + bold + self.output_binary + ' program returned with code ' + str(result.returncode) + reset)
+            self.logger.log(message=f'{self.output_binary} returned with code {result.returncode}',
+                            formatted_message=color + bold + self.output_binary + ' returned with code ' + str(result.returncode) + reset)
             return result.returncode
         else:
             if not self._check_tool_exists(debugger):

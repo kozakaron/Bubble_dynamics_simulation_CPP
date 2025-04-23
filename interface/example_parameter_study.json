@@ -1,0 +1,71 @@
+{
+    "parameter_study": {
+        "mechanism": "chemkin_ar_he",
+        "R_E": {
+            "type": "LinearRange",
+            "start": 5e-06,
+            "end": 0.000125,
+            "num_steps": 30
+        },
+        "species": [
+            "O2"
+        ],
+        "fractions": [
+            1.0
+        ],
+        "P_amb": {
+            "type": "Const",
+            "value": 101325.0
+        },
+        "T_inf": {
+            "type": "Const",
+            "value": 293.15
+        },
+        "alfa_M": {
+            "type": "Const",
+            "value": 0.35
+        },
+        "P_v": {
+            "type": "Const",
+            "value": 2338.1
+        },
+        "mu_L": {
+            "type": "Const",
+            "value": 0.001
+        },
+        "rho_L": {
+            "type": "Const",
+            "value": 998.2
+        },
+        "c_L": {
+            "type": "Const",
+            "value": 1483.0
+        },
+        "surfactant": {
+            "type": "Const",
+            "value": 1.0
+        },
+        "enable_heat_transfer": true,
+        "enable_evaporation": true,
+        "enable_reactions": true,
+        "enable_dissipated_energy": true,
+        "target_specie": "H2",
+        "excitation_params": [
+            {
+                "type": "LinearRange",
+                "start": -150000.0,
+                "end": -250000.0,
+                "num_steps": 20
+            },
+            {
+                "type": "Const",
+                "value": 30000.0
+            },
+            {
+                "type": "Const",
+                "value": 1.0
+            }
+        ],
+        "excitation_type": "sin_impulse"
+    }
+}

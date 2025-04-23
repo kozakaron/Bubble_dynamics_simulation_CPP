@@ -1,8 +1,15 @@
+#include <string>
 #include <sstream>
+#include <fstream>
 #include <numeric>
 #include <iomanip>
 
+#include "nlohmann/json.hpp"
+#include "common.h"
+#include "parameters.h"
 #include "control_parameters.h"
+
+using ordered_json = nlohmann::ordered_json;
 
 
 ControlParameters::ControlParameters()
@@ -15,6 +22,128 @@ ControlParameters::ControlParameters()
 ControlParameters::ControlParameters(const Builder& builder)
 {
     this->init(builder);
+}
+
+
+template<typename T>
+T get_value(const ordered_json& j, const std::string& key, const T& default_value)
+{
+    if constexpr (std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<std::string>>)
+    {
+        if (j.contains(key) && !j.at(key).is_array())
+        {
+            LOG_ERROR(
+                Error::severity::warning,
+                Error::type::preprocess,
+                "Expected JSON array for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+            );
+            return default_value;
+        }
+    }
+
+    if (j.contains(key))
+    {
+        return j.at(key).get<T>();
+    }
+
+    LOG_ERROR(
+        Error::severity::warning,
+        Error::type::preprocess,
+        "Key \"" + key + "\" not found in JSON object. Using default value. "
+    );
+    return default_value;
+}
+
+
+ControlParameters::ControlParameters(const ordered_json& j)
+{
+    auto builder = ControlParameters::Builder{};
+    try
+    {
+        builder.ID =                        get_value<size_t>                   (j, "ID",                       builder.ID);
+        builder.mechanism = Parameters::string_to_mechanism(
+                                            get_value<std::string>              (j, "mechanism",                Parameters::mechanism_names.at(builder.mechanism))
+        );
+        builder.R_E =                       get_value<double>                   (j, "R_E",                      builder.R_E);
+        builder.species =                   get_value<std::vector<std::string>> (j, "species",                  builder.species);
+        builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
+        builder.P_amb =                     get_value<double>                   (j, "P_amb",                    builder.P_amb);
+        builder.T_inf =                     get_value<double>                   (j, "T_inf",                    builder.T_inf);
+        builder.alfa_M =                    get_value<double>                   (j, "alfa_M",                   builder.alfa_M);
+        builder.P_v =                       get_value<double>                   (j, "P_v",                      builder.P_v);
+        builder.mu_L =                      get_value<double>                   (j, "mu_L",                     builder.mu_L);
+        builder.rho_L =                     get_value<double>                   (j, "rho_L",                    builder.rho_L);
+        builder.c_L =                       get_value<double>                   (j, "c_L",                      builder.c_L);
+        builder.surfactant =                get_value<double>                   (j, "surfactant",               builder.surfactant);
+        builder.enable_heat_transfer =      get_value<bool>                     (j, "enable_heat_transfer",     builder.enable_heat_transfer);
+        builder.enable_evaporation =        get_value<bool>                     (j, "enable_evaporation",       builder.enable_evaporation);
+        builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
+        builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
+        builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
+        builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params);
+        builder.excitation_type = Parameters::string_to_excitation(
+                                            get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
+        );
+    }
+    catch(const std::exception& e)
+    {
+        builder.error_ID = LOG_ERROR(
+            Error::severity::error,
+            Error::type::preprocess,
+            "Error parsing JSON file: " + std::string(e.what())
+        );
+    }
+
+    this->init(builder);
+}
+
+
+ControlParameters::ControlParameters(const std::string& json_path)
+{
+    // Open JSON file
+    std::ifstream input_file(json_path);
+    if (!input_file.is_open())
+    {
+        *this = ControlParameters();
+        this->error_ID = LOG_ERROR(
+            Error::severity::error,
+            Error::type::preprocess,
+            "Could not open JSON file: " + json_path
+        );
+        return;
+    }
+
+    // Read JSON data
+    ordered_json j;
+    try
+    {
+        j = ordered_json::parse(input_file);
+    }
+    catch (const std::exception& e)
+    {
+        *this = ControlParameters();
+        this->error_ID = LOG_ERROR(
+            Error::severity::error,
+            Error::type::preprocess,
+            "Error parsing JSON file: " + std::string(e.what())
+        );
+        return;
+    }
+    input_file.close();
+
+    // Parse JSON data
+    if (!j.contains("cpar"))
+    {
+        *this = ControlParameters();
+        this->error_ID = LOG_ERROR(
+            Error::severity::error,
+            Error::type::preprocess,
+            "JSON file does not contain 'cpar' key: " + j.dump()
+        );
+        return;
+    }
+
+    *this = ControlParameters(j.at("cpar"));
 }
 
 
@@ -174,8 +303,10 @@ void ControlParameters::set_excitation_params(const std::vector<double>& params_
     if (params_list.size() != Parameters::excitation_arg_nums[this->excitation_type])
     {
         std::stringstream ss;
-        ss << "The number of excitation parameters must be equal to " << Parameters::excitation_arg_nums[this->excitation_type] << ": params_list=";
-        ss << ::to_string((double*)params_list.data(), params_list.size());
+        ss << "The number of excitation parameters must be equal to " << Parameters::excitation_arg_nums.at(this->excitation_type) << ": params_list=";
+        ss << ::to_string((double*)params_list.data(), params_list.size()) << "; param_names={";
+        ss << Parameters::excitation_arg_names.at(this->excitation_type) << "}; param_units={";
+        ss << Parameters::excitation_arg_units.at(this->excitation_type) << "}";
         this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str(), this->ID);
         return;
     }
@@ -271,6 +402,50 @@ std::string ControlParameters::to_string(const bool with_code) const
     return ss.str();
 }
 
+
+ordered_json ControlParameters::to_json() const
+{
+    ordered_json j;
+    const Parameters* par = Parameters::get_parameters(this->mechanism);
+    if (par == nullptr)
+    {
+        LOG_ERROR("Invalid mechanism: " + std::to_string((int)this->mechanism), this->ID);
+        return j;
+    }
+    std::vector<std::string> species_names;
+    for (size_t index = 0; index < this->num_initial_species; ++index)
+    {
+        if (this->species[index] == par->invalid_index || this->species[index] >= par->num_species)
+        {
+            LOG_ERROR("Invalid species index: " + std::to_string(this->species[index]), this->ID);
+            return j;
+        }
+        species_names.push_back(par->species_names.at(this->species[index]));
+    }
+
+    j["ID"] = this->ID;
+    j["mechanism"] = Parameters::mechanism_names.at(this->mechanism);
+    j["R_E"] = this->R_E;
+    j["species"] = species_names;
+    j["fractions"] = std::vector<double>(this->fractions, this->fractions + this->num_initial_species);
+    j["P_amb"] = this->P_amb;
+    j["T_inf"] = this->T_inf;
+    j["alfa_M"] = this->alfa_M;
+    j["P_v"] = this->P_v;
+    j["mu_L"] = this->mu_L;
+    j["rho_L"] = this->rho_L;
+    j["c_L"] = this->c_L;
+    j["surfactant"] = this->surfactant;
+    j["enable_heat_transfer"] = this->enable_heat_transfer;
+    j["enable_evaporation"] = this->enable_evaporation;
+    j["enable_reactions"] = this->enable_reactions;
+    j["enable_dissipated_energy"] = this->enable_dissipated_energy;
+    j["target_specie"] = par->species_names.at(this->target_specie);
+    j["excitation_params"] = std::vector<double>(this->excitation_params, this->excitation_params + Parameters::excitation_arg_nums.at(this->excitation_type));
+    j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
+    
+    return j;
+}
 
 std::ostream& operator<<(std::ostream& os, const ControlParameters& cpar)
 {

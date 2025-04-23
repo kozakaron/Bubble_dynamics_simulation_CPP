@@ -1,0 +1,9 @@
+[submodule "submodules/sundials"]
+	path = submodules/sundials
+	url = https://github.com/LLNL/sundials.git
+[submodule "submodules/json"]
+	path = submodules/json
+	url = https://github.com/nlohmann/json.git
+[submodule "submodules/cxxopt"]
+	path = submodules/cxxopt
+	url = https://github.com/jarro2783/cxxopts.git

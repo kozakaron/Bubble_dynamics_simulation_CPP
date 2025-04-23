@@ -1,5 +1,6 @@
 #ifndef PARAMETER_STUDY_H
 #define PARAMETER_STUDY_H
+#include "nlohmann/json_fwd.hpp"
 #include "common.h"
 #include "parameters.h"
 #include "control_parameters.h"
@@ -30,6 +31,7 @@ public:
     Range(double start, double end, size_t num_steps);
     virtual ~Range() = default;
     virtual std::string to_string() const = 0;
+    virtual nlohmann::ordered_json to_json() const = 0;
     virtual std::string to_array() const;
     friend std::ostream &operator<<(std::ostream &os, const Range &range);
     virtual double operator[](size_t i) const = 0;
@@ -44,6 +46,7 @@ public:
     Const(double value);
     double operator[](size_t i) const override;
     std::string to_string() const override;
+    nlohmann::ordered_json to_json() const override;
 };
 
 // Represents an even subdivision of an interval. f(x) = a * x + b
@@ -54,6 +57,7 @@ public:
     LinearRange(double start, double end, size_t num_steps);
     double operator[](size_t i) const override;
     std::string to_string() const override;
+    nlohmann::ordered_json to_json() const override;
 };
 
 // Represents an uneven subdivision of an interval. f(x) = a * x^b + c
@@ -70,6 +74,7 @@ public:
     PowRange(double start, double end, size_t num_steps, double base=2.0);
     double operator[](size_t i) const override;
     std::string to_string() const override;
+    nlohmann::ordered_json to_json() const override;
 };
 
 
@@ -123,13 +128,21 @@ public:
     };
 
     ParameterCombinator(const Builder &builder);
+    ParameterCombinator(const nlohmann::ordered_json& j);
+    ParameterCombinator(const std::string& json_path);
     std::string to_string(const bool with_code=false) const;
+    nlohmann::ordered_json to_json() const;
     friend std::ostream &operator<<(std::ostream &os, const ParameterCombinator &pc);
     friend class SimulationData;
     friend class ParameterStudy;
     size_t get_total_combination_count() const;
     size_t get_next_combination_ID() const;
     std::pair<is_success, ControlParameters> get_next_combination();
+    const Parameters* get_mechanism_parameters() const;
+
+private:
+    void init(const ParameterCombinator::Builder &builder);
+    void init(const nlohmann::ordered_json &j);
 };
 
 
@@ -153,6 +166,8 @@ public:
     std::string to_csv() const;
     std::string to_string() const;
     std::string to_small_string(const ParameterCombinator &ps, const double best_energy_demand, const bool colored=true) const;
+    nlohmann::ordered_json to_json() const;
+    void save_json_with_binary(const std::string &json_path) const;
     friend std::ostream &operator<<(std::ostream &os, const SimulationData &data);
 };
 
@@ -164,17 +179,19 @@ private:
     std::string save_folder;
     std::ofstream output_log_file;
     std::mutex output_mutex;
-    std::function<OdeSolver*()> solver_factory;
+    std::function<OdeSolver*(size_t)> solver_factory;
     double best_energy_demand;
     const double t_max;
     const double timeout;
+    std::atomic<size_t> successful_simulations;
+    std::atomic<size_t> total_simulations;
     
     void parameter_study_task(const bool print_output, const size_t thread_id);
 public:
     ParameterStudy(
         ParameterCombinator &parameter_combinator,
         std::string save_folder,
-        std::function<OdeSolver*()> solver_factory,
+        std::function<OdeSolver*(size_t)> solver_factory,
         const double t_max = 1.0,
         const double timeout = 60.0
     );
