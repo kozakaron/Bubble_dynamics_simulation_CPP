@@ -6,6 +6,8 @@ Note, that this script is multithreaded. The /bin directory is created if it doe
 Features:
 - Syntax highlighting for C++ when logging errors to terminal
 - Multithreaded compilation
+- Logging (./bin/build.log)
+- Automatically running the binary after compilation
 """
 
 # Define the compilers and debugger
@@ -16,9 +18,24 @@ linker = cpp_compiler
 
 # Define the source directory and output binary
 src_dirs = ['./src', './test']
-include_dirs = ['./include', './test', './src', './mechanism']
+include_dirs = ['./include', './test', './mechanism']
 build_dir = './bin'
 output_binary_name = 'main'
+submodules = dict(
+    sundials = dict(
+        include_dir = './submodules/sundials/install/include',
+        lib_dir = './submodules/sundials/install/lib',
+        core_lib = 'sundials_core',
+    ),
+    json = dict(
+        include_dir = './submodules/json/include'
+        # header only library
+    ),
+    cxxopt = dict(
+        include_dir = './submodules/cxxopt/include'
+        # header only library
+    ),
+)
 
 # Other settings
 compiler_flags = [
@@ -36,7 +53,7 @@ compiler_flags = [
 ]
 linker_flags = [
     '-flto',                  # Enable link-time optimization
-    '-Wl,-O2',                # Linker optimization
+    '-Wl', '-O2',             # Linker optimization
 ]
 common_flags = [
 # Sanitizers: help identify issues in runtime, performance overhead
@@ -48,6 +65,7 @@ common_flags = [
 
 
 import argparse
+import json
 from build_utility import Builder, Logger
 
 def main():
@@ -67,10 +85,14 @@ def main():
         compiler_flags.append('-O2')
     if args.optimize3 and not args.optimize2 and not args.debug:
         compiler_flags.append('-O3')
+    if not args.optimize2 and not args.optimize3:
+        compiler_flags.append('-O0')
 
     builder = Builder(build_dir)
     log_global_settings(builder.logger)
 
+    for submodule in submodules.values():
+        include_dirs.append(submodule['include_dir'])
     cpp_files, cuda_files, include_flags = builder.gather_files(src_dirs, include_dirs)
     compiler_flags += common_flags + include_flags
     linker_flags += common_flags
@@ -81,7 +103,14 @@ def main():
     #    builder.add_source_file(cuda_file, cuda_compiler, compiler_flags)
 
     object_files = builder.compile_all()
-    builder.link_object_files(linker, object_files, output_binary_name, linker_flags, args.shared)
+    builder.link(
+        linker=linker,
+        obj_files=object_files,
+        submodules=submodules,
+        output_binary_name=output_binary_name,
+        linker_flags=linker_flags,
+        shared=args.shared
+    )
 
     if args.run and not args.shared:
         if args.debug:
@@ -107,6 +136,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def log_global_settings(logger: Logger):
+    submodules_str = json.dumps(submodules, indent=4)
     logger.log(f'cpp_compiler = \'{cpp_compiler}\'')
     logger.log(f'cuda_compiler = \'{cuda_compiler}\'')
     logger.log(f'linker = \'{linker}\'')
@@ -114,6 +144,7 @@ def log_global_settings(logger: Logger):
     logger.log(f'include_dirs = {include_dirs}')
     logger.log(f'build_dir = \'{build_dir}\'')
     logger.log(f'output_binary_name = \'{output_binary_name}\'')
+    logger.log(f'submodules = {submodules_str}')
     logger.log(f'compiler_flags = {compiler_flags}')
     logger.log(f'linker_flags = {linker_flags}')
     logger.log(f'common_flags = {common_flags}\n')

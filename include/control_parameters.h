@@ -6,16 +6,16 @@
 #include <algorithm>
 #include <initializer_list>
 
+#include "nlohmann/json_fwd.hpp"
 #include "common.h"
 #include "parameters.h"
 
-/*________________________________control_parameters________________________________*/
 
 class ControlParameters {
 public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
-    static constexpr size_t max_species = 4;
+    static constexpr size_t max_species = 5;
     static constexpr char csv_header[] = "ID,mechanism,R_E,species,fractions,P_amb,T_inf,alfa_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,target_specie,excitation_params,excitation_type";
 // Members
     size_t ID;                          // ID of control parameter
@@ -51,7 +51,7 @@ public:
         .ID = 1,
         .mechanism = Parameters::mechanism::chemkin_ar_he,
         ...
-    });
+    }};
     */
     struct Builder {
         size_t ID                               = 0;
@@ -81,6 +81,11 @@ public:
     ControlParameters();
     // Constructor with Builder. See Builder struct for more details.
     ControlParameters(const Builder& builder);
+    // Constructor from JSON (ordered_json). Input should contains that same keys as in Builder struct, but mechanism and excitation_type are strings.
+    // Example: {"ID": 1, "mechanism": "chemkin_ar_he", "species": ["O2"], "fractions": [1.0], ...}
+    ControlParameters(const nlohmann::ordered_json& j);
+    // Constructor from JSON file (using 'cpar' key)
+    ControlParameters(const std::string& json_path);
     ~ControlParameters();
     // Set species and their fractions like this: set_species({"H2", "N2"}, {0.75, 0.25}); or set_species({par->get_species("O2")}, {1.0});
     void set_species(const std::vector<std::string> species_list, const std::vector<double> fractions_list);
@@ -94,6 +99,8 @@ public:
     std::string to_csv() const;
     // Convert to string. with_code: ready to copy to constructor; one_line: without newlines
     std::string to_string(const bool with_code=false) const;
+    // Convert to JSON
+    nlohmann::ordered_json to_json() const;
     // Ostream overload
     friend std::ostream& operator<<(std::ostream& os, const ControlParameters& cpar);
 private:

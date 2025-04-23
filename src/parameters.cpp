@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <sstream>
 
 #include "common.h"
 #include "parameters.h"
@@ -186,4 +187,38 @@ index_t Parameters::get_species(std::string name) const
         return invalid_index;
     }
     return it->second;
+}
+
+
+Parameters::mechanism Parameters::string_to_mechanism(std::string mechanism_str) {
+    std::transform(mechanism_str.begin(), mechanism_str.end(), mechanism_str.begin(), ::tolower);
+    std::replace(mechanism_str.begin(), mechanism_str.end(), ' ', '_');
+    auto it = std::find(Parameters::mechanism_names.begin(), Parameters::mechanism_names.end(), mechanism_str);
+    if (it != Parameters::mechanism_names.end()) {
+        return static_cast<Parameters::mechanism>(std::distance(Parameters::mechanism_names.begin(), it));
+    }
+
+    // Error handling
+    std::stringstream ss;
+    ss << "Invalid mechanism: " << mechanism_str << ". Valid options are: ";
+    ss << ::to_string((char**)Parameters::mechanism_names.data(), Parameters::mechanism_names.size());
+    LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
+    return Parameters::mechanism::chemkin_ar_he; // Default to a known mechanism
+}
+
+
+Parameters::excitation Parameters::string_to_excitation(std::string excitation_str) {
+    std::transform(excitation_str.begin(), excitation_str.end(), excitation_str.begin(), ::tolower);
+    std::replace(excitation_str.begin(), excitation_str.end(), ' ', '_');
+    auto it = std::find(Parameters::excitation_names.begin(), Parameters::excitation_names.end(), excitation_str);
+    if (it != Parameters::excitation_names.end()) {
+        return static_cast<Parameters::excitation>(std::distance(Parameters::excitation_names.begin(), it));
+    }
+
+    // Error handling
+    std::stringstream ss;
+    ss << "Invalid excitation type: " << excitation_str << ". Valid options are: ";
+    ss << ::to_string((char**)Parameters::excitation_names.data(), Parameters::excitation_names.size());
+    LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
+    return Parameters::excitation::sin_impulse; // Default to a known excitation type
 }

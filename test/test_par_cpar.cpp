@@ -1,9 +1,13 @@
 #ifdef TEST
 
+#include "nlohmann/json.hpp"
 #include "common.h"
 #include "parameters.h"
 #include "control_parameters.h"
 #include "test.h"
+
+
+using ordered_json = nlohmann::ordered_json;
 
 NO_OPTIMIZATION
 
@@ -226,6 +230,101 @@ void test_par_cpar()
         Error error = ErrorHandler::get_error(cpar.error_ID);
         ASSERT_TRUE(error.message.find("1.0") != std::string::npos);
         ASSERT_EQUAL(error.ID, 69);
+        ErrorHandler::clear_errors();
+    );
+
+    ADD_TEST(cpar_tester, "Test cpar JSON-based constructor",
+        ErrorHandler::clear_errors();
+    
+        // Valid JSON input (no default values, arbitrary data)
+        ordered_json valid_json = {
+            {"ID", 123},
+            {"mechanism", "Chemkin_Otomo2018"}, // Case insensitive
+            {"R_E", 0.12345},
+            {"species", {"H2", "O2"}},
+            {"fractions", {0.6, 0.4}},
+            {"P_amb", 50000.0},
+            {"T_inf", 350.0},
+            {"alfa_M", 0.25},
+            {"P_v", 1500.0},
+            {"mu_L", 0.002},
+            {"rho_L", 800.0},
+            {"c_L", 1200.0},
+            {"surfactant", 0.8},
+            {"enable_heat_transfer", false},
+            {"enable_evaporation", true},
+            {"enable_reactions", false},
+            {"enable_dissipated_energy", true},
+            {"target_specie", "h2o"},   // Case insensitive
+            {"excitation_params", {-100000.0, 25000.0, 0.75}},
+            {"excitation_type", "Sin_Impulse"} // Case insensitive
+        };
+    
+        ControlParameters cpar(valid_json);
+        ASSERT_EQUAL(cpar.ID, 123);
+        ASSERT_EQUAL(cpar.mechanism, Parameters::mechanism::chemkin_otomo2018);
+        ASSERT_EQUAL(cpar.R_E, 0.12345);
+        ASSERT_EQUAL(cpar.species[0], par->get_species("H2"));
+        ASSERT_EQUAL(cpar.species[1], par->get_species("O2"));
+        ASSERT_EQUAL(cpar.fractions[0], 0.6);
+        ASSERT_EQUAL(cpar.fractions[1], 0.4);
+        ASSERT_EQUAL(cpar.P_amb, 50000.0);
+        ASSERT_EQUAL(cpar.T_inf, 350.0);
+        ASSERT_EQUAL(cpar.alfa_M, 0.25);
+        ASSERT_EQUAL(cpar.P_v, 1500.0);
+        ASSERT_EQUAL(cpar.mu_L, 0.002);
+        ASSERT_EQUAL(cpar.rho_L, 800.0);
+        ASSERT_EQUAL(cpar.c_L, 1200.0);
+        ASSERT_EQUAL(cpar.surfactant, 0.8);
+        ASSERT_FALSE(cpar.enable_heat_transfer);
+        ASSERT_TRUE(cpar.enable_evaporation);
+        ASSERT_FALSE(cpar.enable_reactions);
+        ASSERT_TRUE(cpar.enable_dissipated_energy);
+        ASSERT_EQUAL(cpar.target_specie, par->get_species("H2O"));
+        ASSERT_EQUAL(cpar.excitation_type, Parameters::excitation::sin_impulse);
+        ASSERT_EQUAL(cpar.excitation_params[0], -100000.0);
+        ASSERT_EQUAL(cpar.excitation_params[1], 25000.0);
+        ASSERT_EQUAL(cpar.excitation_params[2], 0.75);
+    
+        // Missing values
+        ordered_json missing_values_json = {
+            {"ID", 124},
+            {"mechanism", "chemkin_ar_he"} // Missing other fields
+        };
+    
+        ControlParameters cpar_missing(missing_values_json);
+        ControlParameters default_cpar;
+        ASSERT_EQUAL(cpar_missing.ID, 124);
+        ASSERT_EQUAL(cpar_missing.mechanism, Parameters::mechanism::chemkin_ar_he);
+        ASSERT_EQUAL(cpar_missing.R_E, default_cpar.R_E);
+        ASSERT_EQUAL(cpar_missing.num_initial_species, default_cpar.num_initial_species);
+        ASSERT_EQUAL(cpar_missing.P_amb, default_cpar.P_amb);
+        ASSERT_EQUAL(cpar_missing.T_inf, default_cpar.T_inf);
+        ASSERT_EQUAL(cpar_missing.alfa_M, default_cpar.alfa_M);
+        ASSERT_EQUAL(cpar_missing.excitation_type, default_cpar.excitation_type);
+    
+        // Invalid mechanism
+        ordered_json invalid_mechanism_json = {
+            {"ID", 125},
+            {"mechanism", "Invalid_Mechanism"}
+        };
+    
+        ErrorHandler::print_when_log = false;
+        ControlParameters cpar_invalid_mechanism(invalid_mechanism_json);
+        ASSERT_EQUAL(cpar_invalid_mechanism.mechanism, default_cpar.mechanism);
+        ASSERT_TRUE(ErrorHandler::get_error_count() > 0);
+        ErrorHandler::clear_errors();
+    
+        // Invalid excitation type
+        ordered_json invalid_excitation_json = {
+            {"ID", 126},
+            {"excitation_type", "Invalid_Excitation"}
+        };
+    
+        ControlParameters cpar_invalid_excitation(invalid_excitation_json);
+        ASSERT_EQUAL(cpar_invalid_excitation.excitation_type, default_cpar.excitation_type);
+        ASSERT_TRUE(ErrorHandler::get_error_count() > 0);    
+        ErrorHandler::print_when_log = true;
         ErrorHandler::clear_errors();
     );
 

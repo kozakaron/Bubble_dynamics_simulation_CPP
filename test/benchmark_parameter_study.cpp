@@ -2,16 +2,15 @@
 #include <thread>
 #include <iostream>
 #include <string>
-#include <filesystem>
 
 #include "parameter_study.h"
+#include "ode_solver_sundials.h"
 
 
-std::string save_folder_base_name = "./.parameter_studies/test";
-const double t_max = 1000.0e-6;
+std::string save_folder_base_name = "./_parameter_studies/test";
+const double t_max = 1.0;
 const double timeout = 60.0;
 const size_t num_threads = std::thread::hardware_concurrency();
-double best_energy_demand = SimulationData::infinite_energy_demand;
 
 ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinator::Builder{
     .mechanism                   = Parameters::mechanism::chemkin_ar_he,
@@ -40,30 +39,22 @@ ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinat
 }};
 
 
+inline OdeSolver* solver_factory(size_t num_dim)
+{
+    return new OdeSolverCVODE(num_dim);
+}
+
+
 void benchmark_parameter_study()
 {
-    std::cout << colors::bold << "Small parameter study with RKCK45 solver and chemkin_ar_he mechanism" << colors::reset << std::endl;
+    std::cout << colors::bold << "Small parameter study with SUNDIALS CVODE solver and chemkin_ar_he mechanism" << colors::reset << std::endl;
     std::cout << "total_combination_count = " << parameter_combinator.get_total_combination_count() << std::endl;
     
-    // count existing folders with the same name
-    std::filesystem::path save_folder_path(save_folder_base_name);
-    size_t folder_count = 0;
-    if (std::filesystem::exists(save_folder_path.parent_path()))
-    {
-        for (const auto& entry : std::filesystem::directory_iterator(save_folder_path.parent_path()))
-        {
-            if (entry.is_directory() && entry.path().filename().string().find(save_folder_path.filename().string()) == 0)
-            {
-                folder_count++;
-            }
-        }
-    }
-    save_folder_path = save_folder_path.parent_path() / (save_folder_path.filename().string() + std::to_string(folder_count + 1));
-
+    ErrorHandler::print_when_log = true;
     ParameterStudy parameter_study = ParameterStudy{
         parameter_combinator,
-        save_folder_path.string(),
-        []() -> OdeSolver* { return new RKCK45; },
+        save_folder_base_name,
+        solver_factory,
         t_max,
         timeout
     };
