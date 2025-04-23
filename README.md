@@ -18,7 +18,7 @@ git clone https://github.com/kozakaron/Bubble_dynamics_simulation_CPP.git
 
 ### Prerequisits
 
-The first step is to check prerequisits. There is a costum script, [./dev/build_submodules.py](./dev/build_submodules.py), you should run:
+The first step is to check prerequisits. There is a costum script, [./dev/build_submodules.py](./dev/build_submodules.py), which you should run:
 ```
 python ./dev/build_submodules.py
 ```
@@ -26,11 +26,11 @@ This should scan requirements, and print something like `git: ok; cmake: ok; gcc
 
 ### Installing submodules
 
-After the requirements, the submodules should be cloned and installed. These are third party GitHub repositories. I used GitHub's submodules functionality to link them into my repository. The same script clones these external repositories, and builds them. When the scripts asks `Do you want to build SUNDIALS from source? [y/n]`, enter y. This may take a few minutes, and problems can arise. You may modify build setting at the top of [./dev/build_submodules.py](./dev/build_submodules.py) by changing `cmake_command_list` in the `submodules` dictionary. You may also have to modify `vs_path` on Windows by providing your Visual Studio installation path. Make sure, that neither submodule failed to install, otherwise the linking process will fail.
+After the requirements, the submodules should be cloned and installed. These are third party GitHub repositories. I used GitHub's submodules functionality to link them into my repository. The same script clones these external repositories, and builds them. When the scripts asks `Do you want to build SUNDIALS from source? [y/n]`, enter y. This may take a few minutes, and problems can arise. You may modify build setting at the top of [./dev/build_submodules.py](./dev/build_submodules.py) by changing `cmake_command_list` in the `submodules` dictionary. You may also have to modify `vs_path` on Windows by providing your Visual Studio installation path. Make sure, that neither submodule failed to install, otherwise the linking process will fail later.
 
 ### Compilation
 
- I hate make and cmake, thus a python script is used to compile the project.
+ I hate make and cmake, thus a python script is used to compile the project. Both Windows and Linux are supported. 
  You may change the include directories, compiler, debugger, and related flags in the [./dev/build.py](./dev/build.py) script. However, beside turning off the sanitizers for high performance benchmarking, you will probably just use the script's flags:
 ~~~
   -h, --help               show this help message and exit
@@ -61,7 +61,7 @@ To use the interface, you simply have to download the latest release from GitHub
 
 ### Command line interface
 
-You can use either the Matlab or Python interfaces, however the latter is more recommended. Both of them are just wrappers for the command line interface. The interface utilize the human readable JSON format. All settings are saved into a JSON file, such as [./interface/example_cpar.json](./interface/example_cpar.json) or [./interface/example_parameter_study.json](./interface/example_parameter_study.json). Then, the executable is called with command line arguments providing these JSON file.
+You can use either the Matlab or Python interfaces, however the latter one is more recommended. Both of them are just wrappers for the command line interface. The interface utilize the human readable JSON format. All settings are saved into a JSON file, such as [./interface/example_cpar.json](./interface/example_cpar.json) or [./interface/example_parameter_study.json](./interface/example_parameter_study.json). Then, the executable is called with command line arguments providing these JSON file.
 
 The results of a single simulation are written back into the same JSON, adding to it. The numerical solution is dumped as unreadable binary data at the end of the JSON. Parsing time would be very long otherwise. An example command line command:
 ```
@@ -162,11 +162,11 @@ Arguments:
  * `timeout` (float): Timeout for the simulation. (default: 60.0 sec)
  * `save_steps` (bool): Whether to save the simulation steps. If false, only the first and last steps will be saved, which is a tony bit faster. (default: true)
         
-Returns (dict): A dictionary containing the simulation results. See key `'sol'` for the numerical solution and 'cpar' for the original control parameters. the numerical solution can be accessed via `data['sol']['t']` and `data['sol']['x']` as arrays. The simulation is sucessful if `data['sol']['success']` is true. You may also acces post processing data, like `data['energy_demand']`. Extra information is saved under keys `'excitation'`, `'mechanism'` and `'version'`.
+Returns (dict): A dictionary containing the simulation results. See key `'sol'` for the numerical solution and `'cpar'` for the original control parameters. The time series can be accessed via `data['sol']['t']` and `data['sol']['x']` as arrays. The simulation is sucessful if `data['sol']['success']` is true. You may also acces post processing data, like `data['energy_demand']`. Extra information is saved under keys `'excitation'`, `'mechanism'` and `'version'`.
 
 #### plot()
 
-You can create a plot about the temporal evolution of the bubble radius, internal temperature, and amount of compounds within the bubble. Also, information is printed in a more human readable manner. Use the `plot` function. This function has somewhat less functionality in Matlab. Example usage:
+You can create a plot about the temporal evolution of the bubble radius, internal temperature, and amount of compounds within the bubble. Also, information is printed in a more human readable manner. This function has somewhat less functionality in Matlab. Example usage of the `plot()` function:
 ```Python
 api.plot(data)
 ```
@@ -184,7 +184,7 @@ Arguments:
 
  ### Run parameter studies
 
-A bruteforce parameter study automatically runs several simulations in parallel, and saves only the post processing data in CSV format. When you iniciate a  
+A bruteforce parameter study automatically runs several simulations in parallel, and saves only the post processing data in CSV format.
 
 #### example_parameter_study()
 
@@ -193,8 +193,8 @@ A bruteforce parameter study automatically runs several simulations in parallel,
 parameter_study = api.example_parameter_study()
  ```
 
-Just like as for control parameters, you need to provide the mechanism and excitation type as strings, enable_ variables as bool and species and fractions as lists. However, numerical variables are provided as a range, see [./include/parameter_study.h](./include/parameter_study.h). There are 3 available options:
- * **Constant**: This variable is set as a fixed value, isn't changed in the parameter study. E.g.: `{"type": "Const", value=1.0}`
+Just like the case of the control parameters, you need to provide the mechanism and excitation type as strings, enable_ variables as bool and species and fractions as lists. However, numerical variables are provided as a range, see [./include/parameter_study.h](./include/parameter_study.h). There are 3 available options:
+ * **Constant**: This variable is set as a fixed value, and it isn't changed in the parameter study. E.g.: `{"type": "Const", value=1.0}`
  * **Linear range**: This parameter takes part in the parameter study. The variable is changed from start to stop with num_step equal increment. E.g.: `{"type": "LinearRange", start=0.0, end=1.0, num_steps=10}`
  * **Power range**: This parameter takes part in the parameter study. The variable is changed from start to stop with num_step increments. Subdivision is uneven, controlled by power. E.g.: `{"type": "PowRange", start=1.0, end=100.0, num_steps=10, base=2.0}`
 
@@ -229,10 +229,7 @@ Just like as for control parameters, you need to provide the mechanism and excit
 
 Once you have your settings, you can call the parameter study with `run_parameter_study()`:
 ```Python
-api.run_parameter_study(
-    parameter_study,
-    json_path='ignore.json'
-)
+api.run_parameter_study(parameter_study)
 ```
 
 Arguments:
@@ -243,11 +240,11 @@ Arguments:
  * `timeout` (float): Timeout for the simulation. (default: 60.0 sec)
  * `save_directory` (str): Where to save the parameter study. (default: *./_parameter_studies/test*)
 
- A parameter study will automatically create a directory at `save_directory()`. If the path already exists, it will automatically number the parameter studies, e.g.: *test1*, *test2*, ... . This directory shall contain one CSV file for each thread containing the simulation results in a tabular manner. Also, the following files:
-```json
+ A parameter study will automatically create a directory at `save_directory`. If the path already exists, it will automatically number the parameter studies, e.g.: *test1*, *test2*, ... . This directory shall contain one CSV file for each thread containing the simulation results in a tabular manner. Also, the following files:
+```
 _parameter_studies
  ├─test
- │ └─... // older studies
+ │ └─... // older study
  └─test2
     ├─bruteforce_parameter_study_settings.json  // json to reproduce the parameter study with the interface + info
     ├─bruteforce_parameter_study_settings.txt   // same, but as C++ code
@@ -282,7 +279,7 @@ This code is object oriented. Most classes include some of the following methods
  * **constructor with a builder**: many classes have a builder struct, like `ControlParameters::Builder`. This struct allows the usage of designated initializer lists. You no longer have to know the order of constructor arguments, and default values are handled as well.
  * **constructor from JSON**: some classes can be constructed from a JSON to use with the interface. They accept both the file paths for the JSON and `nlohmann::ordered_json`. Some class also has a `to_json()` method to help save as file.
  * **to_string()**: use this to convert the object to a human readable string. Some arguments might be available, such as `colored` to print with some syntax coloring. Or `with_code`, which helps to print objects as valid C++ code. This is done in the form of builder struct, which you can copy into your own code.
- * **operator<< overload**: use to print objects directly trough `std::cout`.
+ * **ostream operator<< overload**: use to print objects directly trough `std::cout`.
  * **to_csv()**: convert the object to a csv (sting). Member variables are printed, seperated by a comma. Order is defined by `csv_header`.
 
 ### Error handling
@@ -356,8 +353,6 @@ std::cout << error <<std::endl;
 
 ### Runing a simulation
 
-Note: This part is expected to change.
-
 ```cpp
 // init cpar and ode
 ControlParameters cpar = ControlParameters{{ /* ... */ }};
@@ -373,7 +368,7 @@ OdeSolution solution = solver.solve(
     true     // weither to save solution (or just first and last step)
 );
 
-// do postprocessing and print results (with operator<< overload)
+// do postprocessing and print results (with ostream operator<< overload)
 SimulationData data(cpar, sol);
 std::cout << data << std::endl;
 ```

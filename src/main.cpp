@@ -17,7 +17,7 @@ using namespace std;
 using namespace nlohmann;
 
 
-OdeSolver* solver_factory(size_t num_dim)
+inline OdeSolver* solver_factory(size_t num_dim)
 {
     return new OdeSolverCVODE(num_dim);
 }

@@ -724,8 +724,17 @@ double get_energy_demand(const OdeSolution &sol, const ControlParameters &cpar)
     if (n_target < -1.0e-8)
         LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Target specie concentration is negative: " + std::to_string(n_target), cpar.ID);
 
-    if (m_target < 10*std::numeric_limits<double>::min()) return SimulationData::infinite_energy_demand;
-    return 1.0e-6 * dissipated_energy / m_target;  // [MJ/kg]
+    if (m_target < 10*std::numeric_limits<double>::min())
+        return SimulationData::infinite_energy_demand;
+
+    double energy_demand = 1.0e-6 * dissipated_energy / m_target;  // [MJ/kg]
+    if (energy_demand < 0.0)
+    {
+        LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Energy demand is negative: " + std::to_string(energy_demand), cpar.ID);
+        return SimulationData::infinite_energy_demand;
+    }
+
+    return energy_demand;
 }
 
 
@@ -1128,9 +1137,12 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
 
         // save and print data
         csv_file << data.to_csv() << "\n";
-        std::unique_lock<std::mutex> lock(this->output_mutex);
-        this->best_energy_demand = std::min(this->best_energy_demand, data.energy_demand);
-        lock.unlock();
+        if (data.sol.success())
+        {
+            std::unique_lock<std::mutex> lock(this->output_mutex);
+            this->best_energy_demand = std::min(this->best_energy_demand, data.energy_demand);
+            lock.unlock();
+        }
 
         if (data.sol.success())
         {
@@ -1143,8 +1155,9 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
 
         if (print_output)
         {
-            lock.lock();
+            std::unique_lock<std::mutex> lock(this->output_mutex);
             std::cout << data.to_small_string(parameter_combinator, best_energy_demand, true) << "\n";
+            lock.unlock();
         }
     }
 
