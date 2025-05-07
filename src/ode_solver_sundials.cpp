@@ -140,7 +140,7 @@ OdeSolverCVODE::OdeSolverCVODE(const size_t num_dim):
     t(0.0),
     x(nullptr),
     abstol(nullptr),
-    reltol(1.0e-8),
+    reltol(1.0e-10),
     A(nullptr),
     linear_solver(nullptr),
     cvode_mem(nullptr),
@@ -157,26 +157,36 @@ OdeSolverCVODE::OdeSolverCVODE(const size_t num_dim):
     // Setup vectors
     HANDLE_RETURN_PTR(x, N_VNew_Serial(num_dim, sun_context));
     HANDLE_RETURN_PTR(abstol, N_VNew_Serial(num_dim, sun_context))
+    HANDLE_RETURN_PTR(constraints, N_VNew_Serial(num_dim, sun_context));
+
     for (size_t i = 0; i < num_dim; i++)
-        NV_Ith_S(abstol, i) = 1e-12;     // molar concentrations
-    NV_Ith_S(abstol, 0) = 1e-8;          // R
-    NV_Ith_S(abstol, 1) = 1e-8;          // R_dot
-    NV_Ith_S(abstol, 2) = 1e-6;          // T
-    NV_Ith_S(abstol, num_dim-2) = 1e-8;  // E_diss
+        NV_Ith_S(abstol, i) = 1e-11;          // molar concentrations
+    NV_Ith_S(abstol, 0) = 1e-10;              // R
+    NV_Ith_S(abstol, 1) = 1e-10;              // R_dot
+    NV_Ith_S(abstol, 2) = 1e-8;               // T
+    NV_Ith_S(abstol, num_dim-1) = 1e-10;      // E_diss
+    
+    for (size_t i = 0; i < num_dim; i++)
+        NV_Ith_S(constraints, i) = 1.0;      // molar concentrations c_i >= 0.0
+    NV_Ith_S(constraints, 0) = 2.0;          // R > 0.0
+    NV_Ith_S(constraints, 1) = 0.0;          // R_dot no constraint
+    NV_Ith_S(constraints, 2) = 2.0;          // T > 0.0
+    NV_Ith_S(constraints, num_dim-1) = 0.0;  // E_diss no constraint
 
     // Setup CVODE
     HANDLE_RETURN_PTR(cvode_mem, CVodeCreate(CV_BDF, sun_context));
     HANDLE_ERROR_CODE(CVodeInit(cvode_mem, right_hand_side, 0.0, x));
-    HANDLE_ERROR_CODE(CVodeSetMaxNumSteps(cvode_mem, 10000000));
+    HANDLE_ERROR_CODE(CVodeSetMaxNumSteps(cvode_mem, 10000000000));
     HANDLE_ERROR_CODE(CVodeSetMaxHnilWarns(cvode_mem, 10));    // maximum number of warnings for t+h=t
+    HANDLE_ERROR_CODE(CVodeSetMaxStep(cvode_mem, 1.0e-3));     // Limit max step size to 1 ms
+    HANDLE_ERROR_CODE(CVodeSetStabLimDet(cvode_mem, SUNTRUE));
     HANDLE_ERROR_CODE(CVodeSVtolerances(cvode_mem, reltol, abstol));
-    //HANDLE_ERROR_CODE(CVodeSStolerances(cvode_mem, _reltol, _abstol));    // scalar tolerances
-    //HANDLE_ERROR_CODE(CVodeSStolerances(cvode_mem, 1e-8, 1e-10));
+    HANDLE_ERROR_CODE(CVodeSetConstraints(cvode_mem, constraints));
+    //HANDLE_ERROR_CODE(CVodeSStolerances(cvode_mem, 1e-10, 1e-10));
 
     // Setup linear solver
     HANDLE_RETURN_PTR(A, SUNDenseMatrix(num_dim, num_dim, sun_context));
     HANDLE_RETURN_PTR(linear_solver, SUNLinSol_Dense(x, A, sun_context));
-    // TODO: investigate nonlinear solvers
     HANDLE_ERROR_CODE(CVodeSetLinearSolver(cvode_mem, linear_solver, A));
 }
 
@@ -186,6 +196,7 @@ OdeSolverCVODE::~OdeSolverCVODE()
     size_t* error_ID_ptr = &(init_error_ID);
     N_VDestroy(x);
     N_VDestroy(abstol);
+    N_VDestroy(constraints);
     CVodeFree(&cvode_mem);
     HANDLE_ERROR_CODE(SUNLinSolFree(linear_solver));
     SUNMatDestroy(A);
