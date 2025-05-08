@@ -188,6 +188,10 @@ OdeSolverCVODE::OdeSolverCVODE(const size_t num_dim):
     HANDLE_RETURN_PTR(A, SUNDenseMatrix(num_dim, num_dim, sun_context));
     HANDLE_RETURN_PTR(linear_solver, SUNLinSol_Dense(x, A, sun_context));
     HANDLE_ERROR_CODE(CVodeSetLinearSolver(cvode_mem, linear_solver, A));
+
+    // Setup nonlinear solver
+    HANDLE_ERROR_CODE(CVodeSetMaxNonlinIters(cvode_mem, 10));   // maximum number of nonlinear iterations (default: 3)
+    HANDLE_ERROR_CODE(CVodeSetNonlinConvCoef(cvode_mem, 0.01)); // convergence coefficient (default: 0.1)
 }
 
 
