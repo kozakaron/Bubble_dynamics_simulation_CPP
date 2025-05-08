@@ -44,6 +44,7 @@ compiler_flags = [
     '-ftree-vectorize',        # Enable tree vectorization
     #'-fvectorize',             # Enable auto-vectorization (only for clang)
     '-pedantic',               # Enforce strict standard compliance
+    '-fno-fast-math',           # Disable fast math optimizations (e.g. associativity, commutativity, etc.)
     #'-funroll-loops',          # Enable loop unrolling
     #'-mlong-double-80',        # Use 80-bit long double. You may also try with -128, however it is less likely to work. Fails with clang++ on win11 with c++20
 # Error handling flags: slight performance boost, harder error identification, might cause unexpected behavior
@@ -57,9 +58,9 @@ linker_flags = [
 ]
 common_flags = [
 # Sanitizers: help identify issues in runtime, performance overhead
-    '-fsanitize=address',     # Protect against memory errors (a.g. use after free)
-    '-fsanitize=undefined',   # Protect against undefined behavior (e.g. integer overflow, invalid type casts)
-    '-fno-omit-frame-pointer',# Keep frame pointer for better stack traces
+    #'-fsanitize=address',     # Protect against memory errors (a.g. use after free)
+    #'-fsanitize=undefined',   # Protect against undefined behavior (e.g. integer overflow, invalid type casts)
+    #'-fno-omit-frame-pointer',# Keep frame pointer for better stack traces
     #'-fomit-frame-pointer',    # Omit frame pointer for functions that don't need one
 ]
 
