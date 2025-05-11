@@ -32,6 +32,7 @@ public:
     SUNContext sun_context;           // An opaque pointer used by SUNDIALS objects for error handling, logging, profiling, etc.
     double t;                         // simulation time
     N_Vector x;                       // simulation state vector
+    N_Vector constraints;             // constraints vector
     N_Vector abstol;                  // absolute tolerance vector
     sunrealtype reltol;               // relative tolerance
     SUNMatrix A;                      // matrix for linear solver
