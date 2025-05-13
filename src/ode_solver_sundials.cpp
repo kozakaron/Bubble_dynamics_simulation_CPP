@@ -1,20 +1,26 @@
 #include "ode_solver_sundials.h"
+#include "nlohmann/json.hpp"
 
+#include <iomanip>
+#include <filesystem>
+#include <sstream>
+#include <fstream>
 #include <type_traits>
+
 static_assert(std::is_same<sunrealtype, double>::value, "sunrealtype must be double");
 
 // Macro for handling SUNDIALS return codes.
 // Use as: HANDLE_ERROR_CODE(CVodeCreate(...));
-// instead of: int retval = CVodeCreate(...); if (retval != 0) { ... }
+// instead of: int retval = CVodeCreate(...); if (retval != CV_SUCCESS) { ... }
 #define HANDLE_ERROR_CODE(...) \
 { \
     (void*) error_ID_ptr; /* a variable named 'size_t* error_ID_ptr;' must be in the scope of the macro call*/ \
     static_assert(std::is_same<decltype(error_ID_ptr), size_t*>::value, "error_ID_ptr must be size_t*"); \
     \
     int retval = __VA_ARGS__; \
-    if (retval != 0) \
+    if (retval != CV_SUCCESS) \
     { \
-        *error_ID_ptr = LOG_ERROR(Error::severity::error, Error::type::cvode, "CVODE init error: " # __VA_ARGS__ "returned with code " + std::to_string(retval)); \
+        *error_ID_ptr = LOG_ERROR(Error::severity::error, Error::type::cvode, "CVODE error: " # __VA_ARGS__ "returned with code " + std::to_string(retval)); \
         return; \
     } \
 }
@@ -30,7 +36,7 @@ static_assert(std::is_same<sunrealtype, double>::value, "sunrealtype must be dou
     pointer = __VA_ARGS__; \
     if (pointer == nullptr) \
     { \
-        *error_ID_ptr = LOG_ERROR(Error::severity::error, Error::type::cvode, "CVODE init error: " # __VA_ARGS__ "returned with nullptr"); \
+        *error_ID_ptr = LOG_ERROR(Error::severity::error, Error::type::cvode, "CVODE error: " # __VA_ARGS__ "returned with nullptr"); \
         return; \
     } \
 }
@@ -176,7 +182,7 @@ OdeSolverCVODE::OdeSolverCVODE(const size_t num_dim):
     // Setup CVODE
     HANDLE_RETURN_PTR(cvode_mem, CVodeCreate(CV_BDF, sun_context));
     HANDLE_ERROR_CODE(CVodeInit(cvode_mem, right_hand_side, 0.0, x));
-    HANDLE_ERROR_CODE(CVodeSetMaxNumSteps(cvode_mem, 10000000000));
+    HANDLE_ERROR_CODE(CVodeSetMaxNumSteps(cvode_mem, 2000000000));
     HANDLE_ERROR_CODE(CVodeSetMaxHnilWarns(cvode_mem, 10));    // maximum number of warnings for t+h=t
     HANDLE_ERROR_CODE(CVodeSetMaxStep(cvode_mem, 1.0e-3));     // Limit max step size to 1 ms
     HANDLE_ERROR_CODE(CVodeSetStabLimDet(cvode_mem, SUNTRUE));
@@ -253,11 +259,75 @@ void construct_solution(
 }
 
 
+void save_jacobian_to_json(void* cvode_mem, long int num_jac_evals)
+{
+    // Get Jacobian, gamma, timestep, and state vector
+    size_t dummy;
+    size_t* error_ID_ptr = &dummy;
+    SUNMatrix Jac = nullptr;
+    HANDLE_ERROR_CODE(CVodeGetJac(cvode_mem, &Jac));
+    sunrealtype gamma;
+    HANDLE_ERROR_CODE(CVodeGetCurrentGamma(cvode_mem, &gamma));
+    sunrealtype t;
+    HANDLE_ERROR_CODE(CVodeGetCurrentTime(cvode_mem, &t));
+    sunrealtype timestep;
+    HANDLE_ERROR_CODE(CVodeGetCurrentStep(cvode_mem, &timestep));
+    N_Vector x = nullptr;
+    HANDLE_ERROR_CODE(CVodeGetCurrentState(cvode_mem, &x));
+
+    // Save directory and filename
+    const std::string jacobian_dir = "./_jacobians/";
+    if (!std::filesystem::exists(jacobian_dir))
+        std::filesystem::create_directories(jacobian_dir);
+    std::ostringstream filename;
+    filename << jacobian_dir << num_jac_evals << ".json";
+
+    // Save as JSON
+    nlohmann::ordered_json jacobian_data;
+    jacobian_data["num_jac_evals"] = num_jac_evals;
+    jacobian_data["t"] = t;
+    jacobian_data["timestep"] = timestep;
+    jacobian_data["gamma"] = gamma;
+    jacobian_data["x"] = std::vector<double>();
+    for (size_t i = 0; i < (size_t)NV_LENGTH_S(x); ++i)
+    {
+        jacobian_data["x"].push_back(NV_Ith_S(x, i));
+    }
+    jacobian_data["Jac"] = std::vector<std::vector<double>>();
+    for (size_t i = 0; i < (size_t)SM_ROWS_D(Jac); ++i)
+    {
+        auto row = std::vector<double>();
+        for (size_t j = 0; j < (size_t)SM_COLUMNS_D(Jac); ++j)
+        {
+            row.push_back(SM_ELEMENT_D(Jac, i, j));
+        }
+        jacobian_data["Jac"].push_back(row);
+    }
+
+    // Open the file for writing
+    std::ofstream file(filename.str());
+    if (!file.is_open())
+    {
+        LOG_ERROR(
+            Error::severity::warning,
+            Error::type::postprocess,
+            "Failed to open file " + filename.str() + " for writing Jacobian matrix."
+        );
+        return;
+    }
+
+    // Write JSON data to the file
+    file << std::setw(4) << jacobian_data << std::endl;
+    file.close();
+}
+
+
 OdeSolution OdeSolverCVODE::solve(
     const double t_max,
     OdeFun* ode_ptr,
     double timeout,
-    bool save_solution
+    bool save_solution,
+    bool save_jacobian
 )
 {
     // Setup resources from this project
@@ -290,6 +360,7 @@ OdeSolution OdeSolverCVODE::solve(
 
     // Solve
     int itask = save_solution ? CV_ONE_STEP : CV_NORMAL;
+    long int num_jac_evals, last_num_jac_evals = 0;
     while (true)
     {
         // Integration (step)
@@ -297,7 +368,24 @@ OdeSolution OdeSolverCVODE::solve(
         solution.push_t_x(t, NV_DATA_S(x));
 
         // Success
-        if (retval == CV_SUCCESS) { }
+        if (retval == CV_SUCCESS) { 
+            // Save Jacobian
+            if (save_jacobian)
+            {
+                int retval_loc = CVodeGetNumJacEvals(cvode_mem, &num_jac_evals);
+                if (retval_loc != CV_SUCCESS)
+                {
+                    LOG_ERROR(Error::severity::warning, Error::type::cvode,
+                        "CVODE error: CVodeGetNumJacEvals returned with code " + std::to_string(retval_loc)
+                    );
+                }
+                else if (num_jac_evals != last_num_jac_evals)
+                {
+                    last_num_jac_evals = num_jac_evals;
+                    save_jacobian_to_json(cvode_mem, num_jac_evals);
+                }
+            }
+        }
 
         // Failure
         else

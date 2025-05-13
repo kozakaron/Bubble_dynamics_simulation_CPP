@@ -10,6 +10,7 @@ temp/*
 CMakeFiles/*
 Bubble_dynamics_simulation/*
 *parameter_studies/*
+*jacobians/*
 
 # Unwanted file formats
 *.csv
