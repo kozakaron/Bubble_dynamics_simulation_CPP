@@ -35,6 +35,7 @@ int main(int argc, char **argv)
         ("tmax", "Simulation end time in seconds", cxxopts::value<double>()->default_value("1.0"))
         ("timeout", "Timeout in seconds", cxxopts::value<double>()->default_value("60.0"))
         ("save", "Set this flag to save all timesteps, skip it to save only the first and last steps", cxxopts::value<bool>()->default_value("false"))
+        ("save_jacobian", "Set this flag to save the Jacobian matrix", cxxopts::value<bool>()->default_value("false"))
         ("log", "Set log file", cxxopts::value<std::string>())
         ("parameter_study", "Run a parameter study with the given JSON file", cxxopts::value<std::string>())
         ("directory", "Set save directory for parameter_study", cxxopts::value<std::string>()->default_value("./_parameter_studies/test"))
@@ -82,10 +83,11 @@ int main(int argc, char **argv)
         OdeFun ode; ode.init(cpar);
         OdeSolverCVODE solver(ode.par->num_species+4);
         OdeSolution solution = solver.solve(
-            result["tmax"].as<double>(),    // t_max [s]
-            &ode,                           // ode_ptr
-            result["timeout"].as<double>(), // timeout [s]
-            result["save"].as<bool>()       // save solution
+            result["tmax"].as<double>(),        // t_max [s]
+            &ode,                               // ode_ptr
+            result["timeout"].as<double>(),     // timeout [s]
+            result["save"].as<bool>(),          // save solution
+            result["save_jacobian"].as<bool>()  // save jacobian
         );
         SimulationData data(cpar, solution);
 

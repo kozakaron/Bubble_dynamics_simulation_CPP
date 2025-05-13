@@ -47,7 +47,8 @@ public:
         const double t_max,
         OdeFun* ode_ptr,
         double timeout = 1.0e30,
-        bool save_solution = false
+        bool save_solution = false,
+        bool save_jacobian = false
     ) override;
 };
 
