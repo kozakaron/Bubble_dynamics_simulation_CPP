@@ -40,7 +40,7 @@ submodules = dict(
 # Other settings
 compiler_flags = [
     '-std=c++20',              # Use the C++20 standard
-    '-march=native',           # Enable all instruction set extensions supported by the CPU
+    #'-march=native',           # Enable all instruction set extensions supported by the CPU
     '-ftree-vectorize',        # Enable tree vectorization
     #'-fvectorize',             # Enable auto-vectorization (only for clang)
     '-pedantic',               # Enforce strict standard compliance

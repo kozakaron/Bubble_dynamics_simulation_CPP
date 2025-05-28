@@ -39,6 +39,7 @@ int main(int argc, char **argv)
         ("log", "Set log file", cxxopts::value<std::string>())
         ("parameter_study", "Run a parameter study with the given JSON file", cxxopts::value<std::string>())
         ("directory", "Set save directory for parameter_study", cxxopts::value<std::string>()->default_value("./_parameter_studies/test"))
+        ("cpu", "Set number of CPU cores to use for parameter_study", cxxopts::value<size_t>()->default_value(std::to_string(std::thread::hardware_concurrency())))
         ;
     
     // Parse command line arguments
@@ -101,7 +102,7 @@ int main(int argc, char **argv)
         std::string json_path = result["parameter_study"].as<std::string>();
         ParameterCombinator parameter_combinator(json_path);
         if (ErrorHandler::get_error_count() != 0) return 1;
-        const size_t num_threads = std::thread::hardware_concurrency();
+        size_t num_threads = result["cpu"].as<size_t>();
         ParameterStudy parameter_study(
             parameter_combinator,
             result["directory"].as<std::string>(),  // save_folder_base_name

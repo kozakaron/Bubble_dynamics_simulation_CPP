@@ -1,4 +1,4 @@
-function run_parameter_study(parameter_study, json_path, executable_path, t_max, timeout, save_directory)
+function run_parameter_study(parameter_study, json_path, executable_path, t_max, timeout, save_directory, cpu_count)
     % RUN_PARAMETER_STUDY Runs a parameter study using the C++ executable.
     % Saves the provided parameter_study dictionary to a JSON file and uses it as input to run the study.
     % Captures stdout and stderr in real-time and prints them as they arrive.
@@ -10,6 +10,7 @@ function run_parameter_study(parameter_study, json_path, executable_path, t_max,
     %   t_max: Maximum simulation time (default: 1.0).
     %   timeout: Timeout for the simulation (default: 60.0).
     %   save_directory: Directory to save the results (default: './_parameter_studies/test').
+    %   cpu_count: Number of CPU cores to use.
 
     if nargin < 2, json_path = 'ignore.json'; end
     if nargin < 3
@@ -22,6 +23,7 @@ function run_parameter_study(parameter_study, json_path, executable_path, t_max,
     if nargin < 4, t_max = 1.0; end
     if nargin < 5, timeout = 60.0; end
     if nargin < 6, save_directory = './_parameter_studies/test'; end
+    if nargin < 7, cpu_count = 0; end
 
     % Ensure species, fractions, and excitation_params are arrays
     if ~isfield(parameter_study, 'species') || isempty(parameter_study.species)
@@ -74,6 +76,10 @@ function run_parameter_study(parameter_study, json_path, executable_path, t_max,
         '--timeout', num2str(timeout), ...
         '--directory', save_directory
     };
+    if cpu_count > 0
+        command_list{end + 1} = '--cpu';
+        command_list{end + 1} = num2str(cpu_count);
+    end
 
     % Create a process to run the command and capture stdout in real-time
     process = System.Diagnostics.Process();

@@ -236,6 +236,8 @@ def run_parameter_study(
     t_max: float = 1.0,
     timeout: float = 60.0,
     save_directory: str = './_parameter_studies/test',
+    cpu_count: int = None,
+    print_output: bool = True   # TODO
 ):
     """
     Runs the Bubble_dynamics_simulation_CPP executable in --parameter_study mode to run a bruteforce parameter study.
@@ -249,6 +251,8 @@ def run_parameter_study(
         t_max (float): Maximum simulation time.
         timeout (float): Timeout for the simulation.
         save_directory (str): Where to save the parameter study.
+        cpu_count (int): Number of CPUs to use for the simulation.
+        print_output (bool): Whether to print the output of the simulation.
     """
     
     # Write the JSON file
@@ -268,6 +272,9 @@ def run_parameter_study(
         '--timeout', str(timeout),
         '--directory', str(save_directory),
     ]
+    if cpu_count is not None:
+        command_list.append('--cpu')
+        command_list.append(str(cpu_count))
 
     return_code = _run_cpp_simulation(command_list)
     print(f'\n{executable_path} returned with code {return_code} after {time.time() - start:.4f} seconds.')
