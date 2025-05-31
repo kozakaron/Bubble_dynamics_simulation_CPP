@@ -22,6 +22,7 @@ void task()
 {
     ControlParameters cpar = ControlParameters{{ 
         .mechanism = Parameters::mechanism::chemkin_otomo2018,
+        .R_E = 20e-6,
         .species = {"H2", "N2"},
         .fractions = {0.75, 0.25},
     }};
