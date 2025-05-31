@@ -557,6 +557,14 @@ void OdeFun::backward_rate(
 
         const double K_p = std::exp(Delta_S / par->R_erg - Delta_H / (par->R_erg * T));
         const double K_c = K_p * std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), par->sum_nu[index]);
+        if (std::abs(K_c) < 1e-300)
+        {
+            //if (std::abs(this->k_forward[index]) > 1e-30)
+            //    LOG_ERROR(Error::severity::warning, Error::type::odefun, "K_c is too small: " + std::to_string(K_c) + ". k_forward = " + std::to_string(this->k_forward[index]) + ". Reaction index: " + std::to_string(index), this->cpar.ID);
+            this->k_backward[index] = 0.0; // TODO: is this correct?
+            this->k_forward[index] = 0.0;
+            continue;
+        }
         const double k_backward = this->k_forward[index] / K_c;
         this->k_backward[index] = this->threshold_reaction_rate(
             index,
