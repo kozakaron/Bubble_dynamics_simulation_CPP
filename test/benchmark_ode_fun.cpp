@@ -79,10 +79,10 @@ void benchmark_ode_fun()
         0.83630845, 0.83630845, 0.83630845};
         std::copy(M_eff.begin(), M_eff.end(), ode.M_eff);
         
-        BENCHMARK_LINE(ode.forward_rate(T, M, p);, 100000);
+        BENCHMARK_LINE(ode.forward_rate(T, M, p, 1e30);, 100000);
 
     // backward_rate()
-        BENCHMARK_LINE(ode.backward_rate(T);, 10000);
+        BENCHMARK_LINE(ode.backward_rate(T, 1e30);, 10000);
 
     // production_rate()
         BENCHMARK_LINE(ode.production_rate(T, p, M, x.data()+3);, 10000);
@@ -158,10 +158,10 @@ void benchmark_ode_fun()
         };
         std::copy(M_eff.begin(), M_eff.end(), ode.M_eff);
         
-        BENCHMARK_LINE(ode.forward_rate(T, M, p);, 100000);
+        BENCHMARK_LINE(ode.forward_rate(T, M, p, 1e30);, 100000);
 
     // backward_rate()
-        BENCHMARK_LINE(ode.backward_rate(T);, 10000);
+        BENCHMARK_LINE(ode.backward_rate(T, 1e30);, 10000);
 
     // production_rate()
         BENCHMARK_LINE(ode.production_rate(T, p, M, x.data()+3);, 10000);
