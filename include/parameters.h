@@ -64,7 +64,7 @@ public:
     static constexpr double mu_L          = 0.001;              // Dynamic viscosity at 30 °C and 1 atm [Pa*s]
     static constexpr double P_v           = 2338.1;             // Saturated vapour pressure at 30 °C [Pa]
     static constexpr double alfa_M        = 0.35;               // Water accommodation coefficient [-]
-    static constexpr double k_b           = 1.380649e-23;       // Boltzmann constant [J/K]
+    static constexpr double k_B           = 1.380649e-23;       // Boltzmann constant [J/K]
     static constexpr double R_g           = 8.31446;            // Universal gas constant [J/mol/K]
     static constexpr double R_erg         = 83144600.0;         // Universal gas constant [erg/mol/K]
     static constexpr double R_cal         = 1.987204;           // Universal gas constant [cal/mol/K]
@@ -102,6 +102,7 @@ public:
     const double *A;                                // Pre-exponential factors [cm^3/mol/s v 1/s] (num_reactions)
     const double *b;                                // Temperature exponents [-] (num_reactions)
     const double *E;                                // Activation energies [cal/mol] (num_reactions)
+    const index_t *reaction_order;                  // Reaction orders (num_reactions)
 // Reaction matrixes
     const index_t num_max_specie_per_reaction;      // Maximum number of species participating in a reaction
     const index_t *nu_indexes;                      // Indexes of species participating in reactions (num_reactions, num_max_specie_per_reaction)

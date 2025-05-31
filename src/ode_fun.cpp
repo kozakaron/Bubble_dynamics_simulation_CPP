@@ -387,22 +387,47 @@ std::pair<double, double> OdeFun::evaporation(
 }
 
 
+double OdeFun::threshold_reaction_rate(
+    const index_t index,
+    const double reaction_rate_threshold,
+    const double rate,
+    const double exponent
+) 
+{
+    const double treshold = reaction_rate_threshold * std::pow(par->N_A, par->reaction_order[index]);
+    if (!std::isfinite(rate))
+    {
+        if (exponent == 0.0) return std::copysign(treshold, rate);      // no exponent provided -> treshold
+        else if (exponent < 0.0) return 0.0;                            // large negative exponent -> 0
+        else return std::copysign(treshold, rate);                      // large positive exponent -> treshold  
+    }
+    if (std::abs(rate) > treshold)
+    {
+        return std::copysign(treshold, rate);
+    }
+    return rate; // rate is within the threshold
+}
+
+
 void OdeFun::forward_rate(
     const double T,
     const double M,
-    const double p
+    const double p,
+    const double reaction_rate_threshold
 ) //noexcept
 {
 // Arrhenius reactions
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
-        this->k_forward[index] = par->A[index] * std::pow(T, par->b[index]) * std::exp(-par->E[index] / (par->R_cal * T));
-        // TODO: limit reaction rates:
-        /*
-        k_max = par.k_B * T / par.h
-        k_forward = par.A * T ** par.b * np.exp(-par.E / (par.R_cal * T))
-        k_forward = np.minimum(k_forward, k_max)
-        */
+        const double exponent = -par->E[index] / (par->R_cal * T);
+        const double k_forward = par->A[index] * std::pow(T, par->b[index]) * std::exp(exponent);
+
+        this->k_forward[index] = this->threshold_reaction_rate(
+            index,
+            reaction_rate_threshold,
+            k_forward,
+            exponent
+        );
     }
 
 // Pressure dependent reactions
@@ -410,9 +435,9 @@ void OdeFun::forward_rate(
     for(index_t j = 0; j < par->num_pressure_dependent; ++j)
     {
         index_t index = par->pressure_dependent_indexes[j];
-        double k_inf = this->k_forward[index];
+        const double k_inf = this->k_forward[index];
         const double *reac_const = &(par->reac_const[j*3]);
-        double k_0 = reac_const[0] * std::pow(T, reac_const[1]) * std::exp(-reac_const[2] / (par->R_cal * T));
+        const double k_0 = reac_const[0] * std::pow(T, reac_const[1]) * std::exp(-reac_const[2] / (par->R_cal * T));
         
     // Third body reactions
         double M_eff_loc = M;
@@ -422,7 +447,7 @@ void OdeFun::forward_rate(
             M_eff_loc = this->M_eff[third_body_index];
         }
         
-        double P_r = k_0 / k_inf * M_eff_loc;
+        const double P_r = k_0 / k_inf * M_eff_loc;
         double F = 1.0;
 
         switch (par->pressure_dependent_reac_types[j])
@@ -435,20 +460,20 @@ void OdeFun::forward_rate(
         case Parameters::reac_type::troe_reac:
             {
                 const double *troe = &(par->troe[troe_index*4]);
-                double F_cent = (1.0 - troe[0]) * std::exp(-T / troe[1]) + troe[0] * std::exp(-T / troe[2]) + std::exp(-troe[3] / T);
-                double logF_cent = std::log10(F_cent);
-                double c2 = -0.4 - 0.67 * logF_cent;
-                double n = 0.75 - 1.27 * logF_cent;
+                const double F_cent = (1.0 - troe[0]) * std::exp(-T / troe[1]) + troe[0] * std::exp(-T / troe[2]) + std::exp(-troe[3] / T);
+                const double logF_cent = std::log10(F_cent);
+                const double c2 = -0.4 - 0.67 * logF_cent;
+                const double n = 0.75 - 1.27 * logF_cent;
                 constexpr double d = 0.14;
-                double logP_r = std::log10(P_r);
-                double logF = 1.0 / (1.0 + std::pow((logP_r + c2) / (n - d * (logP_r + c2)), 2)) * logF_cent;
+                const double logP_r = std::log10(P_r);
+                const double logF = 1.0 / (1.0 + std::pow((logP_r + c2) / (n - d * (logP_r + c2)), 2)) * logF_cent;
                 F = std::pow(10.0, logF);
                 ++troe_index;
                 break;
             }
         case Parameters::reac_type::sri_reac:   // TODO: We don't have any SRI reactions in the current mechanisms
             {
-                double X = 1.0 / (1.0 + std::pow(std::log10(P_r), 2));
+                const double X = 1.0 / (1.0 + std::pow(std::log10(P_r), 2));
                 const double *sri = &(par->sri[sri_index*5]);
                 F = sri[3] * std::pow(sri[0] * std::exp(-sri[1] / T) + std::exp(-T / sri[2]), X) * std::pow(T, sri[4]);
                 ++sri_index;
@@ -458,7 +483,12 @@ void OdeFun::forward_rate(
             break;
         }
 
-        this->k_forward[index] = k_inf * P_r / (1.0 + P_r) * F;
+        const double k_forward = k_inf * P_r / (1.0 + P_r) * F;
+        this->k_forward[index] = this->threshold_reaction_rate(
+            index,
+            reaction_rate_threshold,
+            k_forward
+        );
     } // pressure dependent reactions end
 
 // PLOG reactions
@@ -477,8 +507,8 @@ void OdeFun::forward_rate(
         index_t upper = lower + 1;
 
         // reaction rates at the lower and upper pressures
-        double k_lower = par->plog[lower*4+1] * std::pow(T, par->plog[lower*4+2]) * std::exp(-par->plog[lower*4+3] / (par->R_cal * T));
-        double k_upper = par->plog[upper*4+1] * std::pow(T, par->plog[upper*4+2]) * std::exp(-par->plog[upper*4+3] / (par->R_cal * T));
+        const double k_lower = par->plog[lower*4+1] * std::pow(T, par->plog[lower*4+2]) * std::exp(-par->plog[lower*4+3] / (par->R_cal * T));
+        const double k_upper = par->plog[upper*4+1] * std::pow(T, par->plog[upper*4+2]) * std::exp(-par->plog[upper*4+3] / (par->R_cal * T));
 
         // interpolation
         double ln_k;
@@ -495,13 +525,21 @@ void OdeFun::forward_rate(
             ln_k = log(k_lower) + (log(p) - log(par->plog[lower*4+0])) / (log(par->plog[upper*4+0]) / (log(par->plog[upper*4+0]) - log(par->plog[lower*4+0]))) * (log(k_upper) - log(k_lower));
         }
 
-        this->k_forward[index] = std::exp(ln_k);
+        const double k_forward = std::exp(ln_k);
+        this->k_forward[index] = this->threshold_reaction_rate(
+            index,
+            reaction_rate_threshold,
+            k_forward,
+            ln_k
+        );
+
     }
 }
 
 
 void OdeFun::backward_rate(
-    const double T
+    const double T,
+    const double reaction_rate_threshold
 ) //noexcept 
 {
     for(index_t index = 0; index < par->num_reactions; ++index)
@@ -516,20 +554,17 @@ void OdeFun::backward_rate(
             Delta_S += nu * this->S[nu_index];
             Delta_H += nu * this->H[nu_index];
         }
-        // TODO: fix long double overflow thing
-        /*double DeltaS = 1065275813.332756, DeltaH = 9435227340892.568;
-        double K_c = 0.0, T = 150.982469, P_amb = 101325.0, k_forward = 0.0;
 
-        double K_p = exp(DeltaS / Parameters::R_erg - DeltaH / (Parameters::R_erg * T));    // K_p is very small
-        K_c = K_p * pow(P_amb * 10.0 / (Parameters::R_erg * T), 1);    // K_c is zero
-        K_c += (K_c == 0.0) * (k_forward / 1.0e308);
-        double k_backward = k_forward / K_c;    // error???
-        cout << "K_p = " << K_p << ";   K_c = " << K_c << endl;
-        cout << "k_backward = " << k_backward << endl;*/
-        /*long*/ double K_p = std::exp(Delta_S / par->R_erg - Delta_H / (par->R_erg * T));
-        /*long*/ double K_c = K_p * std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), par->sum_nu[index]);
-        this->k_backward[index] = /*static_cast<double>*/(this->k_forward[index] / K_c);
+        const double K_p = std::exp(Delta_S / par->R_erg - Delta_H / (par->R_erg * T));
+        const double K_c = K_p * std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), par->sum_nu[index]);
+        const double k_backward = this->k_forward[index] / K_c;
+        this->k_backward[index] = this->threshold_reaction_rate(
+            index,
+            reaction_rate_threshold,
+            k_backward
+        );
     }
+
     for(index_t j = 0; j < par->num_irreversible; ++j)
     {
         index_t index = par->irreversible_indexes[j];
@@ -556,8 +591,9 @@ void OdeFun::production_rate(
         this->M_eff[j] = M_eff_j;
     }
 // Forward and backward rates
-    this->forward_rate(T, M, p);
-    this->backward_rate(T);
+    double reaction_rate_threshold = par->k_B * T / par->h;
+    this->forward_rate(T, M, p, reaction_rate_threshold);
+    this->backward_rate(T, reaction_rate_threshold);
 // Net rates
     for (index_t index = 0; index < par->num_reactions; ++index)
     {
