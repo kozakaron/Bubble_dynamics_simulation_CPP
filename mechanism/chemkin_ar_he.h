@@ -104,6 +104,12 @@ struct chemkin_ar_he_struct{
                    -764.0784,          -167.02416,          4135.42282,                 0.0,          -478.04083
     };
     
+    static constexpr index_t reaction_order[num_reactions] = {
+           2,   2,   2,   2,   2,   2,   2,   2,   2,   2,
+           2,   2,   2,   2,   2,   2,   2,   2,   2,   2,
+           2,   2,   2,   2,   2,   2,   2,   2,   1,   2
+    };
+    
     
 // REACTION MATRIXES
     

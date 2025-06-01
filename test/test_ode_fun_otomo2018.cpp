@@ -362,7 +362,7 @@ void test_ode_fun_otomo2018()
         };
         std::copy(M_eff.begin(), M_eff.end(), tester.ode.M_eff);
 
-        tester.ode.forward_rate(T, M, p);
+        tester.ode.forward_rate(T, M, p, 1e30);
         ASSERT_APPROX_ARRAY(tester.ode.k_forward, expected, tester.par->num_reactions, 1e-14);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
@@ -486,7 +486,7 @@ void test_ode_fun_otomo2018()
         std::copy(H.begin(), H.end(), tester.ode.H);
 
 
-        tester.ode.backward_rate(T);
+        tester.ode.backward_rate(T, 1e30);
         ASSERT_APPROX_ARRAY(tester.ode.k_backward, expected, tester.par->num_reactions, 1e-15);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );

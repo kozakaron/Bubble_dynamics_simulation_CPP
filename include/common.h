@@ -10,7 +10,7 @@
 typedef bool is_success;
 
 #define MAJOR_VERSION 1
-#define MINOR_VERSION 1
+#define MINOR_VERSION 2
 #define VERSION (std::to_string(MAJOR_VERSION) + "." + std::to_string(MINOR_VERSION))
 
 namespace colors

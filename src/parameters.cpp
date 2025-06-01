@@ -55,6 +55,7 @@ Parameters::Parameters(T dummy):
     COPY_ARRAY(double, A, T::num_reactions);
     COPY_ARRAY(double, b, T::num_reactions);
     COPY_ARRAY(double, E, T::num_reactions);
+    COPY_ARRAY(index_t, reaction_order, T::num_reactions);
     COPY_ARRAY(index_t, nu_indexes, T::num_reactions*T::num_max_specie_per_reaction);
     for(index_t i = 0; i < T::num_elements; i++)
     {
@@ -130,6 +131,7 @@ Parameters::~Parameters()
     if (nu_indexes != nullptr) delete[] nu_indexes;
     if (nu_forward != nullptr) delete[] nu_forward;
     if (nu_backward != nullptr) delete[] nu_backward;
+    if (reaction_order != nullptr) delete[] reaction_order;
     if (nu != nullptr) delete[] nu;
     if (sum_nu != nullptr) delete[] sum_nu;
     if (third_body_indexes != nullptr) delete[] third_body_indexes;
