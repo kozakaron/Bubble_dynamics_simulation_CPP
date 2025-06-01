@@ -21,7 +21,7 @@ constexpr size_t task_per_thread = 4;
 void task()
 {
     ControlParameters cpar = ControlParameters{{ 
-        .mechanism = Parameters::mechanism::chemkin_otomo2018,
+        .mechanism = Parameters::mechanism::chemkin_kaust2023_n2,
         .R_E = 20e-6,
         .species = {"H2", "N2"},
         .fractions = {0.75, 0.25},
