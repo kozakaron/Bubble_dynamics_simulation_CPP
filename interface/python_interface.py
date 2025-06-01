@@ -40,6 +40,7 @@ from scipy.signal import argrelmin
 import matplotlib.pyplot as plt
 import json
 import os
+import shutil
 from subprocess import Popen, PIPE, STDOUT
 from threading import Thread
 import time
@@ -162,6 +163,7 @@ def run_simulation(
     t_max: float = 1.0,
     timeout: float = 60.0,
     save_steps: bool = True,
+    save_jacobian: bool = False,
 ) -> dict:
     """
     Runs the Bubble_dynamics_simulation_CPP executable in --run mode to run a single simulation.
@@ -175,6 +177,7 @@ def run_simulation(
         t_max (float): Maximum simulation time.
         timeout (float): Timeout for the simulation.
         save_steps (bool): Whether to save the simulation steps.
+        save_jacobian (bool): Whether to save the Jacobian matrixes.
 
     Returns:
         dict: A dictionary containing the simulation results.
@@ -189,6 +192,8 @@ def run_simulation(
     # Check paths
     json_path = _check_path(json_path)
     executable_path = _check_path(executable_path)
+    if save_jacobian and os.path.exists('./_jacobians'):
+        shutil.rmtree('./_jacobians')
 
     # Run simulation (call the executable)
     start = time.time()
@@ -198,6 +203,7 @@ def run_simulation(
         '--timeout', str(timeout),
     ]
     if save_steps: command_list.append('--save')
+    if save_jacobian: command_list.append('--save_jacobian')
 
     return_code = _run_cpp_simulation(command_list)
     print(f'\n{executable_path} returned with code {return_code} after {time.time() - start:.4f} seconds.')
@@ -230,6 +236,8 @@ def run_parameter_study(
     t_max: float = 1.0,
     timeout: float = 60.0,
     save_directory: str = './_parameter_studies/test',
+    cpu_count: int = None,
+    print_output: bool = True   # TODO
 ):
     """
     Runs the Bubble_dynamics_simulation_CPP executable in --parameter_study mode to run a bruteforce parameter study.
@@ -243,6 +251,8 @@ def run_parameter_study(
         t_max (float): Maximum simulation time.
         timeout (float): Timeout for the simulation.
         save_directory (str): Where to save the parameter study.
+        cpu_count (int): Number of CPUs to use for the simulation.
+        print_output (bool): Whether to print the output of the simulation.
     """
     
     # Write the JSON file
@@ -262,6 +272,9 @@ def run_parameter_study(
         '--timeout', str(timeout),
         '--directory', str(save_directory),
     ]
+    if cpu_count is not None:
+        command_list.append('--cpu')
+        command_list.append(str(cpu_count))
 
     return_code = _run_cpp_simulation(command_list)
     print(f'\n{executable_path} returned with code {return_code} after {time.time() - start:.4f} seconds.')

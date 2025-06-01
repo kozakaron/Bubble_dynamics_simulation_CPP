@@ -1180,6 +1180,7 @@ void ParameterStudy::run(const size_t num_threads, const bool print_output)
         return;
     }
     ErrorHandler::print_when_log = print_output;
+    std::cout << "Running parameter study with " << num_threads << " threads..." << std::endl;
 
     // Run tasks
     Timer timer;

@@ -107,6 +107,13 @@ struct chemkin_otomo2018_without_o_struct{
                      46228.0,              -894.0,                 0.0,             -1152.0,            224950.0
     };
     
+    static constexpr index_t reaction_order[num_reactions] = {
+           1,   1,   2,   2,   2,   2,   2,   2,   2,   2,
+           1,   2,   2,   2,   2,   2,   2,   2,   2,   2,
+           1,   2,   2,   2,   2,   1,   2,   2,   2,   1,
+           1,   2,   2,   2,   1
+    };
+    
     
 // REACTION MATRIXES
     

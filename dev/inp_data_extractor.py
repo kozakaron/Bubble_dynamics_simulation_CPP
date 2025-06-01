@@ -562,6 +562,7 @@ def _get_nu(reactions, species, W):
 
     nu_forward = np.zeros((len(reactions), len(species)), dtype=int)
     nu_backward = np.zeros((len(reactions), len(species)), dtype=int)
+    reaction_order = np.zeros((len(reactions)), dtype=int)
     IrreversibleIndexes = []
     digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
@@ -590,6 +591,7 @@ def _get_nu(reactions, species, W):
                     print(colored(f'Warning, photon (HV) in reaction {x} (\'{reactions[x]}\') is ignored', 'yellow'))
                 else:
                     print(colored(f'Warning, \'{f}\' in reaction {x} (\'{reactions[x]}\') is not in species, it is ignored', 'yellow'))
+        reaction_order[x] = int(np.sum(nu_forward[x]))
 
         for b in backward:
             num = 1
@@ -637,7 +639,7 @@ def _get_nu(reactions, species, W):
         nu_backward_small[i] = loc_nu_backward
         nu_small[i] = loc_nu
     
-    return nu_forward, nu_backward, nu, IrreversibleIndexes, max_participants, nu_indexes, nu_forward_small, nu_backward_small, nu_small
+    return nu_forward, nu_backward, nu, IrreversibleIndexes, max_participants, nu_indexes, nu_forward_small, nu_backward_small, nu_small, reaction_order
 
 """________________________________Printing to file________________________________"""
 
@@ -672,7 +674,7 @@ def extract(path, name=''):
         PlogIndexes, Plog) = _get_reactions(lines, species)
     (nu_forward, nu_backward, nu, IrreversibleIndexes,
       max_participants, nu_indexes, nu_forward_small,
-      nu_backward_small, nu_small) = _get_nu(reactions, species, W)
+      nu_backward_small, nu_small, reaction_order) = _get_nu(reactions, species, W)
 
     
   # Create parameters.py
@@ -713,6 +715,7 @@ def extract(path, name=''):
     text += f'static constexpr double A[num_reactions] = '+ print_array(A, 20, max_len=5) + ';\n\n'
     text += f'static constexpr double b[num_reactions] = '+ print_array(B, 20, max_len=5) + ';\n\n'
     text += f'static constexpr double E[num_reactions] = '+ print_array(E, 20, max_len=5) + ';\n\n'
+    text += f'static constexpr index_t reaction_order[num_reactions] = '+ print_array(reaction_order, 4, max_len=10) + ';\n\n'
     
     # Reaction matrixes
     text += line_start + 'REACTION MATRIXES' + line_end
