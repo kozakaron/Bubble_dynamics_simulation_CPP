@@ -14,6 +14,7 @@ class Parameters
 private:
     static const Parameters chemkin_ar_he_params;
     static const Parameters chemkin_kaust2023_n2_params;
+    static const Parameters chemkin_kaust2023_n2_without_o_params;
     static const Parameters chemkin_otomo2018_without_o_params;
     static const Parameters chemkin_otomo2018_params;
 
@@ -22,7 +23,7 @@ private:
 public:
 // MECHANISM, EXCITATION AND REACTION TYPES
 
-    enum mechanism: index_t {chemkin_ar_he, chemkin_kaust2023_n2, chemkin_otomo2018_without_o, chemkin_otomo2018};
+    enum mechanism: index_t {chemkin_ar_he, chemkin_kaust2023_n2, chemkin_kaust2023_n2_without_o, chemkin_otomo2018_without_o, chemkin_otomo2018};
     enum reac_type: index_t {lindemann_reac, troe_reac, sri_reac};
     enum excitation: index_t {no_excitation=0, two_sinusoids=1, sin_impulse=2, sin_impulse_logf=3};
     static constexpr std::array<index_t, 4> excitation_arg_nums = {
@@ -49,9 +50,10 @@ public:
         "Pa Hz -",                              // sin_impulse
         "Pa - -"                                // sin_impulse_logf
     };
-    static constexpr std::array<const char*, 4> mechanism_names = {
+    static constexpr std::array<const char*, 5> mechanism_names = {
         "chemkin_ar_he",
         "chemkin_kaust2023_n2",
+        "chemkin_kaust2023_n2_without_o",
         "chemkin_otomo2018_without_o",
         "chemkin_otomo2018"
     };
