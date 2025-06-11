@@ -6,13 +6,15 @@
 
 #include "chemkin_ar_he.h"
 #include "chemkin_kaust2023_n2.h"
+#include "chemkin_kaust2023_n2_without_o.h"
 #include "chemkin_otomo2018_without_o.h"
 #include "chemkin_otomo2018.h"
 
-const Parameters Parameters::chemkin_ar_he_params                = Parameters(chemkin_ar_he_struct());
-const Parameters Parameters::chemkin_kaust2023_n2_params         = Parameters(chemkin_kaust2023_n2_struct());
-const Parameters Parameters::chemkin_otomo2018_without_o_params  = Parameters(chemkin_otomo2018_without_o_struct());
-const Parameters Parameters::chemkin_otomo2018_params            = Parameters(chemkin_otomo2018_struct());
+const Parameters Parameters::chemkin_ar_he_params                  = Parameters(chemkin_ar_he_struct());
+const Parameters Parameters::chemkin_kaust2023_n2_params           = Parameters(chemkin_kaust2023_n2_struct());
+const Parameters Parameters::chemkin_kaust2023_n2_without_o_params = Parameters(chemkin_kaust2023_n2_without_o_struct());
+const Parameters Parameters::chemkin_otomo2018_without_o_params    = Parameters(chemkin_otomo2018_without_o_struct());
+const Parameters Parameters::chemkin_otomo2018_params              = Parameters(chemkin_otomo2018_struct());
 
 
 #define COPY_ARRAY(type, name, size) { \
@@ -157,6 +159,8 @@ const Parameters *Parameters::get_parameters(const Parameters::mechanism mech)
             return &Parameters::chemkin_ar_he_params;
         case mechanism::chemkin_kaust2023_n2:
             return &Parameters::chemkin_kaust2023_n2_params;
+        case mechanism::chemkin_kaust2023_n2_without_o:
+            return &Parameters::chemkin_kaust2023_n2_without_o_params;
         case mechanism::chemkin_otomo2018_without_o:
             return &Parameters::chemkin_otomo2018_without_o_params;
         case mechanism::chemkin_otomo2018:
