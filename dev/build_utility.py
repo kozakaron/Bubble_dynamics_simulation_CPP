@@ -224,7 +224,7 @@ class Builder:
         # compile
         base_name = os.path.basename(source_file)
         object_file = os.path.splitext(base_name)[0] + '.o'
-        object_file = os.path.join(self.build_dir, object_files_dir, object_file)
+        object_file = os.path.join(self.build_dir, object_files_dir, object_file).replace('\\', '/')
         command_list = [compiler, '-c'] + compiler_flags + [source_file, '-o', object_file]
         self._log_command(command_list, f'compiling {source_file}')
         result = subprocess.run(command_list, capture_output=True, text=True)
@@ -324,7 +324,7 @@ class Builder:
                 if not lib_file.endswith('.a') and not lib_file.endswith('.so') and not lib_file.endswith('.dll') and not lib_file.endswith('.lib') and not lib_file.endswith('.o'):
                     continue
                 orig_lib_file = lib_file
-                lib_file = os.path.join(submodule['lib_dir'], lib_file)
+                lib_file = os.path.join(submodule['lib_dir'], lib_file).replace('\\', '/')
                 if submodule['core_lib'] in orig_lib_file:
                     if core_lib is not None:
                         self.logger.log_error('multiple core libraries found', f'{core_lib}, {lib_file}')

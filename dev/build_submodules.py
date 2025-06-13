@@ -228,10 +228,10 @@ def build_with_cmake(name: str, src_dir: str, build_dir: str, install_dir: str, 
     generator = 'Unix Makefiles' if os.name == 'posix' else 'Visual Studio 17 2022'
     cmake_command_list = [
         'cmake',
-        '-DCMAKE_INSTALL_PREFIX=' + install_dir,
+        f'-DCMAKE_INSTALL_PREFIX="{install_dir}"',
         f'-G "{generator}"',
         '-A "x64"' if os.name == 'nt' else '',
-    ] + cmake_command_list + [src_dir]
+    ] + cmake_command_list + [f'"{src_dir}"']
     command = ' '.join(cmake_command_list)
     if not run_command(command):
         return False
@@ -251,9 +251,9 @@ def build_with_cmake(name: str, src_dir: str, build_dir: str, install_dir: str, 
         if not os.path.exists(vs_install):
             print(f'{bold}{red}Error:{reset} INSTALL.vcxproj not found at {vs_install}.')
             return False
-        if not vs_build_command(vs_path, f'msbuild {vs_build}'):
+        if not vs_build_command(vs_path, f'msbuild "{vs_build}"'):
             return False
-        if not vs_build_command(vs_path, f'msbuild {vs_install}'):
+        if not vs_build_command(vs_path, f'msbuild "{vs_install}"'):
             return False
         
     return True
