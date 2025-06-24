@@ -301,7 +301,7 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinat
         {
             LOG_ERROR(
                 "Invalid arguments for JSON object " + j.dump() + \
-                ". For LinearRange, you must provide start, end and num_steps of type double. " + \
+                ". For LinearRange, you must provide start, end of type double and and num_steps of type integer. " + \
                 "e.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
             );
             return default_range;
@@ -322,7 +322,7 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinat
         {
             LOG_ERROR(
                 "Invalid arguments for JSON onject " + j.dump() + \
-                ". For PowRange, you must provide start, end, num_steps and optionally base of type double. " + \
+                ". For PowRange, you must provide start, end, and optionally base of type double. As well as num_steps of type integer. " + \
                 "e.g.: {\"type\": \"PowRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10, \"base\": 2.0}"
             );
             return default_range;

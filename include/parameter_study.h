@@ -15,6 +15,7 @@
 #include <atomic>
 #include <mutex>
 #include <functional>
+#include <thread>
 
 // Represents possible values for a parameter in a parameter study. Options:
 // - Const: constant value

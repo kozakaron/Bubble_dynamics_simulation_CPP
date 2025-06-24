@@ -62,6 +62,7 @@ Parameters::Parameters(T dummy):
     for(index_t i = 0; i < T::num_elements; i++)
     {
         _elements[T::elements[i].first] = T::elements[i].second;
+        elements_names.push_back(T::elements[i].first);
     }
     for(index_t i = 0; i < T::num_species; i++)
     {
@@ -177,7 +178,10 @@ index_t Parameters::get_element(std::string name) const
     auto it = _elements.find(name);
     if (it == _elements.end())
     {
-        LOG_ERROR("Element \"" + name + "\" not in " + this->model);
+        std::stringstream ss;
+        ss << "Element \"" << name << "\" not found in " << this->model << ". Valid elements are: ";
+        ss << ::to_string((std::string*)Parameters::elements_names.data(), Parameters::elements_names.size());
+        LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
         return invalid_index;
     }
     return it->second;
@@ -189,7 +193,10 @@ index_t Parameters::get_species(std::string name) const
     auto it = _species.find(name);
     if (it == _species.end())
     {
-        LOG_ERROR("Species \"" + name + "\" not in " + this->model);
+        std::stringstream ss;
+        ss << "Species \"" << name << "\" not found in " << this->model << ". Valid species are: ";
+        ss << ::to_string((std::string*)Parameters::species_names.data(), Parameters::species_names.size());
+        LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
         return invalid_index;
     }
     return it->second;
