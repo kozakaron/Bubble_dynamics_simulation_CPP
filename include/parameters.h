@@ -89,6 +89,7 @@ public:
     const index_t num_species;                      // Number of species
     const index_t index_of_water;                   // Index of water in arrays, INVALID if H2O is not in mechanism
     const index_t invalid_index;                    // Invalid index
+    std::vector<std::string> elements_names;        // Names of elements (num_elements)
     std::vector<std::string> species_names;         // Names of species (num_species)
     index_t get_element(std::string name) const;    // Get index of element by name
     index_t get_species(std::string name) const;    // Get index of species by name

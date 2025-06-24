@@ -1,5 +1,3 @@
-#include <thread>
-
 #include "common.h"
 #include "parameters.h"
 #include "control_parameters.h"
@@ -35,7 +33,7 @@ int main(int argc, char **argv)
         ("tmax", "Simulation end time in seconds", cxxopts::value<double>()->default_value("1.0"))
         ("timeout", "Timeout in seconds", cxxopts::value<double>()->default_value("60.0"))
         ("save", "Set this flag to save all timesteps, skip it to save only the first and last steps", cxxopts::value<bool>()->default_value("false"))
-        ("save_jacobian", "Set this flag to save the Jacobian matrix", cxxopts::value<bool>()->default_value("false"))
+        ("save_jacobian", "Set this flag to save the evaluated Jacobian matrixes", cxxopts::value<bool>()->default_value("false"))
         ("log", "Set log file", cxxopts::value<std::string>())
         ("parameter_study", "Run a parameter study with the given JSON file", cxxopts::value<std::string>())
         ("directory", "Set save directory for parameter_study", cxxopts::value<std::string>()->default_value("./_parameter_studies/test"))
