@@ -126,22 +126,28 @@ void test_ode_fun_otomo2018()
 
     ADD_TEST(tester, "Test check_before_call",
         ErrorHandler::clear_errors();
+        std::vector<double> x = {1, 1, 1};
         ASSERT_EQUAL(tester.ode.cpar.error_ID, ErrorHandler::no_error);
-        ASSERT_TRUE(tester.ode.check_before_call());
+        ASSERT_TRUE(tester.ode.check_before_call(x.data()));
 
         auto par = tester.ode.par;
         tester.ode.par = nullptr;
-        ASSERT_FALSE(tester.ode.check_before_call());
+        ASSERT_FALSE(tester.ode.check_before_call(x.data()));
         ASSERT_EQUAL(tester.ode.cpar.error_ID, 0);
         tester.ode.par = par;
-        ASSERT_FALSE(tester.ode.check_before_call());
+        ASSERT_FALSE(tester.ode.check_before_call(x.data()));
         ASSERT_EQUAL(tester.ode.cpar.error_ID, 0);
         tester.ode.cpar.error_ID = ErrorHandler::no_error;
 
         tester.ode.num_species = 0;
-        ASSERT_FALSE(tester.ode.check_before_call());
+        ASSERT_FALSE(tester.ode.check_before_call(x.data()));
         ASSERT_EQUAL(tester.ode.cpar.error_ID, 1);
         tester.ode.num_species = tester.par->num_species;
+        tester.ode.cpar.error_ID = ErrorHandler::no_error;
+
+        x[0] = -1;
+        ASSERT_FALSE(tester.ode.check_before_call(x.data()));
+        ASSERT_EQUAL(tester.ode.cpar.error_ID, 2);
         tester.ode.cpar.error_ID = ErrorHandler::no_error;
         ErrorHandler::clear_errors();
     );

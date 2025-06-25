@@ -66,8 +66,9 @@ void OdeFun::delete_memory()
     this->omega_dot = nullptr;
 }
 
-is_success OdeFun::check_before_call()
+is_success OdeFun::check_before_call(const double* x)
 {
+    // Check if iinitialization was correct
     if (this->cpar.error_ID != ErrorHandler::no_error)
     {
         return false;
@@ -84,6 +85,26 @@ is_success OdeFun::check_before_call()
         this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, message);
         return false;
     }
+    
+    // Check if R and T are valid
+    if (x == nullptr)
+    {
+        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "State vector x is nullptr");
+        return false;
+    }
+    else if(!std::isfinite(x[0]) || !std::isfinite(x[2]))
+    {
+        std::string message = "Non finite R or T: R=" + std::to_string(x[0]) + ";   T=" + std::to_string(x[2]);
+        LOG_ERROR(Error::severity::warning, Error::type::odefun, message);  // recoverable error
+        return false;
+    }
+    else if(x[0] < 0 || x[2] < 0)
+    {
+        //std::string message = "Negative R or T: R=" + std::to_string(x[0]) + ";   T=" + std::to_string(x[2]);
+        //LOG_ERROR(Error::severity::warning, Error::type::odefun, message);  // recoverable error
+        return false;
+    }
+    
     return true;
 }
 
@@ -398,7 +419,11 @@ double OdeFun::threshold_reaction_rate(
     if (!std::isfinite(rate))
     {
         if (exponent == 0.0) return std::copysign(treshold, rate);      // no exponent provided -> treshold
-        else if (exponent < 0.0) return 0.0;                            // large negative exponent -> 0
+        else if (exponent < 0.0) 
+        {
+            LOG_ERROR(Error::severity::warning, Error::type::odefun, "HERE");
+            return 0.0;                            // large negative exponent -> 0
+        }
         else return std::copysign(treshold, rate);                      // large positive exponent -> treshold  
     }
     if (std::abs(rate) > treshold)
@@ -514,15 +539,15 @@ void OdeFun::forward_rate(
         double ln_k;
         if (p < par->plog[par->plog_seperators[j]*4+0])    // p < smallest pressure level
         {
-            ln_k = log(k_lower);
+            ln_k = std::log(k_lower);
         }
         else if (par->plog[(par->plog_seperators[j+1]-1)*4+0] < p)    // p > largest pressure level
         {
-            ln_k = log(k_upper);
+            ln_k = std::log(k_upper);
         }
         else
         {
-            ln_k = log(k_lower) + (log(p) - log(par->plog[lower*4+0])) / (log(par->plog[upper*4+0]) / (log(par->plog[upper*4+0]) - log(par->plog[lower*4+0]))) * (log(k_upper) - log(k_lower));
+            ln_k = std::log(k_lower) + (std::log(p) - std::log(par->plog[lower*4+0])) / (std::log(par->plog[upper*4+0]) / (std::log(par->plog[upper*4+0]) - std::log(par->plog[lower*4+0]))) * (std::log(k_upper) - std::log(k_lower));
         }
 
         const double k_forward = std::exp(ln_k);
@@ -651,7 +676,7 @@ is_success OdeFun::operator()(
         double* dxdt
     ) //noexcept
 {
-    if (!this->check_before_call())
+    if (!this->check_before_call(x))
         return false;
 // Thermodynamics
     this->thermodynamic(x[2]);    // set C_p, H, S, C_v
