@@ -110,7 +110,7 @@ public:
 private:
 #endif
     void delete_memory();
-    is_success check_before_call();
+    is_success check_before_call(const double* x);
     is_success check_after_call(
         const double t,
         const double* x,

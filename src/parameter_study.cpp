@@ -1200,7 +1200,7 @@ void ParameterStudy::run(const size_t num_threads, const bool print_output)
     double runtime = timer.lap();
     std::cout << "\n\n";
     std::stringstream ss;
-    ss << "Successful simulations: " << this->successful_simulations << "/" << this->total_simulations << " (" << std::setprecision(2) << 100.0 * this->successful_simulations / this->total_simulations << " %)" << std::endl;
+    ss << "Successful simulations: " << this->successful_simulations << "/" << this->total_simulations << " (" << std::setprecision(4) << 100.0 * this->successful_simulations / this->total_simulations << " %)" << std::endl;
     ss << "Total runtime: " << Timer::format_time(runtime) << std::endl;
     ss << "Average runtime per combination: " << Timer::format_time(runtime / parameter_combinator.get_total_combination_count()) << std::endl;
     std::cout << ss.str();

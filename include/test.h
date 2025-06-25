@@ -45,40 +45,42 @@ private:
     });
 
 // Assertion macros
+#define LOCATION std::string(" in ") + __FILE__ + ":" + std::to_string(__LINE__)
+
 #define FAIL(message) \
     return message;
 
 #define ASSERT_TRUE(condition) \
-    if (!(condition)) return "Assert true failed: " #condition " != true";
+    if (!(condition)) return "Assert true failed: " #condition " != true" + LOCATION;
 
 #define ASSERT_FALSE(condition) \
-    if ((condition)) return "Assert false failed: " #condition " != false";
+    if ((condition)) return "Assert false failed: " #condition " != false" + LOCATION;
 
 #define ASSERT_EQUAL(a, b) \
-    if ((a) != (b)) return "Assert equal failed: " #a " != " #b " (" + std::to_string(a) + " != " + std::to_string(b) + ")";
+    if ((a) != (b)) return "Assert equal failed: " #a " != " #b " (" + std::to_string(a) + " != " + std::to_string(b) + ")" + LOCATION;
 
 #define ASSERT_NOT_EQUAL(a, b) \
-    if ((a) == (b)) return "Assert not equal failed: " #a " == " #b " (" + std::to_string(a) + " == " + std::to_string(b) + ")";
+    if ((a) == (b)) return "Assert not equal failed: " #a " == " #b " (" + std::to_string(a) + " == " + std::to_string(b) + ")" + LOCATION;
 
 #define ASSERT_NEAR(a, b, tol) \
-    if (!std::isfinite((a))) return "Assert near failed: " #a " is not a number (" + std::to_string(a) + ")"; \
-    if (!std::isfinite((b))) return "Assert near failed: " #b " is not a number (" + std::to_string(b) + ")"; \
+    if (!std::isfinite((a))) return "Assert near failed: " #a " is not a number (" + std::to_string(a) + ")" + LOCATION; \
+    if (!std::isfinite((b))) return "Assert near failed: " #b " is not a number (" + std::to_string(b) + ")" + LOCATION; \
     if (std::abs((a) - (b)) > (tol)) \
-        return "Assert near failed: " #a " != " #b " (" + std::to_string(a) + " != " + std::to_string(b) + ")";
+        return "Assert near failed: " #a " != " #b " (" + std::to_string(a) + " != " + std::to_string(b) + ")" + LOCATION;
 
 #define ASSERT_APPROX(a, b, tol) \
-    if (!std::isfinite((a))) return "Assert approx failed: " #a " is not a number (" + std::to_string(a) + ")"; \
-    if (!std::isfinite((b))) return "Assert approx failed: " #b " is not a number (" + std::to_string(b) + ")"; \
+    if (!std::isfinite((a))) return "Assert approx failed: " #a " is not a number (" + std::to_string(a) + ")" + LOCATION; \
+    if (!std::isfinite((b))) return "Assert approx failed: " #b " is not a number (" + std::to_string(b) + ")" + LOCATION; \
     if (std::abs((a) - (b)) / std::max(std::abs(a), std::abs(b)) > (tol)) \
-        return "Assert approx failed: " #a " != " #b " (" + std::to_string(a) + " != " + std::to_string(b) + ")";
+        return "Assert approx failed: " #a " != " #b " (" + std::to_string(a) + " != " + std::to_string(b) + ")" + LOCATION;
 
 #define ASSERT_APPROX_ARRAY(a, b, size, tol) \
     for (size_t i = 0; i < (size_t)size; i++) \
     { \
-        if (!std::isfinite((a[i]))) return "Assert approx failed: " #a "[" + std::to_string(i) + "] is not a number (" + std::to_string(a[i]) + ")"; \
-        if (!std::isfinite((b[i]))) return "Assert approx failed: " #b "[" + std::to_string(i) + "] is not a number (" + std::to_string(b[i]) + ")"; \
+        if (!std::isfinite((a[i]))) return "Assert approx failed: " #a "[" + std::to_string(i) + "] is not a number (" + std::to_string(a[i]) + ")" + LOCATION; \
+        if (!std::isfinite((b[i]))) return "Assert approx failed: " #b "[" + std::to_string(i) + "] is not a number (" + std::to_string(b[i]) + ")" + LOCATION; \
         if (std::abs((a[i]) - (b[i])) / std::max(std::abs(a[i]), std::abs(b[i])) > (tol)) \
-            return "Assert approx failed: " #a "[" + std::to_string(i) + "] != " #b "[" + std::to_string(i) + "] (" + std::to_string(a[i]) + " != " + std::to_string(b[i]) + ")"; \
+            return "Assert approx failed: " #a "[" + std::to_string(i) + "] != " #b "[" + std::to_string(i) + "] (" + std::to_string(a[i]) + " != " + std::to_string(b[i]) + ")" + LOCATION; \
     }
 
 } // namespace testing
