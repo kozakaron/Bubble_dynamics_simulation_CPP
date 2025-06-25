@@ -106,6 +106,7 @@ public:
     const double *b;                                // Temperature exponents [-] (num_reactions)
     const double *E;                                // Activation energies [cal/mol] (num_reactions)
     const index_t *reaction_order;                  // Reaction orders (num_reactions)
+    const double *N_A_pow_reaction_order;           // N_A^reaction_order (num_reactions)
 // Reaction matrixes
     const index_t num_max_specie_per_reaction;      // Maximum number of species participating in a reaction
     const index_t *nu_indexes;                      // Indexes of species participating in reactions (num_reactions, num_max_specie_per_reaction)

@@ -394,7 +394,7 @@ double OdeFun::threshold_reaction_rate(
     const double exponent
 ) 
 {
-    const double treshold = reaction_rate_threshold * std::pow(par->N_A, par->reaction_order[index]);
+    const double treshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
     if (!std::isfinite(rate))
     {
         if (exponent == 0.0) return std::copysign(treshold, rate);      // no exponent provided -> treshold
