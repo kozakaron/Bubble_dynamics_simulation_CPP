@@ -75,33 +75,33 @@ is_success OdeFun::check_before_call(const double* x)
     }
     else if (this->par == nullptr || this->omega_dot == nullptr)
     {
-        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Arrays/par were nullptr. Forgot to call OdeFun::init()?");
+        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Arrays/par were nullptr. Forgot to call OdeFun::init()?", this->cpar.ID);
         return false;
     }
     else if (this->num_species != this->par->num_species)
     {
         std::string message = "Invalid array lengths. Expected num_species=" + std::to_string(this->par->num_species) +\
                               ", arrays are initialized with size " + std::to_string(this->num_species) + " instead. Forgot to call OdeFun::init()?";
-        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, message);
+        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, message, this->cpar.ID);
         return false;
     }
     
     // Check if R and T are valid
     if (x == nullptr)
     {
-        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "State vector x is nullptr");
+        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "State vector x is nullptr", this->cpar.ID);
         return false;
     }
     else if(!std::isfinite(x[0]) || !std::isfinite(x[2]))
     {
         std::string message = "Non finite R or T: R=" + std::to_string(x[0]) + ";   T=" + std::to_string(x[2]);
-        LOG_ERROR(Error::severity::warning, Error::type::odefun, message);  // recoverable error
+        LOG_ERROR(Error::severity::warning, Error::type::odefun, message, this->cpar.ID);  // recoverable error
         return false;
     }
     else if(x[0] < 0 || x[2] < 0)
     {
         //std::string message = "Negative R or T: R=" + std::to_string(x[0]) + ";   T=" + std::to_string(x[2]);
-        //LOG_ERROR(Error::severity::warning, Error::type::odefun, message);  // recoverable error
+        //LOG_ERROR(Error::severity::warning, Error::type::odefun, message, this->cpar.ID);  // recoverable error
         return false;
     }
     
@@ -148,13 +148,13 @@ is_success OdeFun::init(const ControlParameters& cpar)
     this->par = Parameters::get_parameters(cpar.mechanism);
     if (this->par == nullptr)
     {
-        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Invalid mechanism: " + std::to_string(cpar.mechanism), cpar.ID);
+        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Invalid mechanism: " + std::to_string(cpar.mechanism), this->cpar.ID);
         return false;
     }
     this->num_species = this->par->num_species;
     if (this->cpar.enable_evaporation && this->par->index_of_water == this->par->invalid_index)
     {
-        LOG_ERROR(Error::severity::warning, Error::type::odefun, "Water is not in the mechanism, but evaporation is enabled.", cpar.ID);
+        LOG_ERROR(Error::severity::warning, Error::type::odefun, "Water is not in the mechanism, but evaporation is enabled.", this->cpar.ID);
     }
     
     if (old_par != this->par || this->omega_dot == nullptr)
@@ -245,7 +245,7 @@ is_success OdeFun::initial_conditions(
 // Errors
     if (p_gas < 0.0)
     {
-        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Negative gas pressure: " + std::to_string(p_gas), cpar.ID);
+        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Negative gas pressure: " + std::to_string(p_gas), this->cpar.ID);
         return false;
     }
     return true;
@@ -408,32 +408,6 @@ std::pair<double, double> OdeFun::evaporation(
 }
 
 
-double OdeFun::threshold_reaction_rate(
-    const index_t index,
-    const double reaction_rate_threshold,
-    const double rate,
-    const double exponent
-) 
-{
-    const double treshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
-    if (!std::isfinite(rate))
-    {
-        if (exponent == 0.0) return std::copysign(treshold, rate);      // no exponent provided -> treshold
-        else if (exponent < 0.0) 
-        {
-            LOG_ERROR(Error::severity::warning, Error::type::odefun, "HERE");
-            return 0.0;                            // large negative exponent -> 0
-        }
-        else return std::copysign(treshold, rate);                      // large positive exponent -> treshold  
-    }
-    if (std::abs(rate) > treshold)
-    {
-        return std::copysign(treshold, rate);
-    }
-    return rate; // rate is within the threshold
-}
-
-
 void OdeFun::forward_rate(
     const double T,
     const double M,
@@ -445,14 +419,7 @@ void OdeFun::forward_rate(
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
         const double exponent = -par->E[index] / (par->R_cal * T);
-        const double k_forward = par->A[index] * std::pow(T, par->b[index]) * std::exp(exponent);
-
-        this->k_forward[index] = this->threshold_reaction_rate(
-            index,
-            reaction_rate_threshold,
-            k_forward,
-            exponent
-        );
+        this->k_forward[index] = par->A[index] * std::pow(T, par->b[index]) * std::exp(exponent);
     }
 
 // Pressure dependent reactions
@@ -508,12 +475,7 @@ void OdeFun::forward_rate(
             break;
         }
 
-        const double k_forward = k_inf * P_r / (1.0 + P_r) * F;
-        this->k_forward[index] = this->threshold_reaction_rate(
-            index,
-            reaction_rate_threshold,
-            k_forward
-        );
+        this->k_forward[index] = k_inf * P_r / (1.0 + P_r) * F;
     } // pressure dependent reactions end
 
 // PLOG reactions
@@ -550,14 +512,16 @@ void OdeFun::forward_rate(
             ln_k = std::log(k_lower) + (std::log(p) - std::log(par->plog[lower*4+0])) / (std::log(par->plog[upper*4+0]) / (std::log(par->plog[upper*4+0]) - std::log(par->plog[lower*4+0]))) * (std::log(k_upper) - std::log(k_lower));
         }
 
-        const double k_forward = std::exp(ln_k);
-        this->k_forward[index] = this->threshold_reaction_rate(
-            index,
-            reaction_rate_threshold,
-            k_forward,
-            ln_k
-        );
+        this->k_forward[index] = std::exp(ln_k);
+    }
 
+// Forward rate thresholding
+    for(index_t index = 0; index < par->num_reactions; ++index)
+    {
+        const double treshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
+        const double k_forward = this->k_forward[index];
+        if (!std::isfinite(k_forward) || std::abs(k_forward) > treshold)
+            this->k_forward[index] = std::copysign(treshold, k_forward);
     }
 }
 
@@ -580,22 +544,34 @@ void OdeFun::backward_rate(
             Delta_H += nu * this->H[nu_index];
         }
 
-        const double K_p = std::exp(Delta_S / par->R_erg - Delta_H / (par->R_erg * T));
-        const double K_c = K_p * std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), par->sum_nu[index]);
-        if (std::abs(K_c) < 1e-300)
+        constexpr double min_divider = 1e-323;
+        bool tresholded = false;
+        const double treshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
+        double K_p = std::exp(Delta_S / par->R_erg - Delta_H / (par->R_erg * T));
+        double pow_term = std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), par->sum_nu[index]);
+        // double K_c = K_p * pow_term;
+        
+        if (std::abs(K_p) < min_divider) K_p = std::copysign(min_divider, K_p == 0.0 ? 1.0 : K_p);
+        if (std::abs(pow_term) < min_divider) pow_term = std::copysign(min_divider, pow_term == 0.0 ? 1.0 : pow_term);
+
+        double k_backward = this->k_forward[index] / K_p;
+        if (std::abs(k_backward) > treshold)
         {
-            //if (std::abs(this->k_forward[index]) > 1e-30)
-            //    LOG_ERROR(Error::severity::warning, Error::type::odefun, "K_c is too small: " + std::to_string(K_c) + ". k_forward = " + std::to_string(this->k_forward[index]) + ". Reaction index: " + std::to_string(index), this->cpar.ID);
-            this->k_backward[index] = 0.0; // TODO: is this correct?
-            this->k_forward[index] = 0.0;
-            continue;
+            k_backward = std::copysign(treshold, k_backward);
+            tresholded = true;
         }
-        const double k_backward = this->k_forward[index] / K_c;
-        this->k_backward[index] = this->threshold_reaction_rate(
-            index,
-            reaction_rate_threshold,
-            k_backward
-        );
+        k_backward /= pow_term;
+        if (std::abs(k_backward) > treshold)
+        {
+            k_backward = std::copysign(treshold, k_backward);
+            tresholded = true;
+        }
+
+        this->k_backward[index] = k_backward;
+        if (tresholded)
+        {
+            this->k_forward[index] = k_backward * K_p * pow_term;
+        }
     }
 
     for(index_t j = 0; j < par->num_irreversible; ++j)
