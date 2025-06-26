@@ -147,7 +147,7 @@ void test_ode_fun_otomo2018()
 
         x[0] = -1;
         ASSERT_FALSE(tester.ode.check_before_call(x.data()));
-        ASSERT_EQUAL(tester.ode.cpar.error_ID, 2);
+        ASSERT_EQUAL(tester.ode.cpar.error_ID, ErrorHandler::no_error);  // recoverable error
         tester.ode.cpar.error_ID = ErrorHandler::no_error;
         ErrorHandler::clear_errors();
     );

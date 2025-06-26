@@ -59,14 +59,6 @@ private:
     ) ; //noexcept
 
 
-    double threshold_reaction_rate(
-        const index_t index,
-        const double reaction_rate_threshold,
-        const double rate,
-        const double exponent = 0.0
-    ) ; //noexcept
-
-
     void forward_rate(
         const double T,
         const double M,
