@@ -24,12 +24,12 @@ from interface import python_interface as api
 
 base_dir = './_parameter_studies/stability_test/'
 semi_success_time = 1000e-6
-timeout = 60.0
+timeout = 30.0
 
 parameter_studies = dict(
     chemkin_ar_he__high_p_A = {
         'mechanism': 'chemkin_ar_he',
-        'R_E': {'type': 'LinearRange', 'start': 1e-06, 'end': 30e-6, 'num_steps': 50},
+        'R_E': {'type': 'LinearRange', 'start': 0.5e-06, 'end': 20e-6, 'num_steps': 20},
         'species': ['O2'],
         'fractions': [1.0],
         'P_amb': {'type': 'Const', 'value': 0.5e5},
@@ -38,7 +38,7 @@ parameter_studies = dict(
         'P_v': {'type': 'Const', 'value': 2338.1},
         'mu_L': {'type': 'Const', 'value': 0.001},
         'rho_L': {'type': 'Const', 'value': 998.2},
-        'c_L': {'type': 'Const', 'value': 1483.0},
+        'c_L': {'type': 'Const', 'value': 483.0},
         'surfactant': {'type': 'Const', 'value': 1.0},
         'enable_heat_transfer': True,
         'enable_evaporation': True,
@@ -46,15 +46,15 @@ parameter_studies = dict(
         'enable_dissipated_energy': True,
         'target_specie': 'H2',
         'excitation_params': [
-            {'type': 'LinearRange', 'start': -2e5, 'end': -6e5, 'num_steps': 5},
-            {'type': 'LinearRange', 'start': 5000.0, 'end': 20000.0, 'num_steps': 7},
-            {'type': 'Const', 'value': 5.0}
+            {'type': 'LinearRange', 'start': -12e5, 'end': -22e5, 'num_steps': 5},
+            {'type': 'LinearRange', 'start': 2500.0, 'end': 12500.0, 'num_steps': 5},
+            {'type': 'Const', 'value': 1.0}
         ],
         'excitation_type': 'sin_impulse'
     },
     chemkin_otomo2018_simple = {
         'mechanism': 'chemkin_otomo2018',
-        'R_E': {'type': 'LinearRange', 'start': 10e-06, 'end': 50e-6, 'num_steps': 35},
+        'R_E': {'type': 'LinearRange', 'start': 1e-06, 'end': 50e-6, 'num_steps': 20},
         'species': ['H2', 'N2'],
         'fractions': [0.75, 0.25],
         'P_amb': {'type': 'Const', 'value': 1e5},
@@ -71,7 +71,7 @@ parameter_studies = dict(
         'enable_dissipated_energy': True,
         'target_specie': 'NH3',
         'excitation_params': [
-            {'type': 'LinearRange', 'start': -2e5, 'end': -5e5, 'num_steps': 10},
+            {'type': 'LinearRange', 'start': -12e5, 'end': -20e5, 'num_steps': 5},
             {'type': 'LinearRange', 'start': 10000.0, 'end': 30000.0, 'num_steps': 5},
             {'type': 'Const', 'value': 1.0}
         ],
@@ -79,7 +79,7 @@ parameter_studies = dict(
     },
     chemkin_kaust2023_n2_simple = {
         'mechanism': 'chemkin_kaust2023_n2',
-        'R_E': {'type': 'LinearRange', 'start': 5e-06, 'end': 100e-6, 'num_steps': 50},
+        'R_E': {'type': 'LinearRange', 'start': 1e-06, 'end': 100e-6, 'num_steps': 20},
         'species': ['H2', 'N2'],
         'fractions': [0.75, 0.25],
         'P_amb': {'type': 'Const', 'value': 1e5},
@@ -96,44 +96,44 @@ parameter_studies = dict(
         'enable_dissipated_energy': True,
         'target_specie': 'NH3',
         'excitation_params': [
-            {'type': 'LinearRange', 'start': -1.5e5, 'end': -4e5, 'num_steps': 5},
-            {'type': 'LinearRange', 'start': 20000.0, 'end': 80000.0, 'num_steps': 7},
-            {'type': 'Const', 'value': 1.0}
+            {'type': 'LinearRange', 'start': -15e5, 'end': -25e5, 'num_steps': 5},
+            {'type': 'LinearRange', 'start': 10000.0, 'end': 80000.0, 'num_steps': 5},
+            {'type': 'Const', 'value': 3.0}
         ],
         'excitation_type': 'sin_impulse'
     },
     chemkin_otomo2018_without_O2 = {
         'mechanism': 'chemkin_otomo2018_without_o',
-        'R_E': {'type': 'LinearRange', 'start': 1e-06, 'end': 30e-6, 'num_steps': 25},
+        'R_E': {'type': 'LinearRange', 'start': 0.5e-06, 'end': 10e-6, 'num_steps': 20},
         'species': ['H2', 'N2'],
         'fractions': [0.75, 0.25],
-        'P_amb': {'type': 'Const', 'value': 2.5e5},
-        'T_inf': {'type': 'Const', 'value': 333.15},
+        'P_amb': {'type': 'Const', 'value': 0.1e5},
+        'T_inf': {'type': 'Const', 'value': 293.15},
         'alfa_M': {'type': 'Const', 'value': 0.35},
         'P_v': {'type': 'Const', 'value': 2338.1},
         'mu_L': {'type': 'Const', 'value': 0.001},
         'rho_L': {'type': 'Const', 'value': 998.2},
-        'c_L': {'type': 'Const', 'value': 750.0},
-        'surfactant': {'type': 'Const', 'value': 1.0},
+        'c_L': {'type': 'Const', 'value': 483.0},
+        'surfactant': {'type': 'Const', 'value': 0.05},
         'enable_heat_transfer': True,
         'enable_evaporation': False,
         'enable_reactions': True,
         'enable_dissipated_energy': True,
         'target_specie': 'NH3',
         'excitation_params': [
-            {'type': 'LinearRange', 'start': -4e5, 'end': -8e5, 'num_steps': 5},
-            {'type': 'LinearRange', 'start': 5000.0, 'end': 10000.0, 'num_steps': 7},
+            {'type': 'LinearRange', 'start': -20e5, 'end': -30e5, 'num_steps': 5},
+            {'type': 'LinearRange', 'start': 5000.0, 'end': 10000.0, 'num_steps': 5},
             {'type': 'Const', 'value': 5.0}
         ],
         'excitation_type': 'sin_impulse'
     },
     chemkin_kaust2023_n2_high_T = {
         'mechanism': 'chemkin_kaust2023_n2',
-        'R_E': {'type': 'LinearRange', 'start': 10e-06, 'end': 100e-6, 'num_steps': 35},
+        'R_E': {'type': 'LinearRange', 'start': 10e-06, 'end': 100e-6, 'num_steps': 15},
         'species': ['H2', 'O2', 'N2', 'AR', 'HE'],
         'fractions': [0.45, 0.1, 0.15, 0.2, 0.1],
         'P_amb': {'type': 'Const', 'value': 5e5},
-        'T_inf':  {'type': 'LinearRange', 'start': 893.15, 'end': 2293.15, 'num_steps': 10},
+        'T_inf':  {'type': 'LinearRange', 'start': 693.15, 'end': 2093.15, 'num_steps': 10},
         'alfa_M': {'type': 'Const', 'value': 0.35},
         'P_v': {'type': 'Const', 'value': 2338.1},
         'mu_L': {'type': 'Const', 'value': 0.001},
@@ -146,7 +146,7 @@ parameter_studies = dict(
         'enable_dissipated_energy': False,
         'target_specie': 'NH3',
         'excitation_params': [
-            {'type': 'Const', 'value': -10e5},
+            {'type': 'Const', 'value': -20e5},
             {'type': 'Const', 'value': 25000.0},
             {'type': 'Const', 'value': 1.0}
         ],

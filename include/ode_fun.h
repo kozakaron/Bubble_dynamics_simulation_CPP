@@ -59,14 +59,6 @@ private:
     ) ; //noexcept
 
 
-    double threshold_reaction_rate(
-        const index_t index,
-        const double reaction_rate_threshold,
-        const double rate,
-        const double exponent = 0.0
-    ) ; //noexcept
-
-
     void forward_rate(
         const double T,
         const double M,
@@ -110,7 +102,7 @@ public:
 private:
 #endif
     void delete_memory();
-    is_success check_before_call();
+    is_success check_before_call(const double* x);
     is_success check_after_call(
         const double t,
         const double* x,

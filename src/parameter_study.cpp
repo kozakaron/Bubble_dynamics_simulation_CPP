@@ -301,7 +301,7 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinat
         {
             LOG_ERROR(
                 "Invalid arguments for JSON object " + j.dump() + \
-                ". For LinearRange, you must provide start, end and num_steps of type double. " + \
+                ". For LinearRange, you must provide start, end of type double and and num_steps of type integer. " + \
                 "e.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
             );
             return default_range;
@@ -322,7 +322,7 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinat
         {
             LOG_ERROR(
                 "Invalid arguments for JSON onject " + j.dump() + \
-                ". For PowRange, you must provide start, end, num_steps and optionally base of type double. " + \
+                ". For PowRange, you must provide start, end, and optionally base of type double. As well as num_steps of type integer. " + \
                 "e.g.: {\"type\": \"PowRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10, \"base\": 2.0}"
             );
             return default_range;
@@ -699,8 +699,8 @@ double get_n_target(const OdeSolution &sol, const ControlParameters &cpar)
     const Parameters* par = Parameters::get_parameters(cpar.mechanism);
     if (par == nullptr) return 0.0;
     if (cpar.target_specie == par->invalid_index) return 0.0;
-    if (sol.x.front().size() != 4 + par->num_species) return 0.0;
-    if (sol.x.back().size() != 4 + par->num_species) return 0.0;
+    if (sol.x.front().size() != size_t(4 + par->num_species)) return 0.0;
+    if (sol.x.back().size() != size_t(4 + par->num_species)) return 0.0;
 
     const double R_last = 100.0 * sol.x.back()[0];  // [cm]
     const double V_last = 4.0 / 3.0 * std::numbers::pi * std::pow(R_last, 3); // [cm^3]
@@ -1200,7 +1200,7 @@ void ParameterStudy::run(const size_t num_threads, const bool print_output)
     double runtime = timer.lap();
     std::cout << "\n\n";
     std::stringstream ss;
-    ss << "Successful simulations: " << this->successful_simulations << "/" << this->total_simulations << " (" << std::setprecision(2) << 100.0 * this->successful_simulations / this->total_simulations << " %)" << std::endl;
+    ss << "Successful simulations: " << this->successful_simulations << "/" << this->total_simulations << " (" << std::setprecision(4) << 100.0 * this->successful_simulations / this->total_simulations << " %)" << std::endl;
     ss << "Total runtime: " << Timer::format_time(runtime) << std::endl;
     ss << "Average runtime per combination: " << Timer::format_time(runtime / parameter_combinator.get_total_combination_count()) << std::endl;
     std::cout << ss.str();
