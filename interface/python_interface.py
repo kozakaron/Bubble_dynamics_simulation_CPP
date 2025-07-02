@@ -45,6 +45,30 @@ from subprocess import Popen, PIPE, STDOUT
 from threading import Thread
 import time
 
+# Loading the interface
+system = None
+executable_path = None
+if os.name == 'nt':
+    if os.path.exists('./bin/main.exe'):
+        system = 'windows'
+        executable_path = './bin/main.exe'
+    elif os.path.exists('./bin/main'):
+        system = 'wsl'
+        executable_path = './bin/main'
+elif os.name == 'posix':
+    if os.path.exists('./bin/main'):
+        system = 'linux'
+        executable_path = './bin/main'
+
+print(f'{executable_path=}, {system=}')
+if executable_path is None:
+    print('Warning: No default executable path found. Please check the ./bin directory. Perhaps you forgot to compile with ./dev/build.py')
+if system is None:
+    print('Warning: System is not supported. You may use:')
+    print('    Windows with ./bin/main.exe')
+    print('    WSL with ./bin/main')
+    print('    Linux with ./bin/main')
+
 
 def example_cpar() -> dict:
     """
@@ -114,12 +138,16 @@ def _check_path(
 ) -> str:
     """
     Checks if the path exists and returns the absolute path.
+    Does nothing if system is 'wsl' (Windows Subsystem for Linux).
     """
+
+    if system == 'wsl':
+        return path # no checks
 
     if not os.path.exists(path):
         raise FileNotFoundError(f'The path "{path}" does not exist.')
     else:
-        path = os.path.abspath(path)
+        path = os.path.abspath(path).replace('\\\\', '/').replace('\\', '/')
     return path
 
 
@@ -131,6 +159,8 @@ def _run_cpp_simulation(
     Returns the return code of the process.
     """
 
+    if system == 'wsl':
+        command_list = ['wsl'] + command_list
 
     # Functions to read stdout and stderr
     def stream_reader(stream, prefix):
@@ -159,7 +189,7 @@ def _run_cpp_simulation(
 def run_simulation(
     cpar: dict,
     json_path: str = 'ignore.json',
-    executable_path: str = './bin/main' if os.name == 'posix' else './bin/main.exe',
+    executable_path: str = executable_path,
     t_max: float = 1.0,
     timeout: float = 60.0,
     save_steps: bool = True,
@@ -197,8 +227,8 @@ def run_simulation(
 
     # Run simulation (call the executable)
     start = time.time()
-    command_list = [
-        executable_path, '--run', json_path,
+    command_list = [executable_path,
+        '--run', json_path,
         '--tmax', str(t_max),
         '--timeout', str(timeout),
     ]
@@ -232,7 +262,7 @@ def example_parameter_study() -> dict:
 def run_parameter_study(
     parameter_study: dict,
     json_path: str = 'ignore.json',
-    executable_path: str = './bin/main' if os.name == 'posix' else './bin/main.exe',
+    executable_path: str = executable_path,
     t_max: float = 1.0,
     timeout: float = 60.0,
     save_directory: str = './_parameter_studies/test',

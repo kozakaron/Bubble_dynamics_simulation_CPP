@@ -14,7 +14,7 @@ static_assert(std::is_same<sunrealtype, double>::value, "sunrealtype must be dou
 // instead of: int retval = CVodeCreate(...); if (retval != CV_SUCCESS) { ... }
 #define HANDLE_ERROR_CODE(...) \
 { \
-    (void*) error_ID_ptr; /* a variable named 'size_t* error_ID_ptr;' must be in the scope of the macro call*/ \
+    (void)error_ID_ptr; /* a variable named 'size_t* error_ID_ptr;' must be in the scope of the macro call*/ \
     static_assert(std::is_same<decltype(error_ID_ptr), size_t*>::value, "error_ID_ptr must be size_t*"); \
     \
     int retval = __VA_ARGS__; \
@@ -30,7 +30,7 @@ static_assert(std::is_same<sunrealtype, double>::value, "sunrealtype must be dou
 // instead of: pointer = N_VNew_Serial(...); if (pointer == nullptr) { ... }
 #define HANDLE_RETURN_PTR(pointer, ...) \
 { \
-    (void*) error_ID_ptr; /* a variable named 'size_t* error_ID_ptr;' must be in the scope of the macro call*/ \
+    (void)error_ID_ptr; /* a variable named 'size_t* error_ID_ptr;' must be in the scope of the macro call*/ \
     static_assert(std::is_same<decltype(error_ID_ptr), size_t*>::value, "error_ID_ptr must be size_t*"); \
     \
     pointer = __VA_ARGS__; \

@@ -1,18 +1,21 @@
 #include <algorithm>
 #include <sstream>
+#include <cmath>
 
 #include "common.h"
 #include "parameters.h"
 
 #include "chemkin_ar_he.h"
 #include "chemkin_kaust2023_n2.h"
+#include "chemkin_kaust2023_n2_without_o.h"
 #include "chemkin_otomo2018_without_o.h"
 #include "chemkin_otomo2018.h"
 
-const Parameters Parameters::chemkin_ar_he_params                = Parameters(chemkin_ar_he_struct());
-const Parameters Parameters::chemkin_kaust2023_n2_params         = Parameters(chemkin_kaust2023_n2_struct());
-const Parameters Parameters::chemkin_otomo2018_without_o_params  = Parameters(chemkin_otomo2018_without_o_struct());
-const Parameters Parameters::chemkin_otomo2018_params            = Parameters(chemkin_otomo2018_struct());
+const Parameters Parameters::chemkin_ar_he_params                  = Parameters(chemkin_ar_he_struct());
+const Parameters Parameters::chemkin_kaust2023_n2_params           = Parameters(chemkin_kaust2023_n2_struct());
+const Parameters Parameters::chemkin_kaust2023_n2_without_o_params = Parameters(chemkin_kaust2023_n2_without_o_struct());
+const Parameters Parameters::chemkin_otomo2018_without_o_params    = Parameters(chemkin_otomo2018_without_o_struct());
+const Parameters Parameters::chemkin_otomo2018_params              = Parameters(chemkin_otomo2018_struct());
 
 
 #define COPY_ARRAY(type, name, size) { \
@@ -56,10 +59,17 @@ Parameters::Parameters(T dummy):
     COPY_ARRAY(double, b, T::num_reactions);
     COPY_ARRAY(double, E, T::num_reactions);
     COPY_ARRAY(index_t, reaction_order, T::num_reactions);
+    double* temp_N_A_pow_reaction_order = new double[T::num_reactions];
+    for(index_t i = 0; i < T::num_reactions; i++)
+    {
+        temp_N_A_pow_reaction_order[i] = std::pow(Parameters::N_A, T::reaction_order[i]);
+    }
+    this->N_A_pow_reaction_order = (const double*)temp_N_A_pow_reaction_order;
     COPY_ARRAY(index_t, nu_indexes, T::num_reactions*T::num_max_specie_per_reaction);
     for(index_t i = 0; i < T::num_elements; i++)
     {
         _elements[T::elements[i].first] = T::elements[i].second;
+        elements_names.push_back(T::elements[i].first);
     }
     for(index_t i = 0; i < T::num_species; i++)
     {
@@ -132,6 +142,7 @@ Parameters::~Parameters()
     if (nu_forward != nullptr) delete[] nu_forward;
     if (nu_backward != nullptr) delete[] nu_backward;
     if (reaction_order != nullptr) delete[] reaction_order;
+    if (N_A_pow_reaction_order != nullptr) delete[] N_A_pow_reaction_order;
     if (nu != nullptr) delete[] nu;
     if (sum_nu != nullptr) delete[] sum_nu;
     if (third_body_indexes != nullptr) delete[] third_body_indexes;
@@ -157,6 +168,8 @@ const Parameters *Parameters::get_parameters(const Parameters::mechanism mech)
             return &Parameters::chemkin_ar_he_params;
         case mechanism::chemkin_kaust2023_n2:
             return &Parameters::chemkin_kaust2023_n2_params;
+        case mechanism::chemkin_kaust2023_n2_without_o:
+            return &Parameters::chemkin_kaust2023_n2_without_o_params;
         case mechanism::chemkin_otomo2018_without_o:
             return &Parameters::chemkin_otomo2018_without_o_params;
         case mechanism::chemkin_otomo2018:
@@ -173,7 +186,10 @@ index_t Parameters::get_element(std::string name) const
     auto it = _elements.find(name);
     if (it == _elements.end())
     {
-        LOG_ERROR("Element \"" + name + "\" not in " + this->model);
+        std::stringstream ss;
+        ss << "Element \"" << name << "\" not found in " << this->model << ". Valid elements are: ";
+        ss << ::to_string((std::string*)Parameters::elements_names.data(), Parameters::elements_names.size());
+        LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
         return invalid_index;
     }
     return it->second;
@@ -185,7 +201,10 @@ index_t Parameters::get_species(std::string name) const
     auto it = _species.find(name);
     if (it == _species.end())
     {
-        LOG_ERROR("Species \"" + name + "\" not in " + this->model);
+        std::stringstream ss;
+        ss << "Species \"" << name << "\" not found in " << this->model << ". Valid species are: ";
+        ss << ::to_string((std::string*)Parameters::species_names.data(), Parameters::species_names.size());
+        LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
         return invalid_index;
     }
     return it->second;
