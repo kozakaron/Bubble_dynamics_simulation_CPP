@@ -544,34 +544,19 @@ void OdeFun::backward_rate(
             Delta_H += nu * this->H[nu_index];
         }
 
-        constexpr double min_divider = 1e-323;
         bool tresholded = false;
         const double treshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
-        double K_p = std::exp(Delta_S / par->R_erg - Delta_H / (par->R_erg * T));
-        double pow_term = std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), par->sum_nu[index]);
-        // double K_c = K_p * pow_term;
+        const double K_p = std::exp(Delta_S / par->R_erg - Delta_H / (par->R_erg * T));
+        double K_c = K_p * std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), par->sum_nu[index]);
+        if (K_c == 0.0) K_c = std::copysign(1e-323, K_c == 0.0 ? 1.0 : K_c);
         
-        if (std::abs(K_p) < min_divider) K_p = std::copysign(min_divider, K_p == 0.0 ? 1.0 : K_p);
-        if (std::abs(pow_term) < min_divider) pow_term = std::copysign(min_divider, pow_term == 0.0 ? 1.0 : pow_term);
-
-        double k_backward = this->k_forward[index] / K_p;
-        if (std::abs(k_backward) > treshold)
+        double k_backward = this->k_forward[index] / K_c;
+        if (std::abs(k_backward) > treshold || !std::isfinite(k_backward))
         {
             k_backward = std::copysign(treshold, k_backward);
-            tresholded = true;
+            this->k_forward[index] = k_backward * K_c;
         }
-        k_backward /= pow_term;
-        if (std::abs(k_backward) > treshold)
-        {
-            k_backward = std::copysign(treshold, k_backward);
-            tresholded = true;
-        }
-
         this->k_backward[index] = k_backward;
-        if (tresholded)
-        {
-            this->k_forward[index] = k_backward * K_p * pow_term;
-        }
     }
 
     for(index_t j = 0; j < par->num_irreversible; ++j)
