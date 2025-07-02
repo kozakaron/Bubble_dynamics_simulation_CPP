@@ -544,7 +544,6 @@ void OdeFun::backward_rate(
             Delta_H += nu * this->H[nu_index];
         }
 
-        bool tresholded = false;
         const double treshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
         const double K_p = std::exp(Delta_S / par->R_erg - Delta_H / (par->R_erg * T));
         double K_c = K_p * std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), par->sum_nu[index]);

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <sstream>
+#include <cmath>
 
 #include "common.h"
 #include "parameters.h"
