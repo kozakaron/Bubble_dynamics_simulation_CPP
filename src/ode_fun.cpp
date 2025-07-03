@@ -322,7 +322,7 @@ std::pair<double, double> OdeFun::pressures(
     }
     
     double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
-    double p_L_dot = p_dot + (-2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R);
+    double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // + 4.0 * cpar.mu_L * R_ddot / R;
     double delta = (p_L - p_Inf) / cpar.rho_L;
     double delta_dot = (p_L_dot - p_Inf_dot) / cpar.rho_L;
 
