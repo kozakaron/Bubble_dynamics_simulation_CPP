@@ -442,11 +442,12 @@ void ParameterCombinator::init(const ordered_json& j)
             }
             else
             {
+                builder.excitation_params.resize(j.at("excitation_params").size(), Const(0.0));
                 for (size_t i=0; i < j.at("excitation_params").size(); ++i)
                 {
                     ordered_json param = j.at("excitation_params").at(i);
                     if (param != nullptr)
-                        builder.excitation_params[i] = get_range(param, builder.excitation_params.at(i));
+                        builder.excitation_params.at(i) = get_range(param, builder.excitation_params.at(i));
                     
                 }
             }
