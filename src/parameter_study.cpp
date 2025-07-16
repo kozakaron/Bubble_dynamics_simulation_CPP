@@ -643,6 +643,12 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         return value;
     };
 
+    std::vector<double> excitation_values(this->excitation_params.size());
+    for (size_t i = 0; i < this->excitation_params.size(); ++i)
+    {
+        excitation_values.at(i) = get_value(this->excitation_params.at(i));
+    }
+
     ControlParameters cpar{ControlParameters::Builder{
         .ID = combination_ID,
         .mechanism = this->mechanism,
@@ -661,13 +667,10 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         .enable_evaporation = this->enable_evaporation,
         .enable_reactions = this->enable_reactions,
         .enable_dissipated_energy = this->enable_dissipated_energy,
-        .target_specie = this->target_specie
+        .target_specie = this->target_specie,
+        .excitation_params = excitation_values,
+        .excitation_type = this->excitation_type
     }};
-    
-    for (size_t i = 0; i < this->excitation_params.size(); ++i)
-    {
-        cpar.excitation_params[i] = get_value(this->excitation_params[i]);
-    }
 
     is_success success = combination_ID < this->total_combination_count;
 
