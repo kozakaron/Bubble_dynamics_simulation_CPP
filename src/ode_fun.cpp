@@ -214,6 +214,12 @@ is_success OdeFun::initial_conditions(
     double* x
 ) //noexcept
 {
+    if (x == nullptr) 
+    {
+        LOG_ERROR("x is nullptr");
+        return false;
+    }
+
 // Equilibrium state
     const double p_E = cpar.P_amb + 2.0 * cpar.surfactant * par->sigma / cpar.R_E;   // [Pa]
     const double V_E = 4.0 / 3.0 * std::numbers::pi * cpar.R_E * cpar.R_E * cpar.R_E;    // [m^3]
@@ -241,6 +247,8 @@ is_success OdeFun::initial_conditions(
         index_t index = cpar.species[k];
         x[3+index] = 1.0e-6 * cpar.fractions[k] * c_gas;   // c_k_0 [mol/cm^3]
     }
+    double dummy = 0.0;
+    cpar.nondimensionalize(dummy, x);
 
 // Errors
     if (p_gas < 0.0)
@@ -518,10 +526,10 @@ void OdeFun::forward_rate(
 // Forward rate thresholding
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
-        const double treshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
+        const double threshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
         const double k_forward = this->k_forward[index];
-        if (!std::isfinite(k_forward) || std::abs(k_forward) > treshold)
-            this->k_forward[index] = std::copysign(treshold, k_forward);
+        if (!std::isfinite(k_forward) || std::abs(k_forward) > threshold)
+            this->k_forward[index] = std::copysign(threshold, k_forward);
     }
 }
 
@@ -544,15 +552,15 @@ void OdeFun::backward_rate(
             Delta_H += nu * this->H[nu_index];
         }
 
-        const double treshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
         const double K_p = std::exp(Delta_S / par->R_erg - Delta_H / (par->R_erg * T));
         double K_c = K_p * std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), par->sum_nu[index]);
         if (K_c == 0.0) K_c = std::copysign(1e-323, K_c == 0.0 ? 1.0 : K_c);
-        
+        const double threshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index] / K_c;
+
         double k_backward = this->k_forward[index] / K_c;
-        if (std::abs(k_backward) > treshold || !std::isfinite(k_backward))
+        if (std::abs(k_backward) > threshold || !std::isfinite(k_backward))
         {
-            k_backward = std::copysign(treshold, k_backward);
+            k_backward = std::copysign(threshold, k_backward);
             this->k_forward[index] = k_backward * K_c;
         }
         this->k_backward[index] = k_backward;
@@ -631,7 +639,7 @@ void OdeFun::production_rate(
 
 
 is_success OdeFun::operator()(
-        const double t,
+        const double t_star,
         const double* x,
         double* dxdt
     ) //noexcept
@@ -639,12 +647,13 @@ is_success OdeFun::operator()(
     if (!this->check_before_call(x))
         return false;
 // Thermodynamics
-    this->thermodynamic(x[2]);    // set C_p, H, S, C_v
+    this->thermodynamic(x[2] * cpar.T_ref);    // set C_p, H, S, C_v
 
 // Common variables
-    const double R = x[0];                      // bubble radius [m]
-    const double R_dot = x[1];                  // bubble radius derivative [m/s]
-    const double T = x[2];                      // temperature [K]
+    const double t = t_star * cpar.t_ref;       // time [s]
+    const double R = x[0] * cpar.R_ref;         // bubble radius [m]
+    const double R_dot = x[1] * cpar.R_ref * cpar.t_ref_inv;  // bubble radius derivative [m/s]
+    const double T = x[2] * cpar.T_ref;         // temperature [K]
     const double* c = x + 3;                    // molar concentrations [mol/cm^3]
     double* c_dot = dxdt + 3;                   // molar concentrations derivative [mol/cm^3/s]
     double M = 0.0;                             // sum of molar concentrations [mol/cm^3]
@@ -668,7 +677,7 @@ is_success OdeFun::operator()(
         C_v_avg += C_v[k] * X_k;
         lambda_avg += par->lambdas[k] * X_k;
     }
-
+    
 // Heat transfer
     double Q_th_dot = 0.0;
     if (cpar.enable_heat_transfer)
@@ -685,9 +694,9 @@ is_success OdeFun::operator()(
     }
 
 // d/dt R
-    dxdt[0] = R_dot;
+    dxdt[0] = x[1]; // R_dot / (cpar.R_ref * cpar.t_ref);
 
-// d/dt c
+// d/dt c_i
     if (cpar.enable_reactions)
     {
         this->production_rate(T, M, p, c);   // set omega_dot
@@ -698,10 +707,10 @@ is_success OdeFun::operator()(
     }
     for (index_t k = 0; k < par->num_species; ++k)
     {
-        c_dot[k] = this->omega_dot[k] - c[k] * 3.0 * R_dot / R;
+        c_dot[k] = (this->omega_dot[k] - c[k] * 3.0 * R_dot / R) * cpar.t_ref;
         sum_omega_dot += this->omega_dot[k];
     }
-
+    
 // Evaporation
     double n_net_dot = 0.0;
     double evap_energy = 0.0;
@@ -710,7 +719,7 @@ is_success OdeFun::operator()(
         std::pair<double, double> _evap = this->evaporation(p, T, c[par->index_of_water]/M);
         n_net_dot = _evap.first;
         evap_energy = _evap.second;
-        c_dot[par->index_of_water] += 1.0e-6 * n_net_dot * 3.0 / R;
+        c_dot[par->index_of_water] += (1.0e-6 * n_net_dot * 3.0 / R) * cpar.t_ref;
     }
 
 // d/dt T
@@ -722,7 +731,7 @@ is_success OdeFun::operator()(
     Q_r_dot += sum_omega_dot * par->R_erg * T;
     const double T_dot = (Q_r_dot + 30.0 / R * (-p * R_dot + Q_th_dot + evap_energy)) / (M * C_v_avg);
     const double p_dot = p * (sum_omega_dot / M + T_dot / T - 3.0 * R_dot / R);
-    dxdt[2] = T_dot;
+    dxdt[2] = T_dot / cpar.T_ref * cpar.t_ref;
 
 // d/dt R_dot
     std::pair<double, double> _pres = this->pressures(t, R, R_dot, p, p_dot);
@@ -732,17 +741,17 @@ is_success OdeFun::operator()(
     const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
     const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
 
-    dxdt[1] = nom / denom;
+    dxdt[1] = nom / denom / cpar.R_ref * cpar.t_ref * cpar.t_ref;
 
 // Dissipated energy
     if (cpar.enable_dissipated_energy)
     {
         const double V_dot = 4.0 * R * R * R_dot * std::numbers::pi;
         const double integrand_th = -(p * (1 + R_dot / cpar.c_L) + R / cpar.c_L * p_dot) * V_dot;
-        const double integrand_v = 16.0 * std::numbers::pi * cpar.mu_L * (R * R_dot*R_dot + R * R * R_dot * dxdt[1] / cpar.c_L);
-        const double integrand_r = 4.0 * std::numbers::pi / cpar.c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar.rho_L * R_dot * R_dot * R_dot - cpar.rho_L * R * R_dot * dxdt[1]);
-
-        dxdt[par->num_species+3] = integrand_th + integrand_v + integrand_r;
+        const double integrand_v = 16.0 * std::numbers::pi * cpar.mu_L * (R * R_dot*R_dot + R * R * R_dot * (nom / denom/*dxdt[1]*/) / cpar.c_L);
+        const double integrand_r = 4.0 * std::numbers::pi / cpar.c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar.rho_L * R_dot * R_dot * R_dot - cpar.rho_L * R * R_dot * (nom / denom/*dxdt[1]*/));
+       
+        dxdt[par->num_species+3] = (integrand_th + integrand_v + integrand_r) * cpar.t_ref;
     } else {
         dxdt[par->num_species+3] = 0.0;
     }
@@ -751,9 +760,3 @@ is_success OdeFun::operator()(
         return false;
     return true;
 }
-
-/*
-TODO:
-    - do something with the long doubles
-    - add python interface
-*/

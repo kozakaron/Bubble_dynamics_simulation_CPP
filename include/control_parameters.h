@@ -45,6 +45,12 @@ public:
     // Excitation parameters:
     double excitation_params[max_excitation_params];    // parameters for excitation (pointer to array of doubles)
     Parameters::excitation excitation_type;             // type of excitation
+    // Reference values for dimensionless parameters: A_star = A / A_ref
+    double t_ref;                       // reference time [s]
+    double t_ref_inv;                   // inverse reference time [1/s]
+    double R_ref;                       // reference radius [m]
+    double T_ref;                       // reference temperature [K]
+
 
 // Builder struct, defaults
     /* Usage in initialization: ControlParameters cpar{ControlParameters::Builder{
@@ -103,6 +109,10 @@ public:
     nlohmann::ordered_json to_json() const;
     // Ostream overload
     friend std::ostream& operator<<(std::ostream& os, const ControlParameters& cpar);
+    // Transform from x(t) to x_star(t_star)
+    void nondimensionalize(double &t, double* x) const;
+    // Transform from x_star(t_star) to x(t)
+    void dimensionalize(double &t, double* x) const;
 private:
     void init(const Builder& builder);
 };
