@@ -261,7 +261,7 @@ is_success OdeFun::initial_conditions(
 
 
 std::pair<double, double> OdeFun::pressures(
-    const double t,
+    const double t_star,
     const double R,
     const double R_dot,
     const double p,
@@ -279,8 +279,9 @@ std::pair<double, double> OdeFun::pressures(
             double freq2 = cpar.excitation_params[3];
             double theta_phase = cpar.excitation_params[4];
 
-            p_Inf = cpar.P_amb + p_A1 * sin(2.0 * std::numbers::pi * freq1 * t) + p_A2 * sin(2.0 * std::numbers::pi * freq2 * t + theta_phase);
-            p_Inf_dot = 2.0 * std::numbers::pi * (p_A1 * freq1 * cos(2.0 * std::numbers::pi * freq1 * t) + p_A2 * freq2 * cos(2.0 * std::numbers::pi * freq2 * t + theta_phase));
+            const double insin = 2.0 * std::numbers::pi * (t_star * cpar.t_ref);
+            p_Inf = cpar.P_amb + p_A1 * sin(insin * freq1) + p_A2 * sin(insin * freq2 + theta_phase);
+            p_Inf_dot = 2.0 * std::numbers::pi * (p_A1 * freq1 * cos(insin * freq1) + p_A2 * freq2 * cos(insin * freq2 + theta_phase));
             break;
         }
     case Parameters::excitation::sin_impulse:
@@ -289,7 +290,7 @@ std::pair<double, double> OdeFun::pressures(
             double freq = cpar.excitation_params[1];
             double n = cpar.excitation_params[2];
 
-            if (t < 0.0 || t > n / freq)
+            if (t_star < 0.0 || t_star * cpar.t_ref > n / freq)
             {
                 p_Inf = cpar.P_amb;
                 p_Inf_dot = 0.0;
@@ -297,8 +298,8 @@ std::pair<double, double> OdeFun::pressures(
             else
             {
                 double insin = 2.0 * std::numbers::pi * freq;
-                p_Inf = cpar.P_amb + p_A * sin(insin * t);
-                p_Inf_dot = p_A * insin * cos(insin * t);
+                p_Inf = cpar.P_amb + p_A * sin(insin * (t_star * cpar.t_ref));
+                p_Inf_dot =  p_A * insin * cos(insin * (t_star * cpar.t_ref));
             }
             break;
         }
@@ -308,7 +309,7 @@ std::pair<double, double> OdeFun::pressures(
             double freq = pow(10.0, cpar.excitation_params[1]);
             double n = cpar.excitation_params[2];
 
-            if (t < 0.0 || t > n / freq)
+            if (t_star < 0.0 || t_star * cpar.t_ref > n / freq)
             {
                 p_Inf = cpar.P_amb;
                 p_Inf_dot = 0.0;
@@ -316,8 +317,8 @@ std::pair<double, double> OdeFun::pressures(
             else
             {
                 double insin = 2.0 * std::numbers::pi * freq;
-                p_Inf = cpar.P_amb + p_A * sin(insin * t);
-                p_Inf_dot = p_A * insin * cos(insin * t);
+                p_Inf = cpar.P_amb + p_A * sin(insin * (t_star * cpar.t_ref));
+                p_Inf_dot =  p_A * insin * cos(insin * (t_star * cpar.t_ref));
             }
             break;
         }
@@ -650,7 +651,7 @@ is_success OdeFun::operator()(
     this->thermodynamic(x[2] * cpar.T_ref);    // set C_p, H, S, C_v
 
 // Common variables
-    const double t = t_star * cpar.t_ref;       // time [s]
+    //const double t = t_star * cpar.t_ref;       // time [s]
     const double R = x[0] * cpar.R_ref;         // bubble radius [m]
     const double R_dot = x[1] * cpar.R_ref * cpar.t_ref_inv;  // bubble radius derivative [m/s]
     const double T = x[2] * cpar.T_ref;         // temperature [K]
@@ -734,7 +735,7 @@ is_success OdeFun::operator()(
     dxdt[2] = T_dot / cpar.T_ref * cpar.t_ref;
 
 // d/dt R_dot
-    std::pair<double, double> _pres = this->pressures(t, R, R_dot, p, p_dot);
+    std::pair<double, double> _pres = this->pressures(t_star, R, R_dot, p, p_dot);
     const double delta     = _pres.first;
     const double delta_dot = _pres.second;
 

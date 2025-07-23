@@ -39,7 +39,7 @@ private:
 
 // Methods
     std::pair<double, double> pressures(
-        const double t,
+        const double t_star,
         const double R,
         const double R_dot,
         const double p,
