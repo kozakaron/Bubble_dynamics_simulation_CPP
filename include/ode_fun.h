@@ -39,7 +39,7 @@ private:
 
 // Methods
     std::pair<double, double> pressures(
-        const double t,
+        const double t_star,
         const double R,
         const double R_dot,
         const double p,
@@ -91,7 +91,7 @@ public:
     ) ; //noexcept
     // Call operator. Calculates the right-hand side of the ODE system.
     is_success operator()(
-        const double t,
+        const double t_star,
         const double* x,
         double* dxdt
     ) ; //noexcept

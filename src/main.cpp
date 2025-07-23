@@ -123,8 +123,8 @@ int main(int argc, char **argv)
 #endif  // TEST
 
 #ifdef BENCHMARK
-    benchmark_ode_fun();
-    benchmark_speedup();
+    //benchmark_ode_fun();
+    //benchmark_speedup();
     benchmark_parameter_study();
 #endif  // BENCHMARK
 
