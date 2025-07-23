@@ -185,8 +185,6 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->set_species(std::vector<std::string>(builder.species), std::vector<double>(builder.fractions));
     this->set_excitation_params(std::vector<double>(builder.excitation_params));
 
-    this->t_ref = 1e-6;         // TODO: experiment
-    this->t_ref_inv = 1e6;
     this->R_ref = this->R_E;
     this->T_ref = this->T_inf;
 }

@@ -46,10 +46,10 @@ public:
     double excitation_params[max_excitation_params];    // parameters for excitation (pointer to array of doubles)
     Parameters::excitation excitation_type;             // type of excitation
     // Reference values for dimensionless parameters: A_star = A / A_ref
-    double t_ref;                       // reference time [s]
-    double t_ref_inv;                   // inverse reference time [1/s]
-    double R_ref;                       // reference radius [m]
-    double T_ref;                       // reference temperature [K]
+    static constexpr double t_ref = 1e-6;               // reference time [s]
+    static constexpr double t_ref_inv = 1e6;            // inverse reference time [1/s]
+    double R_ref;                                       // reference radius [m]
+    double T_ref;                                       // reference temperature [K]
 
 
 // Builder struct, defaults

@@ -23,7 +23,7 @@ inline OdeSolver* solver_factory(size_t num_dim)
 
 int main(int argc, char **argv)
 {
-    // Initialize logging
+    // Set up command line argument parsing
     cxxopts::ParseResult result;
     cxxopts::Options options("Bubble dynamics simulation C++", "A high performance SUNDIALS CVODE powered zero dimensional (ODE) sonochemistry simulation of an acustically excited bubble.");
     options.add_options()

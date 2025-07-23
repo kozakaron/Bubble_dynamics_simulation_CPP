@@ -183,8 +183,8 @@ OdeSolverCVODE::OdeSolverCVODE(const size_t num_dim):
     HANDLE_RETURN_PTR(cvode_mem, CVodeCreate(CV_BDF, sun_context));
     HANDLE_ERROR_CODE(CVodeInit(cvode_mem, right_hand_side, 0.0, x));
     HANDLE_ERROR_CODE(CVodeSetMaxNumSteps(cvode_mem, 2000000000));
-    HANDLE_ERROR_CODE(CVodeSetMaxHnilWarns(cvode_mem, 10));    // maximum number of warnings for t+h=t
-    HANDLE_ERROR_CODE(CVodeSetMaxStep(cvode_mem, 1.0e-3*1e6));     // Limit max step size to 1 ms TODO
+    HANDLE_ERROR_CODE(CVodeSetMaxHnilWarns(cvode_mem, 10));                                 // maximum number of warnings for t+h=t
+    HANDLE_ERROR_CODE(CVodeSetMaxStep(cvode_mem, 1.0e-3*ControlParameters::t_ref_inv));     // Limit max step size to 1 ms TODO
     HANDLE_ERROR_CODE(CVodeSetStabLimDet(cvode_mem, SUNTRUE));
     HANDLE_ERROR_CODE(CVodeSVtolerances(cvode_mem, reltol, abstol));
     HANDLE_ERROR_CODE(CVodeSetConstraints(cvode_mem, constraints));
@@ -402,7 +402,7 @@ OdeSolution OdeSolverCVODE::solve(
         }
 
         // Exit conditions
-        if (t >= t_max * ode_ptr->cpar.t_ref)  break;
+        if (t >= t_max * ode_ptr->cpar.t_ref_inv)  break;
         if (user_data.timed_out)  break;
         if (retval != CV_SUCCESS)  break;
     }
