@@ -91,7 +91,7 @@ public:
     ) ; //noexcept
     // Call operator. Calculates the right-hand side of the ODE system.
     is_success operator()(
-        const double t,
+        const double t_star,
         const double* x,
         double* dxdt
     ) ; //noexcept

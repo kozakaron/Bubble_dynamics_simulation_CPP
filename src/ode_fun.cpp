@@ -110,7 +110,7 @@ is_success OdeFun::check_before_call(const double* x)
 
 
 is_success OdeFun::check_after_call(
-    const double t,
+    const double t_star,
     const double* x,
     double* dxdt
 ) {
@@ -130,7 +130,7 @@ is_success OdeFun::check_after_call(
             {
                 ss << "dxdt[" << k << "] is not finite";
             }
-            ss << ". t = " << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10) << t;
+            ss << ". t_star = " << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10) << t_star;
             ss << ";    x = " << to_string((double*)x, this->num_species+4);
             ss << ";    dxdt = " << to_string((double*)dxdt, this->num_species+4);
             this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, ss.str(), this->cpar.ID);
@@ -756,7 +756,7 @@ is_success OdeFun::operator()(
         dxdt[par->num_species+3] = 0.0;
     }
 
-    if (!this->check_after_call(t, x, dxdt))
+    if (!this->check_after_call(t_star, x, dxdt))
         return false;
     return true;
 }
