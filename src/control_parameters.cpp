@@ -460,6 +460,12 @@ std::ostream& operator<<(std::ostream& os, const ControlParameters& cpar)
 void ControlParameters::nondimensionalize(double &t, double* x) const
 {
     t *= this->t_ref_inv;
+    const Parameters* par = Parameters::get_parameters(this->mechanism);
+    if (par == nullptr)
+    {
+        LOG_ERROR("Invalid mechanism: " + std::to_string((int)this->mechanism), this->ID);
+        return;
+    }
     if (x == nullptr) 
     {
         LOG_ERROR("x is nullptr");
@@ -469,12 +475,20 @@ void ControlParameters::nondimensionalize(double &t, double* x) const
     x[0] /= this->R_ref;
     x[1] *= this->t_ref / this->R_ref;
     x[2] /= this->T_ref;
+
+    x[par->num_species + 4] *= std::pow(this->t_ref, 3) / std::pow(this->R_ref, 2);
 }
 
 
 void ControlParameters::dimensionalize(double &t, double* x) const
 {
     t *= this->t_ref;
+    const Parameters* par = Parameters::get_parameters(this->mechanism);
+    if (par == nullptr)
+    {
+        LOG_ERROR("Invalid mechanism: " + std::to_string((int)this->mechanism), this->ID);
+        return;
+    }
     if (x == nullptr) 
     {
         LOG_ERROR("x is nullptr");
@@ -484,4 +498,6 @@ void ControlParameters::dimensionalize(double &t, double* x) const
     x[0] *= this->R_ref;
     x[1] *= this->R_ref * this->t_ref_inv;
     x[2] *= this->T_ref;
+
+    x[par->num_species + 4] *= std::pow(this->R_ref, 2) * std::pow(this->t_ref_inv, 3);
 }
