@@ -50,6 +50,7 @@ public:
     static constexpr double t_ref_inv = 1e6;            // inverse reference time [1/s]
     double R_ref;                                       // reference radius [m]
     double T_ref;                                       // reference temperature [K]
+    static constexpr double E_diss_ref = 1e-5;          // reference dissipated energy [J] (instead of R_ref^2 * t_ref_inv^2)
 
 
 // Builder struct, defaults

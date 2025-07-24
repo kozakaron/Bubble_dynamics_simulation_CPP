@@ -752,7 +752,7 @@ is_success OdeFun::operator()(
         const double integrand_v = 16.0 * std::numbers::pi * cpar.mu_L * (R * R_dot*R_dot + R * R * R_dot * (nom / denom/*dxdt[1]*/) / cpar.c_L);
         const double integrand_r = 4.0 * std::numbers::pi / cpar.c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar.rho_L * R_dot * R_dot * R_dot - cpar.rho_L * R * R_dot * (nom / denom/*dxdt[1]*/));
        
-        dxdt[par->num_species+3] = (integrand_th + integrand_v + integrand_r) * std::pow(cpar.t_ref, 3) / std::pow(cpar.R_ref, 2);
+        dxdt[par->num_species+3] = (integrand_th + integrand_v + integrand_r) * (cpar.t_ref / cpar.E_diss_ref);
     } else {
         dxdt[par->num_species+3] = 0.0;
     }
