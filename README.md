@@ -1,3 +1,5 @@
+[Video](https://youtu.be/XAMtw1O4HdY) for using the interface or building from source. I assume you know what the software does and you are familiar with the Python version somewhat. Still read the readme :)
+
 # Bubble dynamics simulation C++
 A C++ powered version of [Bubble_dynamics_simulation](https://github.com/kozakaron/Bubble_dynamics_simulation).
 
