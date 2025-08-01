@@ -95,6 +95,7 @@ public:
     index_t get_species(std::string name) const;    // Get index of species by name
     const double *W;                                // Molar masses [g/mol] (num_species)
     const double *lambdas;                          // Thermal conductivities [W/m/K] (num_species)
+    const double *c_ref;                            // Reference concentrations [mol/m^3] (num_species)
 // NASA polynomials
     const index_t NASA_order;                       // Degree of NASA polynomials
     const double *temp_range;                       // Temperature ranges for NASA polynomials [K] (num_species, 3)

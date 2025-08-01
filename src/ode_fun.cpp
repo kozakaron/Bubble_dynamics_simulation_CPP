@@ -29,6 +29,7 @@ OdeFun::OdeFun():
     H(nullptr),
     S(nullptr),
     C_v(nullptr),
+    c(nullptr),
     M_eff(nullptr),
     k_forward(nullptr),
     k_backward(nullptr),
@@ -49,6 +50,7 @@ void OdeFun::delete_memory()
     if (this->H != nullptr)          delete[] this->H;
     if (this->S != nullptr)          delete[] this->S;
     if (this->C_v != nullptr)        delete[] this->C_v;
+    if (this->c != nullptr)          delete[] this->c;
     if (this->M_eff != nullptr)      delete[] this->M_eff;
     if (this->k_forward != nullptr)  delete[] this->k_forward;
     if (this->k_backward != nullptr) delete[] this->k_backward;
@@ -59,6 +61,7 @@ void OdeFun::delete_memory()
     this->H = nullptr;
     this->S = nullptr;
     this->C_v = nullptr;
+    this->c = nullptr;
     this->M_eff = nullptr;
     this->k_forward = nullptr;
     this->k_backward = nullptr;
@@ -164,6 +167,7 @@ is_success OdeFun::init(const ControlParameters& cpar)
         this->H          = new double[par->num_species];
         this->S          = new double[par->num_species];
         this->C_v        = new double[par->num_species];
+        this->c          = new double[par->num_species];
         this->M_eff      = new double[par->num_third_bodies];
         this->k_forward  = new double[par->num_reactions];
         this->k_backward = new double[par->num_reactions];
@@ -655,7 +659,7 @@ is_success OdeFun::operator()(
     const double R = x[0] * cpar.R_ref;         // bubble radius [m]
     const double R_dot = x[1] * cpar.R_ref * cpar.t_ref_inv;  // bubble radius derivative [m/s]
     const double T = x[2] * cpar.T_ref;         // temperature [K]
-    const double* c = x + 3;                    // molar concentrations [mol/cm^3]
+    const double* c_star = x + 3;               // molar concentrations [mol/cm^3]
     double* c_dot = dxdt + 3;                   // molar concentrations derivative [mol/cm^3/s]
     double M = 0.0;                             // sum of molar concentrations [mol/cm^3]
     double p = 0.0;                             // Partial pressure of the gases [Pa]
@@ -667,6 +671,7 @@ is_success OdeFun::operator()(
     
     for (index_t k = 0; k < par->num_species; ++k)
     {
+        c[k] = c_star[k] * par->c_ref[k];
         M += c[k];
     }
     p = 0.1 * M * par->R_erg * T;
@@ -708,7 +713,7 @@ is_success OdeFun::operator()(
     }
     for (index_t k = 0; k < par->num_species; ++k)
     {
-        c_dot[k] = (this->omega_dot[k] - c[k] * 3.0 * R_dot / R) * cpar.t_ref;
+        c_dot[k] = (this->omega_dot[k] - c[k] * 3.0 * R_dot / R) * (cpar.t_ref / par->c_ref[k]);
         sum_omega_dot += this->omega_dot[k];
     }
     
@@ -720,7 +725,7 @@ is_success OdeFun::operator()(
         std::pair<double, double> _evap = this->evaporation(p, T, c[par->index_of_water]/M);
         n_net_dot = _evap.first;
         evap_energy = _evap.second;
-        c_dot[par->index_of_water] += (1.0e-6 * n_net_dot * 3.0 / R) * cpar.t_ref;
+        c_dot[par->index_of_water] += (1.0e-6 * n_net_dot * 3.0 / R) * (cpar.t_ref / par->c_ref[par->index_of_water]);
     }
 
 // d/dt T

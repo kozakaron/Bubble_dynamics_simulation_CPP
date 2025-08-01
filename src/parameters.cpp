@@ -52,6 +52,7 @@ Parameters::Parameters(T dummy):
         
     COPY_ARRAY(double, W, T::num_species);
     COPY_ARRAY(double, lambdas, T::num_species);
+    COPY_ARRAY(double, c_ref, T::num_species);
     COPY_ARRAY(double, temp_range, T::num_species*3);
     COPY_ARRAY(double, a_low, T::num_species*(T::NASA_order+2));
     COPY_ARRAY(double, a_high, T::num_species*(T::NASA_order+2));
