@@ -20,7 +20,8 @@ struct chemkin_otomo2018_without_o_struct{
         //                                                    NH3           H2            H          NH2           NH            N          NNH         N2H4         N2H3         N2H2         H2NN           N2  
     static constexpr double W[num_species] =        {    17.03061,     2.01594,     1.00797,    16.02264,    15.01467,     14.0067,    29.02137,    32.04528,    31.03731,    30.02934,    30.02934,     28.0134};
     static constexpr double lambdas[num_species] =  {     0.00244,      0.1805,         0.0,         0.0,         0.0,         0.0,         0.0,         0.0,         0.0,         0.0,         0.0,     0.02583};
-    
+    static constexpr double c_ref[num_species] =    {         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0};
+
     
 // NASA POLYNOMIALS
     

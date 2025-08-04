@@ -20,7 +20,8 @@ struct chemkin_ar_he_struct{
         //                                                      H           H2            O           O2           OH          H2O           N2          HO2         H2O2           AR           HE         OHEX  
     static constexpr double W[num_species] =        {     1.00797,     2.01594,     15.9994,     31.9988,    17.00737,    18.01534,     28.0134,    33.00677,    34.01474,      39.948,      4.0026,    17.00737};
     static constexpr double lambdas[num_species] =  {         0.0,      0.1805,         0.0,     0.02658,         0.0,       0.016,     0.02583,         0.0,      0.5863,      0.0177,       0.151,         0.0};
-    
+    //static constexpr double c_ref[num_species] =    {        1e-2,         1.0,        1e-3,         1.0,         1.0,         1e2,       1e-30,         1e1,         1e2,         1.0,         1.0,        1e-2};
+    static constexpr double c_ref[num_species] =    {         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0};
     
 // NASA POLYNOMIALS
     

@@ -23,6 +23,46 @@ inline OdeSolver* solver_factory(size_t num_dim)
 
 int main(int argc, char **argv)
 {
+    for (string mechanism_name : Parameters::mechanism_names)
+    {
+        const Parameters::mechanism mechanism = Parameters::string_to_mechanism(mechanism_name);
+        const Parameters* par = Parameters::get_parameters(mechanism);
+        cout << colors::bold << mechanism_name << colors::reset << endl;
+
+        /*cout << "    T_ref^b_i: ";
+        const double T_ref = 293.15;
+        for (index_t i = 0; i < par->num_reactions; ++i)
+        {
+            cout << pow(T_ref, par->b[i]) << "; ";
+        }
+        cout << endl;*/
+
+        /*cout << "    exp(-E/R_cal/T_ref): ";
+        const double T_ref = 293.15;
+        for (index_t i = 0; i < par->num_reactions; ++i)
+        {
+            cout << exp(-par->E[i] / (par->R_cal * T_ref)) << "; ";
+        }
+        cout << endl;*/
+
+        /*cout << "    k_i_ref: "; // k_i_ref = A_i * T_ref^b_i * exp(-E_i/(R_cal*T_ref))
+        const double T_ref = 293.15;
+        for (index_t i = 0; i < par->num_reactions; ++i)
+        {
+            cout << par->A[i] * pow(T_ref, par->b[i]) * exp(-par->E[i] / (par->R_cal * T_ref)) << "; ";
+        }
+        cout << endl;*/
+
+        cout << "    sum_nu_i: ";
+        for (index_t i = 0; i < par->num_reactions; ++i)
+        {
+            cout << (int)par->sum_nu[i] << "; ";
+        }
+        cout << endl;
+
+    } return 0;
+
+
     // Set up command line argument parsing
     cxxopts::ParseResult result;
     cxxopts::Options options("Bubble dynamics simulation C++", "A high performance SUNDIALS CVODE powered zero dimensional (ODE) sonochemistry simulation of an acustically excited bubble.");

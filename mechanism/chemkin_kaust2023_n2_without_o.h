@@ -20,7 +20,8 @@ struct chemkin_kaust2023_n2_without_o_struct{
         //                                                     AR            H           H2         H2NN           HE            N           N2         N2H2         N2H3         N2H4           NH          NH2          NH3          NNH  
     static constexpr double W[num_species] =        {      39.948,     1.00797,     2.01594,    30.02934,      4.0026,     14.0067,     28.0134,    30.02934,    31.03731,    32.04528,    15.01467,    16.02264,    17.03061,    29.02137};
     static constexpr double lambdas[num_species] =  {      0.0177,         0.0,      0.1805,         0.0,       0.151,         0.0,     0.02583,         0.0,         0.0,         0.0,         0.0,         0.0,     0.00244,         0.0};
-    
+    static constexpr double c_ref[num_species] =    {         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0,         1.0};
+
     
 // NASA POLYNOMIALS
     
