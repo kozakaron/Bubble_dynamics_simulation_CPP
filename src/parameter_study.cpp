@@ -11,6 +11,7 @@
 #include "nlohmann/json.hpp"
 #include "parameter_study.h"
 #include "ode_fun.h"
+#include "ode_solver_sundials.h"
 
 using ordered_json = nlohmann::ordered_json;
 
@@ -1017,13 +1018,11 @@ std::string verify_save_folder(const std::string save_folder)
 ParameterStudy::ParameterStudy(
     ParameterCombinator &parameter_combinator,
     std::string save_folder,
-    std::function<OdeSolver*(size_t)> solver_factory,
     const double t_max,
     const double timeout
 ):
     parameter_combinator(parameter_combinator),
     save_folder(verify_save_folder(save_folder)),
-    solver_factory(solver_factory),
     best_energy_demand(SimulationData::infinite_energy_demand),
     t_max(t_max),
     timeout(timeout),
@@ -1105,7 +1104,7 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
     OdeFun ode;
     const Parameters* par = this->parameter_combinator.get_mechanism_parameters();
     if(par == nullptr) return;
-    std::unique_ptr<OdeSolver> solver(this->solver_factory(4 + par->num_species));
+    OdeSolverCVODE solver(4 + par->num_species);
 
     // open csv file
     std::filesystem::path save_folder_path(save_folder);
@@ -1118,6 +1117,12 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
     }
     csv_file << SimulationData::csv_header << "\n";
 
+    // Setup SUNDIALS Logger directory
+    std::filesystem::path sundials_log_path = save_folder_path / "sundials_logs";
+    std::filesystem::create_directories(sundials_log_path);
+    std::filesystem::path cvode_log_file_path = sundials_log_path / (std::to_string(thread_id) + ".log");
+    solver.set_log_file(cvode_log_file_path.string());
+
     // run parameter study
     while(true)
     {
@@ -1127,7 +1132,7 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
         ode.init(cpar);
 
         // run simulation and postprocess
-        OdeSolution sol = solver->solve(
+        OdeSolution sol = solver.solve(
             this->t_max,                // t_max [s]
             &ode,                       // ode_ptr
             this->timeout,              // timeout [s]

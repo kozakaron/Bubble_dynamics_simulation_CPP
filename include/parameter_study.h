@@ -14,7 +14,6 @@
 #include <variant>
 #include <atomic>
 #include <mutex>
-#include <functional>
 #include <thread>
 
 // Represents possible values for a parameter in a parameter study. Options:
@@ -180,7 +179,6 @@ private:
     std::string save_folder;
     std::ofstream output_log_file;
     std::mutex output_mutex;
-    std::function<OdeSolver*(size_t)> solver_factory;
     double best_energy_demand;
     const double t_max;
     const double timeout;
@@ -192,7 +190,6 @@ public:
     ParameterStudy(
         ParameterCombinator &parameter_combinator,
         std::string save_folder,
-        std::function<OdeSolver*(size_t)> solver_factory,
         const double t_max = 1.0,
         const double timeout = 60.0
     );

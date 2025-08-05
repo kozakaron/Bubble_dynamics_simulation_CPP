@@ -50,6 +50,7 @@ public:
         bool save_solution = false,
         bool save_jacobian = false
     ) override;
+    void set_log_file(const std::string& log_file_path);
 };
 
 

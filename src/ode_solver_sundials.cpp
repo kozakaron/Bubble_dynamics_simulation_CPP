@@ -1,5 +1,6 @@
 #include "ode_solver_sundials.h"
 #include "nlohmann/json.hpp"
+#include <sundials/sundials_logger.h>
 
 #include <iomanip>
 #include <filesystem>
@@ -20,7 +21,7 @@ static_assert(std::is_same<sunrealtype, double>::value, "sunrealtype must be dou
     int retval = __VA_ARGS__; \
     if (retval != CV_SUCCESS) \
     { \
-        *error_ID_ptr = LOG_ERROR(Error::severity::error, Error::type::cvode, "CVODE error: " # __VA_ARGS__ "returned with code " + std::to_string(retval)); \
+        *error_ID_ptr = LOG_ERROR(Error::severity::error, Error::type::cvode, "CVODE error: " # __VA_ARGS__ " returned with code " + std::to_string(retval)); \
         return; \
     } \
 }
@@ -36,7 +37,7 @@ static_assert(std::is_same<sunrealtype, double>::value, "sunrealtype must be dou
     pointer = __VA_ARGS__; \
     if (pointer == nullptr) \
     { \
-        *error_ID_ptr = LOG_ERROR(Error::severity::error, Error::type::cvode, "CVODE error: " # __VA_ARGS__ "returned with nullptr"); \
+        *error_ID_ptr = LOG_ERROR(Error::severity::error, Error::type::cvode, "CVODE error: " # __VA_ARGS__ " returned with nullptr"); \
         return; \
     } \
 }
@@ -413,4 +414,20 @@ OdeSolution OdeSolverCVODE::solve(
     user_data.error_ID_ptr = &init_error_ID;
 
     return solution;
+}
+
+
+void OdeSolverCVODE::set_log_file(const std::string& log_file_path)
+{
+    size_t* error_ID_ptr = &(init_error_ID);
+    
+    // Get the default logger from the context
+    SUNLogger logger = nullptr;
+    HANDLE_ERROR_CODE(SUNContext_GetLogger(sun_context, &logger));
+    
+    // Set filenames for different log levels
+    HANDLE_ERROR_CODE(SUNLogger_SetErrorFilename(logger, log_file_path.c_str()));
+    HANDLE_ERROR_CODE(SUNLogger_SetWarningFilename(logger, log_file_path.c_str()));
+    HANDLE_ERROR_CODE(SUNLogger_SetInfoFilename(logger, log_file_path.c_str()));
+    HANDLE_ERROR_CODE(SUNLogger_SetDebugFilename(logger, log_file_path.c_str()));
 }
