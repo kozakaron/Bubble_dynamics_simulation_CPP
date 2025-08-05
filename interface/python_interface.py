@@ -197,6 +197,7 @@ def run_simulation(
     timeout: float = 60.0,
     save_steps: bool = True,
     save_jacobian: bool = False,
+    show_output: bool = True
 ) -> dict:
     """
     Runs the Bubble_dynamics_simulation_CPP executable in --run mode to run a single simulation.
@@ -211,6 +212,7 @@ def run_simulation(
         timeout (float): Timeout for the simulation.
         save_steps (bool): Whether to save the simulation steps.
         save_jacobian (bool): Whether to save the Jacobian matrixes.
+        show_output (bool): Whether to show the stdout and stderr of the simulation.
 
     Returns:
         dict: A dictionary containing the simulation results.
@@ -238,8 +240,9 @@ def run_simulation(
     if save_steps: command_list.append('--save')
     if save_jacobian: command_list.append('--save_jacobian')
 
-    return_code = _run_cpp_simulation(command_list)
-    print(f'\n{executable_path} returned with code {return_code} after {time.time() - start:.4f} seconds.')
+    return_code = _run_cpp_simulation(command_list, show_stdout=show_output, show_stderr=show_output)
+    if show_output:
+        print(f'\n{executable_path} returned with code {return_code} after {time.time() - start:.4f} seconds.')
 
     # Read the JSON-binary file
     data = _read_json_and_binary(json_path)
