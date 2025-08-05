@@ -39,12 +39,6 @@ ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinat
 }};
 
 
-inline OdeSolver* solver_factory(size_t num_dim)
-{
-    return new OdeSolverCVODE(num_dim);
-}
-
-
 void benchmark_parameter_study()
 {
     std::cout << colors::bold << "Small parameter study with SUNDIALS CVODE solver and chemkin_ar_he mechanism" << colors::reset << std::endl;
@@ -54,7 +48,6 @@ void benchmark_parameter_study()
     ParameterStudy parameter_study = ParameterStudy{
         parameter_combinator,
         save_folder_base_name,
-        solver_factory,
         t_max,
         timeout
     };

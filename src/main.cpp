@@ -15,12 +15,6 @@ using namespace std;
 using namespace nlohmann;
 
 
-inline OdeSolver* solver_factory(size_t num_dim)
-{
-    return new OdeSolverCVODE(num_dim);
-}
-
-
 int main(int argc, char **argv)
 {
     // Initialize logging
@@ -104,7 +98,6 @@ int main(int argc, char **argv)
         ParameterStudy parameter_study(
             parameter_combinator,
             result["directory"].as<std::string>(),  // save_folder_base_name
-            solver_factory,                         // solver_factory
             result["tmax"].as<double>(),            // t_max [s]
             result["timeout"].as<double>()          // timeout [s]
         );
