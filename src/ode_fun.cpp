@@ -751,9 +751,3 @@ is_success OdeFun::operator()(
         return false;
     return true;
 }
-
-/*
-TODO:
-    - do something with the long doubles
-    - add python interface
-*/

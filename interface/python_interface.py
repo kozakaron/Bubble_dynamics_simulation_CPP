@@ -152,7 +152,9 @@ def _check_path(
 
 
 def _run_cpp_simulation(
-    command_list: list[str]
+    command_list: list[str],
+    show_stdout: bool = True,
+    show_stderr: bool = True
 ) -> int:
     """
     Runs the C++ simulation with the given command list. Errors and outputs are printed to the console.
@@ -163,15 +165,16 @@ def _run_cpp_simulation(
         command_list = ['wsl'] + command_list
 
     # Functions to read stdout and stderr
-    def stream_reader(stream, prefix):
+    def stream_reader(stream, prefix, show_output):
         for line in iter(stream.readline, ''):
-            print(f'{prefix} {line}', end='')
+            if show_output:
+                print(f'{prefix} {line}', end='')
         stream.close()
 
     with Popen(command_list, stdout=PIPE, stderr=PIPE, text=True) as p:
         # Create threads to read stdout and stderr concurrently
-        stdout_thread = Thread(target=stream_reader, args=(p.stdout, '[stdout]'))
-        stderr_thread = Thread(target=stream_reader, args=(p.stderr, '[stderr]'))
+        stdout_thread = Thread(target=stream_reader, args=(p.stdout, '[stdout]', show_stdout))
+        stderr_thread = Thread(target=stream_reader, args=(p.stderr, '[stderr]', show_stderr))
 
         # Start the threads
         stdout_thread.start()
@@ -267,7 +270,8 @@ def run_parameter_study(
     timeout: float = 60.0,
     save_directory: str = './_parameter_studies/test',
     cpu_count: int = None,
-    print_output: bool = True   # TODO
+    show_stdout: bool = True,
+    show_stderr: bool = True
 ):
     """
     Runs the Bubble_dynamics_simulation_CPP executable in --parameter_study mode to run a bruteforce parameter study.
@@ -282,7 +286,8 @@ def run_parameter_study(
         timeout (float): Timeout for the simulation.
         save_directory (str): Where to save the parameter study.
         cpu_count (int): Number of CPUs to use for the simulation.
-        print_output (bool): Whether to print the output of the simulation.
+        show_stdout (bool): Whether to show the stdout of the simulation.
+        show_stderr (bool): Whether to show the stderr of the simulation.
     """
     
     # Write the JSON file
@@ -306,7 +311,7 @@ def run_parameter_study(
         command_list.append('--cpu')
         command_list.append(str(cpu_count))
 
-    return_code = _run_cpp_simulation(command_list)
+    return_code = _run_cpp_simulation(command_list, show_stdout=show_stdout, show_stderr=show_stderr)
     print(f'\n{executable_path} returned with code {return_code} after {time.time() - start:.4f} seconds.')
 
 
