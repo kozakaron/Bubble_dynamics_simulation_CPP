@@ -270,18 +270,27 @@ std::pair<double, double> OdeFun::pressures(
             double freq1 = cpar.excitation_params[2];
             double freq2 = cpar.excitation_params[3];
             double theta_phase = cpar.excitation_params[4];
+            double n_cycles = cpar.excitation_params[5];
 
-            p_Inf = cpar.P_amb + p_A1 * sin(2.0 * std::numbers::pi * freq1 * t) + p_A2 * sin(2.0 * std::numbers::pi * freq2 * t + theta_phase);
-            p_Inf_dot = 2.0 * std::numbers::pi * (p_A1 * freq1 * cos(2.0 * std::numbers::pi * freq1 * t) + p_A2 * freq2 * cos(2.0 * std::numbers::pi * freq2 * t + theta_phase));
+            if (t < 0.0 || (t > n_cycles / freq1 && t > n_cycles / freq2))
+            {
+                p_Inf = cpar.P_amb;
+                p_Inf_dot = 0.0;
+            }
+            else
+            {
+                p_Inf = cpar.P_amb + p_A1 * sin(2.0 * std::numbers::pi * freq1 * t) + p_A2 * sin(2.0 * std::numbers::pi * freq2 * t + theta_phase);
+                p_Inf_dot = 2.0 * std::numbers::pi * (p_A1 * freq1 * cos(2.0 * std::numbers::pi * freq1 * t) + p_A2 * freq2 * cos(2.0 * std::numbers::pi * freq2 * t + theta_phase));
+            }
             break;
         }
     case Parameters::excitation::sin_impulse:
         {
             double p_A = cpar.excitation_params[0];
             double freq = cpar.excitation_params[1];
-            double n = cpar.excitation_params[2];
+            double n_cycles = cpar.excitation_params[2];
 
-            if (t < 0.0 || t > n / freq)
+            if (t < 0.0 || t > n_cycles / freq)
             {
                 p_Inf = cpar.P_amb;
                 p_Inf_dot = 0.0;
@@ -298,9 +307,9 @@ std::pair<double, double> OdeFun::pressures(
         {
             double p_A = cpar.excitation_params[0];
             double freq = pow(10.0, cpar.excitation_params[1]);
-            double n = cpar.excitation_params[2];
+            double n_cycles = cpar.excitation_params[2];
 
-            if (t < 0.0 || t > n / freq)
+            if (t < 0.0 || t > n_cycles / freq)
             {
                 p_Inf = cpar.P_amb;
                 p_Inf_dot = 0.0;
