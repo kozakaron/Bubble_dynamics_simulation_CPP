@@ -475,7 +475,8 @@ void ControlParameters::nondimensionalize(double &t, double* x) const
     x[0] /= this->R_ref;
     x[1] *= this->t_ref / this->R_ref;
     x[2] /= this->T_ref;
-
+    for (size_t i = 0; i < par->num_species; ++i)
+        x[i + 3] = std::log(x[i + 3] + this->epsilon);
     x[par->num_species + 3] /= this->E_diss_ref;
 }
 
@@ -498,6 +499,7 @@ void ControlParameters::dimensionalize(double &t, double* x) const
     x[0] *= this->R_ref;
     x[1] *= this->R_ref * this->t_ref_inv;
     x[2] *= this->T_ref;
-
+    for (size_t i = 0; i < par->num_species; ++i)
+        x[i + 3] = std::exp(x[i + 3]) - this->epsilon;
     x[par->num_species + 3] *= this->E_diss_ref;
 }

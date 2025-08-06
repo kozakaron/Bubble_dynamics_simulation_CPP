@@ -173,7 +173,7 @@ OdeSolverCVODE::OdeSolverCVODE(const size_t num_dim):
     NV_Ith_S(abstol, num_dim-1) = 1e-10;      // E_diss
     
     for (size_t i = 0; i < num_dim; i++)
-        NV_Ith_S(constraints, i) = 1.0;      // molar concentrations c_i >= 0.0
+        NV_Ith_S(constraints, i) = 0.0;//1.0;      // molar concentrations c_i >= 0.0
     NV_Ith_S(constraints, 0) = 2.0;          // R > 0.0
     NV_Ith_S(constraints, 1) = 0.0;          // R_dot no constraint
     NV_Ith_S(constraints, 2) = 2.0;          // T > 0.0
@@ -184,11 +184,11 @@ OdeSolverCVODE::OdeSolverCVODE(const size_t num_dim):
     HANDLE_ERROR_CODE(CVodeInit(cvode_mem, right_hand_side, 0.0, x));
     HANDLE_ERROR_CODE(CVodeSetMaxNumSteps(cvode_mem, 2000000000));
     HANDLE_ERROR_CODE(CVodeSetMaxHnilWarns(cvode_mem, 10));                                 // maximum number of warnings for t+h=t
-    HANDLE_ERROR_CODE(CVodeSetMaxStep(cvode_mem, 1.0e-3*ControlParameters::t_ref_inv));     // Limit max step size to 1 ms TODO
+    HANDLE_ERROR_CODE(CVodeSetMaxStep(cvode_mem, 1.0e-3*ControlParameters::t_ref_inv));     // Limit max step size to 1 ms
     HANDLE_ERROR_CODE(CVodeSetStabLimDet(cvode_mem, SUNTRUE));
-    HANDLE_ERROR_CODE(CVodeSVtolerances(cvode_mem, reltol, abstol));
+    //HANDLE_ERROR_CODE(CVodeSVtolerances(cvode_mem, reltol, abstol));
     HANDLE_ERROR_CODE(CVodeSetConstraints(cvode_mem, constraints));
-    //HANDLE_ERROR_CODE(CVodeSStolerances(cvode_mem, 1e-10, 1e-10));
+    HANDLE_ERROR_CODE(CVodeSStolerances(cvode_mem, 1e-10, 1e-10));
 
     // Setup linear solver
     HANDLE_RETURN_PTR(A, SUNDenseMatrix(num_dim, num_dim, sun_context));
@@ -224,7 +224,7 @@ void init_solve(
 {
     HANDLE_ERROR_CODE(CVodeReInit(cvode_mem, 0.0, x));
     HANDLE_ERROR_CODE(CVodeSetUserData(cvode_mem, user_data));
-    HANDLE_ERROR_CODE(CVodeSetInitStep(cvode_mem, 1.0e-20));
+    HANDLE_ERROR_CODE(CVodeSetInitStep(cvode_mem, 1.0e-20*ControlParameters::t_ref_inv));
 }
 
 
@@ -259,7 +259,7 @@ void construct_solution(
 }
 
 
-void save_jacobian_to_json(void* cvode_mem, long int num_jac_evals)
+void save_jacobian_to_json(void* cvode_mem, long int num_jac_evals, OdeFun* ode_ptr)
 {
     // Get Jacobian, gamma, timestep, and state vector
     size_t dummy;
@@ -274,6 +274,11 @@ void save_jacobian_to_json(void* cvode_mem, long int num_jac_evals)
     HANDLE_ERROR_CODE(CVodeGetCurrentStep(cvode_mem, &timestep));
     N_Vector x = nullptr;
     HANDLE_ERROR_CODE(CVodeGetCurrentState(cvode_mem, &x));
+
+    // Compute dxdt at current state
+    N_Vector dxdt = nullptr;
+    HANDLE_RETURN_PTR(dxdt, N_VClone(x));
+    ode_ptr->operator()(t, NV_DATA_S(x), NV_DATA_S(dxdt));
 
     // Save directory and filename
     const std::string jacobian_dir = "./_jacobians/";
@@ -293,6 +298,12 @@ void save_jacobian_to_json(void* cvode_mem, long int num_jac_evals)
     {
         jacobian_data["x"].push_back(NV_Ith_S(x, i));
     }
+    jacobian_data["dxdt"] = std::vector<double>();
+    for (size_t i = 0; i < (size_t)NV_LENGTH_S(dxdt); ++i)
+    {
+        jacobian_data["dxdt"].push_back(NV_Ith_S(dxdt, i));
+    }
+    N_VDestroy(dxdt);
     jacobian_data["Jac"] = std::vector<std::vector<double>>();
     for (size_t i = 0; i < (size_t)SM_ROWS_D(Jac); ++i)
     {
@@ -384,7 +395,7 @@ OdeSolution OdeSolverCVODE::solve(
                 else if (num_jac_evals != last_num_jac_evals)
                 {
                     last_num_jac_evals = num_jac_evals;
-                    save_jacobian_to_json(cvode_mem, num_jac_evals);
+                    save_jacobian_to_json(cvode_mem, num_jac_evals, user_data.ode_ptr);
                 }
             }
         }

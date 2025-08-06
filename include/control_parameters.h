@@ -51,6 +51,7 @@ public:
     double R_ref;                                       // reference radius [m]
     double T_ref;                                       // reference temperature [K]
     static constexpr double E_diss_ref = 1e-5;          // reference dissipated energy [J] (instead of R_ref^2 * t_ref_inv^2)
+    static constexpr double epsilon = 1e-30;            // c_star = ln(c + epsilon)
 
 
 // Builder struct, defaults
