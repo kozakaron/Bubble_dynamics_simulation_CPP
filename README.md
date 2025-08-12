@@ -198,7 +198,7 @@ parameter_study = api.example_parameter_study()
 Just like the case of the control parameters, you need to provide the mechanism and excitation type as strings, enable_ variables as bool and species and fractions as lists. However, numerical variables are provided as a range, see [./include/parameter_study.h](./include/parameter_study.h). There are 3 available options:
  * **Constant**: This variable is set as a fixed value, and it isn't changed in the parameter study. E.g.: `{"type": "Const", value=1.0}`
  * **Linear range**: This parameter takes part in the parameter study. The variable is changed from start to stop with num_step equal increment. E.g.: `{"type": "LinearRange", start=0.0, end=1.0, num_steps=10}`
- * **Power range**: This parameter takes part in the parameter study. The variable is changed from start to stop with num_step increments. Subdivision is uneven, controlled by power. E.g.: `{"type": "PowRange", start=1.0, end=100.0, num_steps=10, base=2.0}`
+ * **LogRange range**: This parameter takes part in the parameter study. The variable is changed from start to stop  by using the ratio of end/start raised to fractional powers.: `{"type": "LogRange", start=1.0, end=100.0, num_steps=10, base=10.0}`
 
  A sample of such a control dict may look like this:
  ```Python
@@ -377,7 +377,7 @@ std::cout << data << std::endl;
 
 ### Running a bruteforce parameter study
 
-A bruteforce parameter study can be defined by the `ParameterCombinator` class declared in [./include/parameter_study.h](./include/parameter_study.h). It is also initialized with a builder struct and a designated initializer list, similar to `ControlParameters`. However, arguments have to be a childre of the `Range` class: `Const`, `LinearRange`, `PowRange`. It also has defaults for missing arguments, and can be printed to console in usable code format:
+A bruteforce parameter study can be defined by the `ParameterCombinator` class declared in [./include/parameter_study.h](./include/parameter_study.h). It is also initialized with a builder struct and a designated initializer list, similar to `ControlParameters`. However, arguments have to be a childre of the `Range` class: `Const`, `LinearRange`, `LogRange`. It also has defaults for missing arguments, and can be printed to console in usable code format:
 
 ```cpp
 ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinator::Builder{

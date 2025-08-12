@@ -263,6 +263,26 @@ std::pair<double, double> OdeFun::pressures(
     double p_Inf, p_Inf_dot;
     switch (cpar.excitation_type)
     {
+    case Parameters::excitation::two_sinusoids_with_n_cycles:
+        {
+            double p_A1 = cpar.excitation_params[0];
+            double p_A2 = cpar.excitation_params[1];
+            double freq1 = cpar.excitation_params[2];
+            double freq2 = cpar.excitation_params[3];
+            double theta_phase = cpar.excitation_params[4];
+            double n_cycles    = cpar.excitation_params[5];
+            if (t < 0.0 || (t > n_cycles /freq2 && t > n_cycles/freq1) )
+            {
+                p_Inf = cpar.P_amb;
+                p_Inf_dot = 0.0;
+            }
+            else
+            {
+            p_Inf = cpar.P_amb + p_A1 * sin(2.0 * std::numbers::pi * freq1 * t) + p_A2 * sin(2.0 * std::numbers::pi * freq2 * t + theta_phase);
+            p_Inf_dot = 2.0 * std::numbers::pi * (p_A1 * freq1 * cos(2.0 * std::numbers::pi * freq1 * t) + p_A2 * freq2 * cos(2.0 * std::numbers::pi * freq2 * t + theta_phase));
+            }
+            break;
+        }
     case Parameters::excitation::two_sinusoids:
         {
             double p_A1 = cpar.excitation_params[0];

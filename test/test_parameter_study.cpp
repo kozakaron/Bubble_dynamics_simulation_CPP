@@ -40,28 +40,36 @@ void test_parameter_study()
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
         ErrorHandler::clear_errors();
 
-        PowRange powrange{1, 16, 16, 2};
-        ASSERT_EQUAL(powrange[0], 1);
-        ASSERT_EQUAL(powrange[15], 16);
-        ASSERT_EQUAL(powrange[16], 16);
-        ASSERT_EQUAL(powrange[17], 16);
-        powrange = PowRange{0, 1, 1, 2};
-        ASSERT_EQUAL(powrange[0], 0);
-        ASSERT_EQUAL(powrange[1], 0);
-        ASSERT_EQUAL(powrange[2], 0);
-        powrange = PowRange{0, 1, 0, 2};
-        ASSERT_EQUAL(powrange[0], 0);
-        ASSERT_EQUAL(powrange[1], 0);
 
-        ASSERT_TRUE((PowRange{1, 10, 5, 3.0}[1] < PowRange{1, 10, 5, 2.0}[1]));
-        ASSERT_TRUE((PowRange{1, 10, 5, 3.0}[2] < PowRange{1, 10, 5, 2.0}[2]));
-        ASSERT_TRUE((PowRange{1, 10, 5, 1.0}[1] < PowRange{1, 10, 5, 0.5}[1]));
+
+
+        LogRange logrange{5, 200, 10, 10};  
+        ASSERT_NEAR(logrange[0], 5.0 ,1.1e-6);
+        LogRange lr1{5, 100, 10, 10};
+        LogRange lr2{5, 20, 10, 10};
+        double start = 5.0;
+        double end = 100.0;
+        int num_steps = 10;
+        int i = 4;
+        double log_base = 10.0;
+
+       double log_start = std::log(start) / std::log(log_base);
+       double log_end = std::log(end) / std::log(log_base);
+       double fraction = static_cast<double>(i) / (num_steps - 1);
+       double expected_val = std::pow(log_base, log_start + fraction * (log_end - log_start));
+
+       ASSERT_NEAR(lr1[i], expected_val, 1e-5);
+
+        
+
+        ASSERT_TRUE(lr1[1] > lr2[1]);  // 6.969 > 5.83
+        
     );
 
     ADD_TEST(tester, "Test ParameterCombinator::get_total_combination_count()",
         ParameterCombinator::Builder builder{
             .mechanism = Parameters::mechanism::chemkin_ar_he,
-            .R_E = PowRange(1e-6, 10e-6, 5, 2),
+            .R_E = LogRange(1e-6, 10e-6, 5, 10),
             .rho_L = LinearRange(800.0, 1200.0, 5),
         };
         ParameterCombinator pc1{builder};
@@ -90,21 +98,35 @@ void test_parameter_study()
         ParameterCombinator pc{builder};
         ASSERT_EQUAL(pc.get_total_combination_count(), 5*3*2);
         size_t ID = 0;
-        for (size_t excitation_param = 0; excitation_param < 2; excitation_param++)
-            for (size_t rho_L = 0; rho_L < 3; rho_L++)
-                for (size_t R_E = 0; R_E < 5; R_E++)
-                {
-                    ASSERT_EQUAL(pc.get_next_combination_ID(), ID);
-                    auto [success, cpar] = pc.get_next_combination();
-                    ASSERT_TRUE(success);
-                    ASSERT_EQUAL(cpar.ID, ID);
-                    ASSERT_EQUAL(cpar.R_E, R_E);
-                    ASSERT_EQUAL(cpar.rho_L, rho_L);
-                    ASSERT_EQUAL(cpar.excitation_params[0], excitation_param);
-                    ASSERT_EQUAL(cpar.excitation_params[1], 1);
-                    ASSERT_EQUAL(cpar.excitation_params[2], 1);
-                    ID++;
-                }
+        LinearRange expected_RE_range(0, 4, 5);
+        LinearRange expected_rho_L_range(0, 2, 3);
+        LinearRange expected_exc_param_range(0, 1, 2);
+
+  for (size_t excitation_param = 0; excitation_param < 2; excitation_param++) {
+      for (size_t rho_L = 0; rho_L < 3; rho_L++) {
+          for (size_t R_E = 0; R_E < 5; R_E++) {
+            ASSERT_EQUAL(pc.get_next_combination_ID(), ID);
+            auto [success, cpar] = pc.get_next_combination();
+            ASSERT_TRUE(success);
+            ASSERT_EQUAL(cpar.ID, ID);
+           std::cout << "ID " << ID << ": R_E=" << R_E << " (expected " << expected_RE_range[R_E]
+          << "), rho_L=" << rho_L << " (expected " << expected_rho_L_range[rho_L]
+          << "), excitation_param=" << excitation_param << " (expected " << expected_exc_param_range[excitation_param]
+          << "), cpar.R_E=" << cpar.R_E << std::endl;
+            ASSERT_NEAR(cpar.R_E, expected_RE_range[R_E], 1e-6);
+            ASSERT_NEAR(cpar.rho_L, expected_rho_L_range[rho_L], 1e-6);
+            ASSERT_NEAR(cpar.excitation_params[0], expected_exc_param_range[excitation_param], 1e-6);
+
+            ASSERT_EQUAL(cpar.excitation_params[1], 1);
+            ASSERT_EQUAL(cpar.excitation_params[2], 1);
+
+            ID++;
+        }
+    }
+
+
+    }
+
         auto [success, cpar] = pc.get_next_combination();
         ASSERT_FALSE(success);
         ASSERT_EQUAL(cpar.error_ID, ErrorHandler::no_error);
@@ -164,6 +186,6 @@ void test_parameter_study()
     tester.run_tests();
 }
 
-}   // namespace testing
+}// namespace testing
 
 #endif // TEST

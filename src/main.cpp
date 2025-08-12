@@ -99,6 +99,7 @@ int main(int argc, char **argv)
     {
         std::string json_path = result["parameter_study"].as<std::string>();
         ParameterCombinator parameter_combinator(json_path);
+        cout<<parameter_combinator<<endl;
         if (ErrorHandler::get_error_count() != 0) return 1;
         size_t num_threads = result["cpu"].as<size_t>();
         ParameterStudy parameter_study(
@@ -125,9 +126,11 @@ int main(int argc, char **argv)
 #ifdef BENCHMARK
     benchmark_ode_fun();
     benchmark_speedup();
-    benchmark_parameter_study();
+    //benchmark_parameter_study();
 #endif  // BENCHMARK
 
     if (ErrorHandler::get_error_count() != 0)  return 1;
     return 0;
+
 }
+

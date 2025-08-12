@@ -137,52 +137,66 @@ ordered_json LinearRange::to_json() const
     };
 }
 
-
-PowRange::PowRange(double start, double end, size_t num_steps, double base):
-    Range(start, end, std::max(num_steps, (size_t)1))
+LogRange::LogRange(double start, double end, size_t num_steps, double base)
+    : Range(start, end, std::max(num_steps, (size_t)1)), base(base), sign(1)
 {
-    if (base <= 0.0)
-    {
-        LOG_ERROR("The value of base (" + std::to_string(base) + ") must be positive. Otherwise the formula f(x) = a * x^base + c breaks.");
-        this->start = 1.0;
-    }
-    this->base = base;
-    this->a = (end - start) / std::pow(num_steps - 1, base);
-    this->c = start;
-}
-
-
-double PowRange::operator[](size_t i) const
-{
-    if (this->num_steps <= 1)
-    {
-        return this->start;
-    }
-    if (i >= this->num_steps)
-    {
-        return this->end;
+    if (start == 0.0 || end == 0.0) {
+        throw std::invalid_argument("LogRange start and end cannot be zero");
     }
 
-    return this->a * std::pow(i, this->base) + this->c;
+    if ((start < 0 && end > 0) || (start > 0 && end < 0)) {
+        throw std::invalid_argument("LogRange start and end must both be positive or both negative");
+    }
+
+    if (base <= 1.0) {
+        throw std::invalid_argument("LogRange base must be greater than 1");
+    }
+
+    if (start < 0 && end < 0) {
+        sign = -1;
+        // Store positive magnitudes internally by modifying the base class members
+        this->start = std::abs(start);
+        this->end = std::abs(end);
+    }
+    // else sign = 1 and base class 'start'/'end' already set in initializer list
 }
 
-
-std::string PowRange::to_string() const
+double LogRange::operator[](size_t i) const
 {
-    return "PowRange(" + std::to_string(this->start) + ", " + std::to_string(this->end) + ", " + std::to_string(this->num_steps) + ", " + std::to_string(this->base) + ")";
+    if (num_steps <= 1)
+        return sign * this->start;
+    if (i >= num_steps)
+        return sign * this->end;
+
+    double log_start = std::log(this->start) / std::log(base);
+    double log_end = std::log(this->end) / std::log(base);
+    double fraction = static_cast<double>(i) / (num_steps - 1);
+    double log_value = log_start + fraction * (log_end - log_start);
+
+    double val = std::pow(base, log_value);
+    return sign * val;
 }
 
 
-ordered_json PowRange::to_json() const
+
+
+std::string LogRange::to_string() const
 {
-    return {
-        {"type", "PowRange"},
-        {"start", this->start},
-        {"end", this->end},
-        {"num_steps", this->num_steps},
-        {"base", this->base}
-    };
+    return "LogRange(" + std::to_string(sign * this->start) + ", " + std::to_string(sign * this->end)
+           + ", " + std::to_string(num_steps) + ", base=" + std::to_string(base) + ")";
 }
+
+nlohmann::ordered_json LogRange::to_json() const
+{
+    nlohmann::ordered_json j;
+    j["type"] = "logrange";
+    j["start"] = sign * this->start;
+    j["end"] = sign * this->end;
+    j["num_steps"] = num_steps;
+    j["base"] = base;
+    return j;
+}
+
 
 
 std::unique_ptr<Range> get_unique_ptr(const ParameterCombinator::AnyRange range)
@@ -195,9 +209,9 @@ std::unique_ptr<Range> get_unique_ptr(const ParameterCombinator::AnyRange range)
     {
         return std::make_unique<LinearRange>(std::get<LinearRange>(range));
     }
-    else if (std::holds_alternative<PowRange>(range))
+    else if (std::holds_alternative<LogRange>(range))
     {
-        return std::make_unique<PowRange>(std::get<PowRange>(range));
+        return std::make_unique<LogRange>(std::get<LogRange>(range));
     }
     return nullptr;
 }
@@ -260,7 +274,7 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinat
     {
         LOG_ERROR(
             "Expected JSON object, instead found " + j.dump() + \
-            ". Available options: Const(value), LinearRange(start, end, num_steps), PowRange(start, end, num_steps, base). " + \
+            ". Available options: Const(value), LinearRange(start, end, num_steps), LogRange(start, end, num_steps, base). " + \
             "E.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
         );
         return default_range;
@@ -269,7 +283,7 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinat
     {
         LOG_ERROR(
             "Invalid \"type\" in JSON object " + j.dump() + \
-            ". Available options: Const(value), LinearRange(start, end, num_steps), PowRange(start, end, num_steps, base). " + \
+            ". Available options: Const(value), LinearRange(start, end, num_steps), LogRange(start, end, num_steps, base). " + \
             "e.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
         );
         return default_range;
@@ -312,7 +326,7 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinat
             j.at("num_steps").get<size_t>()
         );
     }
-    else if (type == "powrange")
+    else if (type == "logrange")
     {
         if (
             !j.contains("start") || !j.contains("end") || !j.contains("num_steps")
@@ -322,22 +336,22 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinat
         {
             LOG_ERROR(
                 "Invalid arguments for JSON onject " + j.dump() + \
-                ". For PowRange, you must provide start, end, and optionally base of type double. As well as num_steps of type integer. " + \
-                "e.g.: {\"type\": \"PowRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10, \"base\": 2.0}"
+                ". For LogRange, you must provide start, end, and optionally base of type double. As well as num_steps of type integer. " + \
+                "e.g.: {\"type\": \"LogRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10, \"base\": 2.0}"
             );
             return default_range;
         }
-        return PowRange(
+        return LogRange(
             j.at("start").get<double>(),
             j.at("end").get<double>(),
             j.at("num_steps").get<size_t>(),
-            j.value("base", 2.0)
+            j.value("base", 10.0)
         );
     }
     else
     {
         LOG_ERROR("Invalid Range type: " + type + \
-            ". Available options: Const(value), LinearRange(start, end, num_steps), PowRange(start, end, num_steps, base). " + \
+            ". Available options: Const(value), LinearRange(start, end, num_steps), LogRange(start, end, num_steps, base). " + \
             "e.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
         );
         return default_range;
@@ -442,11 +456,12 @@ void ParameterCombinator::init(const ordered_json& j)
             }
             else
             {
+                builder.excitation_params.resize(j.at("excitation_params").size(), Const(0.0));
                 for (size_t i=0; i < j.at("excitation_params").size(); ++i)
                 {
                     ordered_json param = j.at("excitation_params").at(i);
                     if (param != nullptr)
-                        builder.excitation_params[i] = get_range(param, builder.excitation_params.at(i));
+                        builder.excitation_params.at(i) = get_range(param, builder.excitation_params.at(i));
                     
                 }
             }
@@ -642,6 +657,12 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         return value;
     };
 
+    std::vector<double> excitation_values(this->excitation_params.size());
+    for (size_t i = 0; i < this->excitation_params.size(); ++i)
+    {
+        excitation_values.at(i) = get_value(this->excitation_params.at(i));
+    }
+
     ControlParameters cpar{ControlParameters::Builder{
         .ID = combination_ID,
         .mechanism = this->mechanism,
@@ -660,13 +681,10 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         .enable_evaporation = this->enable_evaporation,
         .enable_reactions = this->enable_reactions,
         .enable_dissipated_energy = this->enable_dissipated_energy,
-        .target_specie = this->target_specie
+        .target_specie = this->target_specie,
+        .excitation_params = excitation_values,
+        .excitation_type = this->excitation_type
     }};
-    
-    for (size_t i = 0; i < this->excitation_params.size(); ++i)
-    {
-        cpar.excitation_params[i] = get_value(this->excitation_params[i]);
-    }
 
     is_success success = combination_ID < this->total_combination_count;
 

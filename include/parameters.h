@@ -25,30 +25,34 @@ public:
 
     enum mechanism: index_t {chemkin_ar_he, chemkin_kaust2023_n2, chemkin_kaust2023_n2_without_o, chemkin_otomo2018_without_o, chemkin_otomo2018};
     enum reac_type: index_t {lindemann_reac, troe_reac, sri_reac};
-    enum excitation: index_t {no_excitation=0, two_sinusoids=1, sin_impulse=2, sin_impulse_logf=3};
-    static constexpr std::array<index_t, 4> excitation_arg_nums = {
+    enum excitation: index_t {no_excitation=0, two_sinusoids=1, sin_impulse=2, sin_impulse_logf=3, two_sinusoids_with_n_cycles=4};
+    static constexpr std::array<index_t, 5> excitation_arg_nums = {
         0, // no_excitation
         5, // two_sinusoids
         3, // sin_impulse
-        3  // sin_impulse_logf
+        3, // sin_impulse_logf
+        6 //two_sinusoids_with_n_cycles
     };
-    static constexpr std::array<const char*, 4> excitation_names = {
+    static constexpr std::array<const char*, 5> excitation_names = {
         "no_excitation",
         "two_sinusoids",
         "sin_impulse",
-        "sin_impulse_logf"
+        "sin_impulse_logf",
+        "two_sinusoids_with_n_cycles"
     };
-    static constexpr std::array<const char*, 4> excitation_arg_names = {
+    static constexpr std::array<const char*, 5> excitation_arg_names = {
         "",                                     // no_excitation
         "p_A1 p_A2 freq1 freq2 theta_pahse",    // two_sinusoids
         "p_A freq n",                           // sin_impulse
-        "p_A log_f n"                           // sin_impulse_logf
+        "p_A log_f n",                          // sin_impulse_logf
+        "p_A1 p_A2 freq1 freq2 theta_phase n_cycles"  //  two_sinusoids_with_n_cycles
     };
-    static constexpr std::array<const char*, 4> excitation_arg_units = {
+    static constexpr std::array<const char*, 5> excitation_arg_units = {
         "",                                     // no_excitation
         "Pa Pa Hz Hz rad",                      // two_sinusoids
         "Pa Hz -",                              // sin_impulse
-        "Pa - -"                                // sin_impulse_logf
+        "Pa - -" ,                               // sin_impulse_logf
+        "Pa Pa Hz Hz - -"
     };
     static constexpr std::array<const char*, 5> mechanism_names = {
         "chemkin_ar_he",
