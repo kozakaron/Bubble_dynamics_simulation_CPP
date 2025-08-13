@@ -10,6 +10,9 @@ using ordered_json = nlohmann::ordered_json;
 OdeSolution::OdeSolution():
     t(),
     x(),
+    R_max(0.0),
+    T_max(0.0),
+    t_max(0.0),
     num_dim(0),
     num_steps(0),
     num_repeats(0),
@@ -43,6 +46,9 @@ void OdeSolution::clear()
 {
     t.clear();
     x.clear();
+    R_max = 0.0;
+    T_max = 0.0;
+    t_max = 0.0;
     num_dim = 0;
     num_steps = 0;
     num_repeats = 0;
@@ -94,6 +100,7 @@ std::string OdeSolution::to_csv() const
     ss << format_double << this->runtime << "," << format_double;
     if (this->t.empty()) ss << format_double << 0.0 << ",";
     else ss << this->t.back() << ",";
+    ss << format_double << this->R_max << "," << format_double << this->T_max << "," << format_double << this->t_max << ",";
     if (!this->x.empty())
     {
         for (size_t i = 0; i < this->x[0].size(); ++i)
@@ -145,6 +152,9 @@ std::string OdeSolution::to_string(const bool colored, const bool with_code) con
     ss << std::setw(strw) << "    .num_jac_evals"      << " = " << std::setw(intw) << std::to_string(num_jac_evals)      + "," << percent(num_jac_evals, num_steps) << "\n";
     ss << std::setw(strw) << "    .num_lin_iters"      << " = " << std::setw(intw) << std::to_string(num_lin_iters)      + "," << percent(num_lin_iters, num_steps) << "\n";
     ss << std::setw(strw) << "    .num_nonlin_iters"   << " = " << std::setw(intw) << std::to_string(num_nonlin_iters)   + "," << percent(num_nonlin_iters, num_steps) << "\n";
+    ss << std::setw(strw) << "    .R_max"              << " = " << std::setprecision(std::numeric_limits<double>::max_digits10) << R_max << ",\n";
+    ss << std::setw(strw) << "    .T_max"              << " = " << std::setprecision(std::numeric_limits<double>::max_digits10) << T_max << ",\n";
+    ss << std::setw(strw) << "    .t_max"              << " = " << std::setprecision(std::numeric_limits<double>::max_digits10) << t_max << ",\n";
 
     if (this->t.size() >=2 && this->x.size() >= 2 && this->num_dim > 0)
     {
@@ -180,6 +190,9 @@ ordered_json OdeSolution::to_json() const
     j["num_jac_evals"] = this->num_jac_evals;
     j["num_lin_iters"] = this->num_lin_iters;
     j["num_nonlin_iters"] = this->num_nonlin_iters;
+    j["R_max"] = this->R_max;
+    j["T_max"] = this->T_max;
+    j["t_max"] = this->t_max;
     j["total_error"] = this->total_error;
     // Saved as binary data in SimulationData:
     //j["t"] = std::vector<double>({this->t.front(), this->t.back()});

@@ -260,7 +260,7 @@ void construct_solution(
 }
 
 
-void save_jacobian_to_json(void* cvode_mem, long int num_jac_evals)
+void save_jacobian_to_json(void* cvode_mem, long int num_jac_evals, OdeFun* ode_ptr)
 {
     // Get Jacobian, gamma, timestep, and state vector
     size_t dummy;
@@ -275,6 +275,13 @@ void save_jacobian_to_json(void* cvode_mem, long int num_jac_evals)
     HANDLE_ERROR_CODE(CVodeGetCurrentStep(cvode_mem, &timestep));
     N_Vector x = nullptr;
     HANDLE_ERROR_CODE(CVodeGetCurrentState(cvode_mem, &x));
+    long int num_steps;
+    HANDLE_ERROR_CODE(CVodeGetNumSteps(cvode_mem, &num_steps));
+
+    // Compute dxdt at current state
+    N_Vector dxdt = nullptr;
+    HANDLE_RETURN_PTR(dxdt, N_VClone(x));
+    ode_ptr->operator()(t, NV_DATA_S(x), NV_DATA_S(dxdt));
 
     // Save directory and filename
     const std::string jacobian_dir = "./_jacobians/";
@@ -285,6 +292,7 @@ void save_jacobian_to_json(void* cvode_mem, long int num_jac_evals)
 
     // Save as JSON
     nlohmann::ordered_json jacobian_data;
+    jacobian_data["num_steps"] = num_steps;
     jacobian_data["num_jac_evals"] = num_jac_evals;
     jacobian_data["t"] = t;
     jacobian_data["timestep"] = timestep;
@@ -293,6 +301,11 @@ void save_jacobian_to_json(void* cvode_mem, long int num_jac_evals)
     for (size_t i = 0; i < (size_t)NV_LENGTH_S(x); ++i)
     {
         jacobian_data["x"].push_back(NV_Ith_S(x, i));
+    }
+    jacobian_data["dxdt"] = std::vector<double>();
+    for (size_t i = 0; i < (size_t)NV_LENGTH_S(dxdt); ++i)
+    {
+        jacobian_data["dxdt"].push_back(NV_Ith_S(dxdt, i));
     }
     jacobian_data["Jac"] = std::vector<std::vector<double>>();
     for (size_t i = 0; i < (size_t)SM_ROWS_D(Jac); ++i)
@@ -360,16 +373,29 @@ OdeSolution OdeSolverCVODE::solve(
     if (solution.error_ID != ErrorHandler::no_error)  return solution;
 
     // Solve
-    int itask = save_solution ? CV_ONE_STEP : CV_NORMAL;
     long int num_jac_evals, last_num_jac_evals = 0;
+    double R_max = 0.0, T_max = 0.0, t_at_Tmax = 0.0;
     while (true)
     {
         // Integration (step)
-        int retval = CVode(cvode_mem, t_max, x, &t, itask);
-        solution.push_t_x(t, NV_DATA_S(x));
+        int retval = CVode(cvode_mem, t_max, x, &t, CV_ONE_STEP);
 
         // Success
-        if (retval == CV_SUCCESS) { 
+        if (retval == CV_SUCCESS) {
+            // Update maximum values
+            if (NV_Ith_S(x, 0) > R_max) R_max = NV_Ith_S(x, 0);
+            if (NV_Ith_S(x, 2) > T_max)
+            {
+                T_max = NV_Ith_S(x, 2);
+                t_at_Tmax = t;
+            }
+
+            // Save solution
+            if (save_solution)
+            {
+                solution.push_t_x(t, NV_DATA_S(x));
+            }
+
             // Save Jacobian
             if (save_jacobian)
             {
@@ -383,7 +409,7 @@ OdeSolution OdeSolverCVODE::solve(
                 else if (num_jac_evals != last_num_jac_evals)
                 {
                     last_num_jac_evals = num_jac_evals;
-                    save_jacobian_to_json(cvode_mem, num_jac_evals);
+                    save_jacobian_to_json(cvode_mem, num_jac_evals, ode_ptr);
                 }
             }
         }
@@ -407,7 +433,11 @@ OdeSolution OdeSolverCVODE::solve(
     }
 
     // fill solution
+    solution.push_t_x(t, NV_DATA_S(x));
     construct_solution(solution, cvode_mem, &(solution.error_ID), x);
+    solution.R_max         = R_max;
+    solution.T_max         = T_max;
+    solution.t_max         = t_at_Tmax;
     solution.runtime       = timer.lap();
     user_data.ode_ptr      = nullptr;
     user_data.timer_ptr    = nullptr;
