@@ -10,13 +10,16 @@
 class OdeSolution
 {
 public:
-    static constexpr char csv_header[] = "success,num_dim,num_steps,num_repeats,num_fun_evals,num_fun_evals_jac,num_jac_evals,num_lin_iters,num_nonlin_iters,runtime,t_last,R_max,T_max,t_max,x_0,x_last";
+    static constexpr char csv_header[] = "success,num_dim,num_steps,num_repeats,num_fun_evals,num_fun_evals_jac,num_jac_evals,num_lin_iters,num_nonlin_iters,runtime,t_last,R_max,T_max,t_at_Tmax,R_min,T_min,t_at_Rmin,x_0,x_last";
 
     std::vector<double> t;
     std::vector<std::vector<double>> x;
     double R_max;
     double T_max;
-    double t_max;
+    double t_at_Tmax;
+    double R_min;
+    double T_min;
+    double t_at_Rmin;
     size_t num_dim;
     size_t num_steps;
     size_t num_repeats;

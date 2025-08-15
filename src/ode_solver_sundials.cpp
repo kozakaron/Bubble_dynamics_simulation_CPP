@@ -375,6 +375,9 @@ OdeSolution OdeSolverCVODE::solve(
     // Solve
     long int num_jac_evals, last_num_jac_evals = 0;
     double R_max = 0.0, T_max = 0.0, t_at_Tmax = 0.0;
+    double R_min = NV_Ith_S(x, 0);
+    double T_min = NV_Ith_S(x, 2);
+    double t_at_Rmin = 0.0;
     while (true)
     {
         // Integration (step)
@@ -384,10 +387,16 @@ OdeSolution OdeSolverCVODE::solve(
         if (retval == CV_SUCCESS) {
             // Update maximum values
             if (NV_Ith_S(x, 0) > R_max) R_max = NV_Ith_S(x, 0);
+            if (NV_Ith_S(x, 2) < T_min) T_min = NV_Ith_S(x, 2);
             if (NV_Ith_S(x, 2) > T_max)
             {
                 T_max = NV_Ith_S(x, 2);
                 t_at_Tmax = t;
+            }
+            if (NV_Ith_S(x, 0) < R_min)
+            {
+                R_min = NV_Ith_S(x, 0);
+                t_at_Rmin = t;
             }
 
             // Save solution
@@ -437,7 +446,10 @@ OdeSolution OdeSolverCVODE::solve(
     construct_solution(solution, cvode_mem, &(solution.error_ID), x);
     solution.R_max         = R_max;
     solution.T_max         = T_max;
-    solution.t_max         = t_at_Tmax;
+    solution.t_at_Tmax     = t_at_Tmax;
+    solution.R_min         = R_min;
+    solution.T_min         = T_min;
+    solution.t_at_Rmin     = t_at_Rmin;
     solution.runtime       = timer.lap();
     user_data.ode_ptr      = nullptr;
     user_data.timer_ptr    = nullptr;
