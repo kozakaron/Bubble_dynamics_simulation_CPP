@@ -9,300 +9,9 @@
 #include "nlohmann/json.hpp"
 #include "parameter_study.h"
 #include "ode_fun.h"
-#include "ode_solver_sundials.h"
-
-using ordered_json = nlohmann::ordered_json;
+#include "ode_solver.h"
 
 
-double get_dissipated_energy(const OdeSolution &sol)
-{
-    if (sol.x.empty()) return 0.0;
-    if (sol.x.back().empty()) return 0.0;
-    return sol.x.back().back();
-}
-
-double get_n_target(const OdeSolution &sol, const ControlParameters &cpar)
-{
-    if (sol.x.empty()) return 0.0;
-    if (sol.x.back().empty()) return 0.0;
-    const Parameters* par = Parameters::get_parameters(cpar.mechanism);
-    if (par == nullptr) return 0.0;
-    if (cpar.target_specie == par->invalid_index) return 0.0;
-    if (sol.x.front().size() != size_t(4 + par->num_species)) return 0.0;
-    if (sol.x.back().size() != size_t(4 + par->num_species)) return 0.0;
-
-    const double R_last = 100.0 * sol.x.back()[0];  // [cm]
-    const double V_last = 4.0 / 3.0 * std::numbers::pi * std::pow(R_last, 3); // [cm^3]
-    const double c_target = sol.x.back()[3+cpar.target_specie];  // [mol/cm^3]
-
-    return c_target * V_last;  // [mol]
-}
-
-double get_energy_demand(const OdeSolution &sol, const ControlParameters &cpar)
-{
-    const Parameters* par = Parameters::get_parameters(cpar.mechanism);
-    if (par == nullptr) return SimulationData::infinite_energy_demand;
-    if (cpar.target_specie == par->invalid_index) return SimulationData::infinite_energy_demand;
-
-    const double dissipated_energy = get_dissipated_energy(sol);    // [J]
-    const double n_target = get_n_target(sol, cpar);    // [mol]
-    const double m_target = 1.0e-3 * n_target * par->W[cpar.target_specie];  // [kg]
-
-    if (dissipated_energy < -1.0e-8)
-        LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Dissipated energy is negative: " + std::to_string(dissipated_energy), cpar.ID);
-    if (n_target < -1.0e-8)
-        LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Target specie concentration is negative: " + std::to_string(n_target), cpar.ID);
-
-    if (m_target < 10*std::numeric_limits<double>::min())
-        return SimulationData::infinite_energy_demand;
-
-    double energy_demand = 1.0e-6 * dissipated_energy / m_target;  // [MJ/kg]
-    if (energy_demand < 0.0)
-    {
-        LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Energy demand is negative: " + std::to_string(energy_demand), cpar.ID);
-        return SimulationData::infinite_energy_demand;
-    }
-
-    return energy_demand;
-}
-
-
-const std::string SimulationData::csv_header = std::string("dissipated_energy,n_target_specie,energy_demand,")
-                                             + std::string(ControlParameters::csv_header) + std::string(",")
-                                             + std::string(OdeSolution::csv_header) + std::string(",") + std::string(Error::csv_header);
-
-const Error SimulationData::no_error = Error(Error::severity::info, Error::type::general, "No error", "", __FILE__, __LINE__, 0);
-
-const double SimulationData::infinite_energy_demand = std::numeric_limits<double>::infinity();
-
-SimulationData::SimulationData(const ControlParameters &cpar, const OdeSolution &sol):
-    cpar(cpar),    
-    sol(sol),
-    dissipated_energy(get_dissipated_energy(sol)),
-    n_target_specie(get_n_target(sol, cpar)),
-    energy_demand(get_energy_demand(sol, cpar))
-{}
-
-
-std::string SimulationData::to_csv() const
-{
-    std::stringstream ss;
-    auto format_double = [](std::ostream& os) -> std::ostream& {
-        return os << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10);
-    };
-
-    ss << format_double << this->dissipated_energy << ",";
-    ss << format_double << this->n_target_specie << ",";
-    ss << format_double << this->energy_demand << ",";
-    ss << this->cpar.to_csv() << ",";
-    ss << this->sol.to_csv() << ",";
-
-    if (this->sol.error_ID == ErrorHandler::no_error)
-    {
-        ss << this->no_error.to_csv();
-    } else
-    {
-        Error error = ErrorHandler::get_error(this->sol.error_ID);
-        ss << error.to_csv();
-    }
-
-
-    return ss.str();
-}
-
-
-std::string SimulationData::to_string() const
-{
-    const size_t strw = 28;
-    auto format_double = [](std::ostream& os) -> std::ostream& {
-        return os << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10);
-    };
-
-    std::stringstream ss;
-    ss << std::left;
-    ss << "SimulationData{\n";
-    ss << std::setw(strw) << "    .dissipated_energy"  << " = " << format_double << this->dissipated_energy    << ",    // [J]\n";
-    ss << std::setw(strw) << "    .n_target_specie"    << " = " << format_double << this->n_target_specie      << ",    // [mol]\n";
-    ss << std::setw(strw) << "    .energy_demand"      << " = " << format_double << this->energy_demand        << ",    // [MJ/kg]\n";
-    ss << "    .cpar = ControlParameters{";
-    ss << std::regex_replace(this->cpar.to_string(true), std::regex("\n"), "\n    ");
-    ss << "},\n    .sol = ";
-    ss << std::regex_replace(this->sol.to_string(false, true), std::regex("\n"), "\n    ");
-    ss << ",\n}" << std::right;
-
-    return ss.str();
-}
-
-
-std::string SimulationData::to_small_string(const ParameterCombinator &ps, const double best_energy_demand, const bool colored) const
-{
-    std::stringstream ss;
-    std::string total_combinations = std::to_string(ps.get_total_combination_count());
-    auto format_double = [](std::ostream& os) -> std::ostream& {
-        return os << std::scientific << std::setprecision(4);
-    };
-
-    ss << std::setw(total_combinations.size()) << std::to_string(this->cpar.ID) << "/" << total_combinations << ": ";
-    if (colored)
-        ss << colors::bold << (this->sol.success() ? colors::green : colors::red) << (this->sol.success() ? "success" : " failed") << colors::reset << "; ";
-    else
-        ss << (this->sol.success() ? "success" : " failed") << "; ";
-    ss << "runtime=" << std::setw(10) << Timer::format_time(this->sol.runtime) << "; ";
-    ss << "num_steps=" << std::setw(8) << this->sol.num_steps << ";   |   ";
-
-    if (ps.R_E->get_num_steps() > 1)
-        ss << "R_E=" << format_double << this->cpar.R_E << " m; ";
-    if (ps.P_amb->get_num_steps() > 1)
-        ss << "P_amb=" << format_double << this->cpar.P_amb << " Pa; ";
-    if (ps.T_inf->get_num_steps() > 1)
-        ss << "T_inf=" << format_double << this->cpar.T_inf << " K; ";
-    if (ps.alfa_M->get_num_steps() > 1)
-        ss << "alfa_M=" << format_double << this->cpar.alfa_M << "; ";
-    if (ps.P_v->get_num_steps() > 1)
-        ss << "P_v=" << format_double << this->cpar.P_v << " Pa; ";
-    if (ps.mu_L->get_num_steps() > 1)
-        ss << "mu_L=" << format_double << this->cpar.mu_L << " Pa*s; ";
-    if (ps.rho_L->get_num_steps() > 1)
-        ss << "rho_L=" << format_double << this->cpar.rho_L << " kg/m^3; ";
-    if (ps.c_L->get_num_steps() > 1)
-        ss << "c_L=" << format_double << this->cpar.c_L << " m/s; ";
-    if (ps.surfactant->get_num_steps() > 1)
-        ss << "surfactant=" << format_double << this->cpar.surfactant << "; ";
-
-    std::string excitation_arg_names = Parameters::excitation_arg_names.at(ps.excitation_type);
-    std::string excitation_arg_units = Parameters::excitation_arg_units.at(ps.excitation_type);
-    auto name_begin = excitation_arg_names.begin();
-    auto unit_begin = excitation_arg_units.begin();
-    auto name_end = excitation_arg_names.end();
-    auto unit_end = excitation_arg_units.end();
-    for (size_t i = 0; i < ps.excitation_params.size(); ++i)
-    {
-        name_end = std::find(name_begin, excitation_arg_names.end(), ' ');
-        unit_end = std::find(unit_begin, excitation_arg_units.end(), ' ');
-        std::string excitation_arg_name = std::string(name_begin, name_end);
-        std::string excitation_arg_unit = std::string(unit_begin, unit_end);
-        if (ps.excitation_params[i]->get_num_steps() > 1)
-            ss << excitation_arg_name << "=" << format_double << this->cpar.excitation_params[i] << " " << excitation_arg_unit << "; ";
-        name_begin = name_end + 1;
-        unit_begin = unit_end + 1;
-    }
-
-    ss << "   |   ";
-    ss << "energy_demand=" << format_double << this->energy_demand << " MJ/kg ";
-    if (colored)
-        ss << colors::bold << "(best=" << format_double << best_energy_demand << " MJ/kg)" << colors::reset;
-    else
-        ss << "(best=" << format_double << best_energy_demand << " MJ/kg)";
-
-    return ss.str();
-}
-
-
-// Helper function to split a space-separated string into a vector of strings
-std::vector<std::string> split_string(const std::string& str) {
-    std::vector<std::string> result;
-    std::stringstream sstream(str);
-    std::string token;
-    while (sstream >> token) {
-        result.push_back(token);
-    }
-    return result;
-}
-
-
-ordered_json SimulationData::to_json() const
-{
-    ordered_json j;
-    j["dissipated_energy"] = this->dissipated_energy;
-    j["n_target_specie"] = this->n_target_specie;
-    j["energy_demand"] = this->energy_demand;
-    j["cpar"] = this->cpar.to_json();
-    j["sol"] = this->sol.to_json();
-    j["excitation"] = ordered_json::object({
-        {"type", Parameters::excitation_names.at(this->cpar.excitation_type)},
-        {
-            "names",
-            split_string(
-                Parameters::excitation_arg_names.at(this->cpar.excitation_type)
-            )
-        },
-        {
-            "units",
-            split_string(
-                Parameters::excitation_arg_units.at(this->cpar.excitation_type)
-            )
-        }
-    });
-
-    const Parameters* par = Parameters::get_parameters(this->cpar.mechanism);
-    if (par == nullptr)
-    {
-        LOG_ERROR("Mechanism " + std::to_string(this->cpar.mechanism) + " is not found.");
-        return j;
-    }
-    j["mechanism"] = ordered_json::object({
-        {"model", par->model},
-        {"num_species", par->num_species},
-        {"num_reactions", par->num_reactions},
-        {"species_names", par->species_names}
-    });
-    j["version"] = VERSION;
-
-    return j;
-}
-
-
-void SimulationData::save_json_with_binary(const std::string &json_path) const
-{
-    // Open file as text
-    std::ofstream output_file(json_path, std::ios::out);
-    if (!output_file.is_open())
-    {
-        LOG_ERROR("Could not open output JSON file: " + json_path);
-        return;
-    }
-
-    // Save JSON data + <BINARY> marker
-    ordered_json j = this->to_json();
-    output_file << std::setw(4) << j << std::endl;
-    output_file << std::endl << "<BINARY>";
-    output_file.close();
-
-    // Open file as binary
-    std::ofstream binary_output_file(json_path, std::ios::app | std::ios::binary);
-    if (!binary_output_file.is_open())
-    {
-        LOG_ERROR("Could not open output file as binary: " + json_path);
-        return;
-    }
-
-    // Save sol.t (1D array)
-    if (this->sol.t.size() != this->sol.x.size())
-    {
-        LOG_ERROR("Mismatch between sol.t.size() and sol.x.size(): " + std::to_string(this->sol.t.size()) + " != " + std::to_string(this->sol.x.size()));
-        return;
-    }
-    binary_output_file.write(reinterpret_cast<const char*>(this->sol.t.data()), this->sol.t.size() * sizeof(double));
-
-    // Save sol.x (2D array)
-    for (const auto& row : this->sol.x)
-    {
-        if (row.size() != this->sol.num_dim)
-        {
-            LOG_ERROR("Mismatch between sol.x[].size() and sol.num_dim: " + std::to_string(row.size()) + " != " + std::to_string(this->sol.num_dim));
-            return;
-        }
-        binary_output_file.write(reinterpret_cast<const char*>(row.data()), row.size() * sizeof(double));
-    }
-    binary_output_file.close();
-}
-
-
-std::ostream &operator<<(std::ostream &os, const SimulationData &data)
-{
-    os << data.to_string();
-    return os;
-}
 
 
 // Verify, that the path provided as string is valid. Automatically count folders with the same base name. 
@@ -339,7 +48,7 @@ std::string verify_save_folder(const std::string save_folder)
         return "";
     }
 
-    return save_folder_path.string();;
+    return save_folder_path.string();
 }
 
 
@@ -388,8 +97,8 @@ ParameterStudy::ParameterStudy(
     {
         LOG_ERROR("Failed to open file: " + json_file_path.string());
     } else {
-        ordered_json j = parameter_combinator.to_json();
-        j["info"] = ordered_json::object({
+        nlohmann::ordered_json j = parameter_combinator.to_json();
+        j["info"] = nlohmann::ordered_json::object({
             {"version", VERSION},
             {"datetime", Timer::current_time()},
             {"total_combination_count", parameter_combinator.get_total_combination_count()},
@@ -432,7 +141,7 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
     OdeFun ode;
     const Parameters* par = this->parameter_combinator.get_mechanism_parameters();
     if(par == nullptr) return;
-    OdeSolverCVODE solver(4 + par->num_species);
+    OdeSolver solver(4 + par->num_species);
 
     // open csv file
     std::filesystem::path save_folder_path(save_folder);
@@ -460,13 +169,12 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
         ode.init(cpar);
 
         // run simulation and postprocess
-        OdeSolution sol = solver.solve(
+        SimulationData data = solver.solve(
             this->t_max,                // t_max [s]
             &ode,                       // ode_ptr
             this->timeout,              // timeout [s]
             false                       // save solution
         );
-        SimulationData data(cpar, sol);
 
         // save and print data
         csv_file << data.to_csv() << "\n";

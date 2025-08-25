@@ -304,9 +304,9 @@ void test_parameter_study()
             .excitation_type             = Parameters::excitation::sin_impulse
         });
     
-        OdeSolution sol;
-        sol.t = {0.0, 1.0};
-        sol.x = {{
+        SimulationData data(cpar);
+        data.sol.t = {0.0, 1.0};
+        data.sol.x = {{
                     1.0000000000000001e-05, 0.0000000000000000e+00, 2.9314999999999998e+02, 0.0000000000000000e+00, 0.0000000000000000e+00,
                     0.0000000000000000e+00, 4.6517455752721046e-05, 0.0000000000000000e+00, 9.5926618412304955e-07, 0.0000000000000000e+00,
                     0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
@@ -317,17 +317,14 @@ void test_parameter_study()
                     2.3380625551111345e-13,  2.2003345706478023e-08,  0.0000000000000000e+00,  0.0000000000000000e+00,  2.0732275271545515e-55,
                     1.1191854750923134e-06
                 }};
-        sol.num_dim = sol.x[0].size();
+        data.sol.num_dim = data.sol.x[0].size();
+        data.postprocess();
 
-        SimulationData data(cpar, sol);
         ASSERT_APPROX(data.dissipated_energy, 1.1191854750923134e-06, 1e-10);
         ASSERT_APPROX(data.n_target_specie, 9.219091868668137e-17, 1e-5);
         ASSERT_APPROX(data.energy_demand, 356900.1798166697, 1e-5);
 
-        ASSERT_EQUAL(SimulationData(cpar, OdeSolution()).energy_demand, SimulationData::infinite_energy_demand);
-        const Parameters* par = Parameters::get_parameters(cpar.mechanism);
-        cpar.target_specie = par->invalid_index;
-        ASSERT_EQUAL(SimulationData(cpar, sol).energy_demand, SimulationData::infinite_energy_demand);
+        ASSERT_EQUAL(SimulationData(cpar).energy_demand, SimulationData::infinite_energy_demand);
     );
 
     tester.run_tests();

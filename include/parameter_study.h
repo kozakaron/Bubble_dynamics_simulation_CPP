@@ -14,33 +14,6 @@
 #include <mutex>
 #include <thread>
 
-
-class SimulationData
-{
-public:
-    static const std::string csv_header;
-    static const Error no_error;
-    static const double infinite_energy_demand;
-
-    const ControlParameters &cpar;
-    const OdeSolution &sol;
-    const double dissipated_energy;  // [J]
-    const double n_target_specie;    // [mol]
-    const double energy_demand;      // [MJ/kg]
-
-    SimulationData(
-        const ControlParameters &cpar,
-        const OdeSolution &sol
-    );
-    std::string to_csv() const;
-    std::string to_string() const;
-    std::string to_small_string(const ParameterCombinator &ps, const double best_energy_demand, const bool colored=true) const;
-    nlohmann::ordered_json to_json() const;
-    void save_json_with_binary(const std::string &json_path) const;
-    friend std::ostream &operator<<(std::ostream &os, const SimulationData &data);
-};
-
-
 class ParameterStudy
 {
 private:

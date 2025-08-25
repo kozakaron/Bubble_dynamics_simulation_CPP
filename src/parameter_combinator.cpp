@@ -1,17 +1,11 @@
 #include <iomanip>
 #include <sstream>
 #include <fstream>
-//#include <numbers>
 #include <cmath>
-//#include <regex>
-//#include <limits>
-//#include <filesystem>
-//#include <thread>
 
 #include "nlohmann/json.hpp"
 #include "parameter_combinator.h"
 #include "ode_fun.h"
-#include "ode_solver_sundials.h"
 
 using ordered_json = nlohmann::ordered_json;
 
