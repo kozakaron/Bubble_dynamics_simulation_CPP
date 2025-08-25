@@ -4,7 +4,6 @@
 #include <string>
 
 #include "parameter_study.h"
-#include "ode_solver_sundials.h"
 
 
 std::string save_folder_base_name = "./_parameter_studies/test";

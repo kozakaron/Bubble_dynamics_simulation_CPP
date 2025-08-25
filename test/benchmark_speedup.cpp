@@ -5,7 +5,6 @@
 #include "control_parameters.h"
 #include "ode_fun.h"
 #include "ode_solver.h"
-#include "ode_solver_sundials.h"
 #include "test_list.h"
 
 #include <thread>
@@ -28,15 +27,14 @@ void task()
     }};
     OdeFun ode;
     ode.init(cpar);
-    OdeSolverCVODE solver(ode.par->num_species + 4);
+    OdeSolver solver(ode.par->num_species + 4);
 
     while(true)
     {
         const size_t task_ID = task_counter.fetch_add(1, std::memory_order_relaxed);
         if (task_ID >= num_tasks) break;
 
-        OdeSolution sol = solver.solve(1.0, &ode, 100.0, false);
-        //std::cout << task_ID << ". " << sol.runtime << "\n";
+        SimulationData data = solver.solve(1.0, &ode, 100.0, false);
     }
 }
 

@@ -4,7 +4,6 @@
 #include "common.h"
 #include "parameters.h"
 #include "control_parameters.h"
-#include "ode_solver.h"
 
 #include <string>
 #include <ostream>

@@ -3,7 +3,7 @@
 #include "control_parameters.h"
 #include "ode_fun.h"
 #include "ode_solver.h"
-#include "ode_solver_sundials.h"
+#include "ode_solver.h"
 #include "parameter_study.h"
 #include "test_list.h"
 
@@ -74,15 +74,14 @@ int main(int argc, char **argv)
         // Run simulation
         ControlParameters cpar(json_path);        
         OdeFun ode; ode.init(cpar);
-        OdeSolverCVODE solver(ode.par->num_species+4);
-        OdeSolution solution = solver.solve(
+        OdeSolver solver(ode.par->num_species+4);
+        SimulationData data = solver.solve(
             result["tmax"].as<double>(),        // t_max [s]
             &ode,                               // ode_ptr
             result["timeout"].as<double>(),     // timeout [s]
             result["save"].as<bool>(),          // save solution
             result["save_jacobian"].as<bool>()  // save jacobian
         );
-        SimulationData data(cpar, solution);
 
         // Save results
         data.save_json_with_binary(json_path);
