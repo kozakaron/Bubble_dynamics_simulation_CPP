@@ -197,8 +197,9 @@ parameter_study = api.example_parameter_study()
 
 Just like the case of the control parameters, you need to provide the mechanism and excitation type as strings, enable_ variables as bool and species and fractions as lists. However, numerical variables are provided as a range, see [./include/parameter_study.h](./include/parameter_study.h). There are 3 available options:
  * **Constant**: This variable is set as a fixed value, and it isn't changed in the parameter study. E.g.: `{"type": "Const", value=1.0}`
- * **Linear range**: This parameter takes part in the parameter study. The variable is changed from start to stop with num_step equal increment. E.g.: `{"type": "LinearRange", start=0.0, end=1.0, num_steps=10}`
- * **Power range**: This parameter takes part in the parameter study. The variable is changed from start to stop with num_step increments. Subdivision is uneven, controlled by power. E.g.: `{"type": "PowRange", start=1.0, end=100.0, num_steps=10, base=2.0}`
+ * **Linear range**: This parameter takes part in the parameter study. The variable is changed from start to stop with num_step equal increments. E.g.: `{"type": "LinearRange", start=0.0, end=1.0, num_steps=10}`
+ * **Logaritmic range**: This parameter takes part in the parameter study. The variable is changed from start to stop with num_step increments. Subdivision is uneven, changing the same way as Python's numpy.logspace. GeomRange is more versatile. E.g.: `{"type": "LogRange", start=1.0, end=100.0, num_steps=10}`
+ * **Geometric series Rrange**: This parameter takes part in the parameter study. The variable is changed from start to stop with num_step increments. Subdivision is uneven, the difference of consequtive elements form a geometric series with a quotient q. If 0 < q < 1, steps are getting gradually smaller. If 1 < q, steps are getting larger. Increase q to get a larger increase in steps. E.g.: `{"type": "GeomRange", start=1.0, end=100.0, num_steps=10, q=2.0}`
 
  A sample of such a control dict may look like this:
  ```Python
@@ -377,7 +378,7 @@ std::cout << data << std::endl;
 
 ### Running a bruteforce parameter study
 
-A bruteforce parameter study can be defined by the `ParameterCombinator` class declared in [./include/parameter_study.h](./include/parameter_study.h). It is also initialized with a builder struct and a designated initializer list, similar to `ControlParameters`. However, arguments have to be a childre of the `Range` class: `Const`, `LinearRange`, `PowRange`. It also has defaults for missing arguments, and can be printed to console in usable code format:
+A bruteforce parameter study can be defined by the `ParameterCombinator` class declared in [./include/parameter_combinator.h](./include/parameter_combinator.h). It is also initialized with a builder struct and a designated initializer list, similar to `ControlParameters`. However, arguments have to be a childre of the `Range` class: `Const`, `LinearRange`, `LogRange`, `GeomRange`. It also has defaults for missing arguments, and can be printed to console in usable code format:
 
 ```cpp
 ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinator::Builder{

@@ -16,7 +16,8 @@
 // Represents possible values for a parameter in a parameter study. Options:
 // - Const: constant value
 // - LinearRange: linear subdivision of an interval
-// - PowRange: uneven subdivision of an interval
+// - LogRange: uneven subdivision of an interval, same as numpy.logspace in Python
+// - GeomRange: uneven subdivision of an interval, more versatile than LogRange
 class Range
 {
 protected:
@@ -57,23 +58,37 @@ public:
     nlohmann::ordered_json to_json() const override;
 };
 
-// Represents an uneven subdivision of an interval. f(x) = a * x^b + c
-// If 0 < base < 1, steps are getting gradually smaller.
-// If 1 < base, steps are getting larger. Increase base to get a larger increase in steps.
-// E.g.: .R_E = PowRange(1e-6, 10e-6, 5, 2);   // R_E = {1.0000e-06, 1.5625e-06, 3.2500e-06, 6.0625e-06, 1.0000e-05}
-class PowRange : public Range
+// Represents an uneven subdivision of an interval. f(x) = exp(a + b * x)
+// Same as numpy.logspace in Python.
+// E.g.: .R_E = LogRange(1e-6, 10e-6, 5);   // R_E = {1e-06, 1.77828e-06, 3.16228e-06, 5.62341e-06, 1e-05}
+class LogRange : public Range
 {
 private:
-    double base;
     double a;
-    double c;
+    double b;
+    int sign;
 public:
-    PowRange(double start, double end, size_t num_steps, double base=2.0);
+    LogRange(double start, double end, size_t num_steps);
     double operator[](size_t i) const override;
     std::string to_string() const override;
     nlohmann::ordered_json to_json() const override;
 };
 
+// Represents an uneven subdivision of an interval. f(x) = start + a_1 + a_1*q + a_1*q^2 + ... + a_1*q^(x-1) = start + a_1 * (1 - q^x) / (1 - q)
+// If 0 < q < 1, steps are getting gradually smaller.
+// If 1 < q, steps are getting larger. Increase q to get a larger increase in steps.
+// E.g.: .R_E = GeomRange(1e-6, 10e-6, 5, 2.0);   // R_E = {1e-06, 1.6e-06, 2.8e-06, 5.2e-06, 1e-05}
+class GeomRange : public Range
+{
+private:
+    double a_1;
+    double q;
+public:
+    GeomRange(double start, double end, size_t num_steps, double q);
+    double operator[](size_t i) const override;
+    std::string to_string() const override;
+    nlohmann::ordered_json to_json() const override;
+};
 
 class ParameterCombinator
 {
@@ -101,7 +116,7 @@ private:
     std::vector<std::unique_ptr<Range>> excitation_params;
     Parameters::excitation excitation_type;
 public:
-    typedef std::variant<Const, LinearRange, PowRange> AnyRange;
+    typedef std::variant<Const, LinearRange, LogRange, GeomRange> AnyRange;
     struct Builder {
         Parameters::mechanism mechanism         = Parameters::mechanism::chemkin_ar_he;
         AnyRange R_E                            = Const(10.0e-6);
