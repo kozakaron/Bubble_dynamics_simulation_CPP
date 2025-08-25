@@ -139,21 +139,35 @@ ordered_json LinearRange::to_json() const
 }
 
 
-PowRange::PowRange(double start, double end, size_t num_steps, double base):
+LogRange::LogRange(double start, double end, size_t num_steps):
     Range(start, end, std::max(num_steps, (size_t)1))
 {
-    if (base <= 0.0)
-    {
-        LOG_ERROR("The value of base (" + std::to_string(base) + ") must be positive. Otherwise the formula f(x) = a * x^base + c breaks.");
-        this->start = 1.0;
+    if (start * end == 0.0) {
+        LOG_ERROR("LogRange start and end must not be 0.");
+        this->start = this->end = 1.0;
     }
-    this->base = base;
-    this->a = (end - start) / std::pow(num_steps - 1, base);
-    this->c = start;
+    if (start * end < 0.0) {
+        LOG_ERROR("LogRange start and end must both be positive or both negative.");
+        this->start = this->end = 1.0;
+    }
+
+    if (start < 0 && end < 0) {
+        this->sign = -1;
+        this->start = std::abs(start);
+        this->end = std::abs(end);
+    } else {
+        this->sign = 1;
+    }
+
+    this->a = std::log(this->start);
+    if (this->num_steps > 1)
+        this->b = (std::log(this->end) - std::log(this->start)) / (this->num_steps - 1);
+    else
+        this->b = 0.0;
 }
 
 
-double PowRange::operator[](size_t i) const
+double LogRange::operator[](size_t i) const
 {
     if (this->num_steps <= 1)
     {
@@ -164,24 +178,71 @@ double PowRange::operator[](size_t i) const
         return this->end;
     }
 
-    return this->a * std::pow(i, this->base) + this->c;
+    return this->sign * std::exp(this->a + this->b * i);
 }
 
 
-std::string PowRange::to_string() const
+std::string LogRange::to_string() const
 {
-    return "PowRange(" + std::to_string(this->start) + ", " + std::to_string(this->end) + ", " + std::to_string(this->num_steps) + ", " + std::to_string(this->base) + ")";
+    return "LogRange(" + std::to_string(this->start) + ", " + std::to_string(this->end) + ", " + std::to_string(this->num_steps) + ")";
 }
 
 
-ordered_json PowRange::to_json() const
+ordered_json LogRange::to_json() const
 {
     return {
-        {"type", "PowRange"},
+        {"type", "LogRange"},
+        {"start", this->sign * this->start},
+        {"end", this->sign * this->end},
+        {"num_steps", this->num_steps}
+    };
+}
+
+
+GeomRange::GeomRange(double start, double end, size_t num_steps, double q):
+    Range(start, end, std::max(num_steps, (size_t)1)),
+    q(q)
+{
+    if (this->num_steps == 1)
+    {
+        this->a_1 = end - start;
+    }
+    else
+    {
+        this->a_1 = (end - start) * (1.0 - q) / (1.0 - std::pow(q, this->num_steps - 1));
+    }
+}
+
+
+double GeomRange::operator[](size_t i) const
+{
+    if (this->num_steps <= 1)
+    {
+        return this->start;
+    }
+    if (i >= this->num_steps)
+    {
+        return this->end;
+    }
+
+    return this->start + this->a_1 * (1.0 - std::pow(this->q, i)) / (1.0 - this->q);
+}
+
+
+std::string GeomRange::to_string() const
+{
+    return "GeomRange(" + std::to_string(this->start) + ", " + std::to_string(this->end) + ", " + std::to_string(this->num_steps) + ", " + std::to_string(this->q) + ")";
+}
+
+
+ordered_json GeomRange::to_json() const
+{
+    return {
+        {"type", "GeomRange"},
         {"start", this->start},
         {"end", this->end},
         {"num_steps", this->num_steps},
-        {"base", this->base}
+        {"q", this->q}
     };
 }
 
@@ -196,9 +257,13 @@ std::unique_ptr<Range> get_unique_ptr(const ParameterCombinator::AnyRange range)
     {
         return std::make_unique<LinearRange>(std::get<LinearRange>(range));
     }
-    else if (std::holds_alternative<PowRange>(range))
+    else if (std::holds_alternative<LogRange>(range))
     {
-        return std::make_unique<PowRange>(std::get<PowRange>(range));
+        return std::make_unique<LogRange>(std::get<LogRange>(range));
+    }
+    else if (std::holds_alternative<GeomRange>(range))
+    {
+        return std::make_unique<GeomRange>(std::get<GeomRange>(range));
     }
     return nullptr;
 }
@@ -261,7 +326,7 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinat
     {
         LOG_ERROR(
             "Expected JSON object, instead found " + j.dump() + \
-            ". Available options: Const(value), LinearRange(start, end, num_steps), PowRange(start, end, num_steps, base). " + \
+            ". Available options: Const(value), LinearRange(start, end, num_steps), LogRange(start, end, num_steps), GeomRange(start, end, num_steps, q). " + \
             "E.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
         );
         return default_range;
@@ -270,7 +335,7 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinat
     {
         LOG_ERROR(
             "Invalid \"type\" in JSON object " + j.dump() + \
-            ". Available options: Const(value), LinearRange(start, end, num_steps), PowRange(start, end, num_steps, base). " + \
+            ". Available options: Const(value), LinearRange(start, end, num_steps), LogRange(start, end, num_steps), GeomRange(start, end, num_steps, q). " + \
             "e.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
         );
         return default_range;
@@ -313,32 +378,51 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinat
             j.at("num_steps").get<size_t>()
         );
     }
-    else if (type == "powrange")
+    else if (type == "logrange")
     {
         if (
             !j.contains("start") || !j.contains("end") || !j.contains("num_steps")
             || !j.at("start").is_number() || !j.at("end").is_number() || !j.at("num_steps").is_number()
-            || (j.contains("base") && !j.at("base").is_number())
         )
         {
             LOG_ERROR(
-                "Invalid arguments for JSON onject " + j.dump() + \
-                ". For PowRange, you must provide start, end, and optionally base of type double. As well as num_steps of type integer. " + \
-                "e.g.: {\"type\": \"PowRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10, \"base\": 2.0}"
+                "Invalid arguments for JSON object " + j.dump() + \
+                ". For LogRange, you must provide start, end, and optionally base of type double. As well as num_steps of type integer. " + \
+                "e.g.: {\"type\": \"LogRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
             );
             return default_range;
         }
-        return PowRange(
+        return LogRange(
+            j.at("start").get<double>(),
+            j.at("end").get<double>(),
+            j.at("num_steps").get<size_t>()
+        );
+    }
+    else if (type == "geomrange")
+    {
+        if (
+            !j.contains("start") || !j.contains("end") || !j.contains("num_steps") || !j.contains("q")
+            || !j.at("start").is_number() || !j.at("end").is_number() || !j.at("num_steps").is_number() || !j.at("q").is_number()
+        )
+        {
+            LOG_ERROR(
+                "Invalid arguments for JSON object " + j.dump() + \
+                ". For GeomRange, you must provide start, end, and q of type double. As well as num_steps of type integer. " + \
+                "e.g.: {\"type\": \"GeomRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10, \"q\": 2.0}"
+            );
+            return default_range;
+        }
+        return GeomRange(
             j.at("start").get<double>(),
             j.at("end").get<double>(),
             j.at("num_steps").get<size_t>(),
-            j.value("base", 2.0)
+            j.at("q").get<double>()
         );
     }
     else
     {
         LOG_ERROR("Invalid Range type: " + type + \
-            ". Available options: Const(value), LinearRange(start, end, num_steps), PowRange(start, end, num_steps, base). " + \
+            ". Available options: Const(value), LinearRange(start, end, num_steps), LogRange(start, end, num_steps), GeomRange(start, end, num_steps, q). " + \
             "e.g.: {\"type\": \"LinearRange\", \"start\": 0.0, \"end\": 1.0, \"num_steps\": 10}"
         );
         return default_range;
