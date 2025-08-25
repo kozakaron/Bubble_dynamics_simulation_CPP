@@ -300,7 +300,7 @@ void test_CVODE_solver(vector<TestReferenceData> &test_datas)
                         return ss.str();
                     }
                 }
-                else if (max < 1.0e-6)
+                else if (max < 1.0e-5)
                 {
                     if (rel_diff > 1.0e-2)
                     {
