@@ -128,6 +128,7 @@ cpar = {
     'ID': 0,
     'mechanism': 'chemkin_otomo2018',
     'R_E': 1e-05,
+    'ratio': 1.0,
     'species': ['H2', 'N2'],
     'fractions': [0.25, 0.75],
     'P_amb': 101325.0,
@@ -313,6 +314,7 @@ ControlParameters cpar = ControlParameters{ControlParameters::Builder{
     .ID                          = 0,
     .mechanism                   = Parameters::mechanism::chemkin_ar_he,
     .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
+    .ratio                       = 1.00000000000000000e+00,    // R_0/R_E for unforced oscillations [-]
     .species                     = {"O2"},
     .fractions                   = {1.00000000000000000e+00},
     .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]

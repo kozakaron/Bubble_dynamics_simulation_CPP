@@ -60,6 +60,7 @@ public:
     double T_min;              // [K]
 // Post-processing results
     double dissipated_energy;  // [J]
+    double expansion_work;     // [J]
     double n_target_specie;    // [mol]
     double energy_demand;      // [MJ/kg]
 // Members

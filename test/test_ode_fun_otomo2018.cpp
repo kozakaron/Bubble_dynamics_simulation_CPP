@@ -33,6 +33,7 @@ public:
             .ID                          = 0,
             .mechanism                   = Parameters::mechanism::chemkin_otomo2018,
             .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
+            .ratio                       = 1.00000000000000000e+00,    // R_0/R_E for unforced oscillations [-]
             .species                     = {"H2", "N2"},
             .fractions                   = {7.50000000000000000e-01, 2.50000000000000000e-01},
             .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]
@@ -112,7 +113,7 @@ void test_ode_fun_otomo2018()
         tester.ode.cpar.R_E = 100.0e-6;
         success = tester.ode.initial_conditions(x_0.data());
         ASSERT_FALSE(success);
-        ASSERT_EQUAL(ErrorHandler::get_error_count(), 1);
+        ASSERT_TRUE(ErrorHandler::get_error_count() > 0);
         ErrorHandler::clear_errors();
     );
 

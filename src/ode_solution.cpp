@@ -199,7 +199,7 @@ std::ostream &operator<<(std::ostream &os, const OdeSolution &ode)
 }
 
 
-const std::string SimulationData::csv_header = std::string("dissipated_energy,n_target_specie,energy_demand,R_max,T_max,t_peak,R_min,T_min,")
+const std::string SimulationData::csv_header = std::string("dissipated_energy,expansion_work,n_target_specie,energy_demand,R_max,T_max,t_peak,R_min,T_min,")
                                              + std::string(ControlParameters::csv_header) + std::string(",")
                                              + std::string(OdeSolution::csv_header) + std::string(",") + std::string(Error::csv_header);
 
@@ -214,6 +214,7 @@ SimulationData::SimulationData(const ControlParameters &cpar):
     R_min(std::numeric_limits<double>::infinity()),
     T_min(std::numeric_limits<double>::infinity()),
     dissipated_energy(0.0),
+    expansion_work(0.0),
     n_target_specie(0.0),
     energy_demand(std::numeric_limits<double>::infinity()),
     cpar(cpar),
@@ -244,8 +245,38 @@ void SimulationData::postprocess()
     if (dissipated_energy < -1.0e-8)
         LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Dissipated energy is negative: " + std::to_string(dissipated_energy), cpar.ID);
 
-// n_target_specie [mol]
+// expansion work [J]
     const Parameters* par = Parameters::get_parameters(cpar.mechanism);
+    if (
+        par == nullptr ||
+        cpar.ratio == 1.0
+    )
+    {
+        expansion_work = 0.0;
+    }
+    else{
+        const double R_0 = cpar.ratio * cpar.R_E;   // [m]
+        const double V_E = 4.0 / 3.0 * std::numbers::pi * cpar.R_E * cpar.R_E * cpar.R_E;    // [m^3]
+        const double V_0 = 4.0 / 3.0 * std::numbers::pi * R_0 * R_0 * R_0;   // [m^3]
+
+        const double p_E = cpar.P_amb + 2.0 * cpar.surfactant * par->sigma / cpar.R_E;   // [Pa]
+        const double p_gas = cpar.enable_evaporation ? p_E - cpar.P_v : p_E;   // [Pa]
+        const double n_gas = p_gas * V_E / (par->R_g * cpar.T_inf);    // [mol]
+
+        const double W_gas0 = cpar.enable_evaporation ? -(cpar.P_v * V_0 + n_gas * par->R_g * cpar.T_inf * std::log(V_0)) : -(n_gas * par->R_g * cpar.T_inf * std::log(V_0)); // [J]
+        const double W_gasE = cpar.enable_evaporation ? -(cpar.P_v * V_E + n_gas * par->R_g * cpar.T_inf * std::log(V_E)) : -(n_gas * par->R_g * cpar.T_inf * std::log(V_E)); // [J]
+        const double W_gas = W_gas0 - W_gasE; // [J]
+
+        const double W_surface_tension = par->sigma * cpar.surfactant *  4.0 * std::numbers::pi * (R_0*R_0 - cpar.R_E*cpar.R_E); // [J]
+        const double W_flow = cpar.P_amb * 4.0 / 3.0 * std::numbers::pi * (R_0*R_0*R_0 - cpar.R_E*cpar.R_E*cpar.R_E); // [J]
+        expansion_work = W_gas + W_surface_tension + W_flow;    // [J]
+
+        if (expansion_work < -1.0e-8)
+            LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Expansion work is negative: " + std::to_string(expansion_work), cpar.ID);
+    }
+
+
+// n_target_specie [mol]
     if (
         sol.x.empty() ||
         sol.x.back().empty() ||
@@ -271,7 +302,7 @@ void SimulationData::postprocess()
 
 // energy demand [MJ/kg]
     const double m_target = 1.0e-3 * n_target_specie * par->W[cpar.target_specie];  // [kg]
-    energy_demand = 1.0e-6 * dissipated_energy / m_target;  // [MJ/kg]
+    energy_demand = 1.0e-6 * (dissipated_energy + expansion_work) / m_target;  // [MJ/kg]
 
     if (
         par == nullptr ||
@@ -298,6 +329,7 @@ std::string SimulationData::to_csv() const
     };
 
     ss << format_double << this->dissipated_energy << ",";
+    ss << format_double << this->expansion_work << ",";
     ss << format_double << this->n_target_specie << ",";
     ss << format_double << this->energy_demand << ",";
     ss << format_double << this->R_max << ",";
@@ -333,6 +365,7 @@ std::string SimulationData::to_string() const
     ss << std::left;
     ss << "SimulationData{\n";
     ss << std::setw(strw) << "    .dissipated_energy"  << " = " << format_double << this->dissipated_energy    << ",    // [J]\n";
+    ss << std::setw(strw) << "    .expansion_work"     << " = " << format_double << this->expansion_work       << ",    // [J]\n";
     ss << std::setw(strw) << "    .n_target_specie"    << " = " << format_double << this->n_target_specie      << ",    // [mol]\n";
     ss << std::setw(strw) << "    .energy_demand"      << " = " << format_double << this->energy_demand        << ",    // [MJ/kg]\n";
     ss << std::setw(strw) << "    .R_max"              << " = " << format_double << this->R_max                << ",    // [m]\n";
@@ -368,6 +401,8 @@ std::string SimulationData::to_small_string(const ParameterCombinator &ps, const
 
     if (ps.R_E->get_num_steps() > 1)
         ss << "R_E=" << format_double << this->cpar.R_E << " m; ";
+    if (ps.ratio->get_num_steps() > 1)
+        ss << "ratio=" << format_double << this->cpar.ratio << " [-]; ";
     if (ps.P_amb->get_num_steps() > 1)
         ss << "P_amb=" << format_double << this->cpar.P_amb << " Pa; ";
     if (ps.T_inf->get_num_steps() > 1)
@@ -430,6 +465,7 @@ nlohmann::ordered_json SimulationData::to_json() const
 {
     nlohmann::ordered_json j;
     j["dissipated_energy"] = this->dissipated_energy;
+    j["expansion_work"] = this->expansion_work;
     j["n_target_specie"] = this->n_target_specie;
     j["energy_demand"] = this->energy_demand;
     j["R_max"] = this->R_max;

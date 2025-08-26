@@ -193,6 +193,7 @@ void test_parameter_study()
         std::string json_str = R"({
             "mechanism": "chemkin_ar_he",
             "R_E": {"type": "Linear Range", "start": 1e-6, "end": 10e-6, "num_steps": 3},
+            "ratio": {"type": "Const", "value": 1.0},
             "species": ["O2", "H2"],
             "fractions": [0.7, 0.3],
             "P_amb": {"type": "Const", "value": 101325.0},
@@ -285,6 +286,7 @@ void test_parameter_study()
             .ID                          = 0,
             .mechanism                   = Parameters::mechanism::chemkin_ar_he,
             .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
+            .ratio                       = 1.00000000000000000e+00,    // R_0/R_E for unforced oscillations [-]
             .species                     = {"O2"},
             .fractions                   = {1.00000000000000000e+00},
             .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]

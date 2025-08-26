@@ -15,7 +15,7 @@
 
 size_t num_tasks;
 std::atomic<size_t> task_counter;
-constexpr size_t task_per_thread = 4;
+constexpr size_t task_per_thread = 8;
 
 void task()
 {

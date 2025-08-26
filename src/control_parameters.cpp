@@ -65,6 +65,7 @@ ControlParameters::ControlParameters(const ordered_json& j)
                                             get_value<std::string>              (j, "mechanism",                Parameters::mechanism_names.at(builder.mechanism))
         );
         builder.R_E =                       get_value<double>                   (j, "R_E",                      builder.R_E);
+        builder.ratio =                     get_value<double>                   (j, "ratio",                    builder.ratio);
         builder.species =                   get_value<std::vector<std::string>> (j, "species",                  builder.species);
         builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
         builder.P_amb =                     get_value<double>                   (j, "P_amb",                    builder.P_amb);
@@ -160,6 +161,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->mechanism = builder.mechanism;
     this->error_ID = builder.error_ID;
     this->R_E = builder.R_E;
+    this->ratio = builder.ratio;
     this->P_amb = builder.P_amb;
     this->T_inf = builder.T_inf;
     this->alfa_M = builder.alfa_M;
@@ -327,7 +329,7 @@ std::string ControlParameters::to_csv() const
         return ",,,,,,,,,,,,,,,,,,,";
     }
 
-    ss << this->ID << "," << par->model << "," << format_double << this->R_E << ",";
+    ss << this->ID << "," << par->model << "," << format_double << this->R_E << "," << format_double << this->ratio << ",";
     for (size_t index = 0; index < this->num_initial_species; ++index)
         ss << par->species_names[this->species[index]] << ";";
     ss << ",";
@@ -379,6 +381,7 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << format_string << ".ID"                         << " = " << this->ID << ",\n";
     ss << format_string << ".mechanism"                  << " = " << (with_code ? "Parameters::mechanism::" : "") << par->model << ",\n";
     ss << format_string << ".R_E"                        << " = " << format_double << this->R_E                       << ",    // bubble equilibrium radius [m]\n";
+    ss << format_string << ".ratio"                      << " = " << format_double << this->ratio                     << ",    // R_0/R_E for unforced oscillations [-]\n";
     ss << format_string << ".species"                    << " = " << ::to_string((std::string*)species_names.data(), this->num_initial_species)   << ",\n";
     ss << format_string << ".fractions"                  << " = " << ::to_string((double*)this->fractions, this->num_initial_species) << ",\n";
     ss << format_string << ".P_amb"                      << " = " << format_double << this->P_amb                     << ",    // ambient pressure [Pa]\n";
@@ -426,6 +429,7 @@ ordered_json ControlParameters::to_json() const
     j["ID"] = this->ID;
     j["mechanism"] = Parameters::mechanism_names.at(this->mechanism);
     j["R_E"] = this->R_E;
+    j["ratio"] = this->ratio;
     j["species"] = species_names;
     j["fractions"] = std::vector<double>(this->fractions, this->fractions + this->num_initial_species);
     j["P_amb"] = this->P_amb;

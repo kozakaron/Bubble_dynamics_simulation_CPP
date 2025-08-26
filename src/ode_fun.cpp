@@ -217,14 +217,27 @@ is_success OdeFun::initial_conditions(
 // Equilibrium state
     const double p_E = cpar.P_amb + 2.0 * cpar.surfactant * par->sigma / cpar.R_E;   // [Pa]
     const double V_E = 4.0 / 3.0 * std::numbers::pi * cpar.R_E * cpar.R_E * cpar.R_E;    // [m^3]
-    const double p_gas = cpar.enable_evaporation ? p_E - cpar.P_v : p_E;   // [Pa]
+    double p_gas = cpar.enable_evaporation ? p_E - cpar.P_v : p_E;   // [Pa]
     const double n_gas = p_gas * V_E / (par->R_g * cpar.T_inf);    // [mol]
-    const double n_H2O = cpar.enable_evaporation ? cpar.P_v * V_E / (par->R_g * cpar.T_inf) : 0.0;   // [mol]
-    const double c_gas = n_gas / V_E;   // [mol/m^3]
-    const double c_H2O = n_H2O / V_E;   // [mol/m^3]
+    double n_H2O = cpar.enable_evaporation ? cpar.P_v * V_E / (par->R_g * cpar.T_inf) : 0.0;   // [mol]
+    double c_gas = n_gas / V_E;   // [mol/m^3]
+    double c_H2O = n_H2O / V_E;   // [mol/m^3]
+
+// Isotermic expansion
+    const double R_0 = cpar.ratio * cpar.R_E;   // [m]
+    const double V_0 = 4.0 / 3.0 * std::numbers::pi * R_0 * R_0 * R_0;   // [m^3]
+    n_H2O = cpar.enable_evaporation ? cpar.P_v * V_0 / (par->R_g * cpar.T_inf) : 0.0; // [mol]
+    c_H2O = n_H2O / V_0;   // [mol/m^3]
+    c_gas = n_gas / V_0;   // [mol/m^3]
+    p_gas = c_gas * par->R_g * cpar.T_inf; // [Pa]
+    const double P_amb_min = (cpar.enable_evaporation ? cpar.P_v : 0.0) + p_gas - 2.0 * cpar.surfactant * par->sigma / R_0; // [Pa]
+    if (P_amb_min < (cpar.enable_evaporation ? cpar.P_v : 0.0))
+    {
+        LOG_ERROR(Error::severity::warning, Error::type::odefun, "The pressure during the expansion is lower, than the saturated water pressure.", this->cpar.ID);
+    }
     
 // Initial conditions
-    x[0] = cpar.R_E;   // R_0 [m]
+    x[0] = R_0;   // R_0 [m]
     x[1] = 0.0;         // R_dot_0 [m/s]
     x[2] = cpar.T_inf; // T_0 [K]
     for (index_t k = 0; k < par->num_species; ++k)
