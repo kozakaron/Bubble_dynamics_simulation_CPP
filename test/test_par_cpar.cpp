@@ -133,6 +133,7 @@ void test_par_cpar()
         .ID                          = 0,
         .mechanism                   = Parameters::mechanism::chemkin_otomo2018,
         .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
+        .ratio                       = 1.00000000000000000e+00,    // R_0/R_E for unforced oscillations [-]
         .species                     = {"H2", "N2"},
         .fractions                   = {7.50000000000000000e-01, 2.50000000000000000e-01},
         .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]
@@ -241,6 +242,7 @@ void test_par_cpar()
             {"ID", 123},
             {"mechanism", "Chemkin_Otomo2018"}, // Case insensitive
             {"R_E", 0.12345},
+            {"ratio", 1.5},
             {"species", {"H2", "O2"}},
             {"fractions", {0.6, 0.4}},
             {"P_amb", 50000.0},
@@ -264,6 +266,7 @@ void test_par_cpar()
         ASSERT_EQUAL(cpar.ID, 123);
         ASSERT_EQUAL(cpar.mechanism, Parameters::mechanism::chemkin_otomo2018);
         ASSERT_EQUAL(cpar.R_E, 0.12345);
+        ASSERT_EQUAL(cpar.ratio, 1.5);
         ASSERT_EQUAL(cpar.species[0], par->get_species("H2"));
         ASSERT_EQUAL(cpar.species[1], par->get_species("O2"));
         ASSERT_EQUAL(cpar.fractions[0], 0.6);

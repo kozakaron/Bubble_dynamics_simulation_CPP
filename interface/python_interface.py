@@ -152,7 +152,9 @@ def _check_path(
 
 
 def _run_cpp_simulation(
-    command_list: list[str]
+    command_list: list[str],
+    show_stdout: bool = True,
+    show_stderr: bool = True
 ) -> int:
     """
     Runs the C++ simulation with the given command list. Errors and outputs are printed to the console.
@@ -163,15 +165,16 @@ def _run_cpp_simulation(
         command_list = ['wsl'] + command_list
 
     # Functions to read stdout and stderr
-    def stream_reader(stream, prefix):
+    def stream_reader(stream, prefix, show_output):
         for line in iter(stream.readline, ''):
-            print(f'{prefix} {line}', end='')
+            if show_output:
+                print(f'{prefix} {line}', end='')
         stream.close()
 
     with Popen(command_list, stdout=PIPE, stderr=PIPE, text=True) as p:
         # Create threads to read stdout and stderr concurrently
-        stdout_thread = Thread(target=stream_reader, args=(p.stdout, '[stdout]'))
-        stderr_thread = Thread(target=stream_reader, args=(p.stderr, '[stderr]'))
+        stdout_thread = Thread(target=stream_reader, args=(p.stdout, '[stdout]', show_stdout))
+        stderr_thread = Thread(target=stream_reader, args=(p.stderr, '[stderr]', show_stderr))
 
         # Start the threads
         stdout_thread.start()
@@ -194,6 +197,7 @@ def run_simulation(
     timeout: float = 60.0,
     save_steps: bool = True,
     save_jacobian: bool = False,
+    show_output: bool = True
 ) -> dict:
     """
     Runs the Bubble_dynamics_simulation_CPP executable in --run mode to run a single simulation.
@@ -208,6 +212,7 @@ def run_simulation(
         timeout (float): Timeout for the simulation.
         save_steps (bool): Whether to save the simulation steps.
         save_jacobian (bool): Whether to save the Jacobian matrixes.
+        show_output (bool): Whether to show the stdout and stderr of the simulation.
 
     Returns:
         dict: A dictionary containing the simulation results.
@@ -235,8 +240,9 @@ def run_simulation(
     if save_steps: command_list.append('--save')
     if save_jacobian: command_list.append('--save_jacobian')
 
-    return_code = _run_cpp_simulation(command_list)
-    print(f'\n{executable_path} returned with code {return_code} after {time.time() - start:.4f} seconds.')
+    return_code = _run_cpp_simulation(command_list, show_stdout=show_output, show_stderr=show_output)
+    if show_output:
+        print(f'\n{executable_path} returned with code {return_code} after {time.time() - start:.4f} seconds.')
 
     # Read the JSON-binary file
     data = _read_json_and_binary(json_path)
@@ -267,7 +273,8 @@ def run_parameter_study(
     timeout: float = 60.0,
     save_directory: str = './_parameter_studies/test',
     cpu_count: int = None,
-    print_output: bool = True   # TODO
+    show_stdout: bool = True,
+    show_stderr: bool = True
 ):
     """
     Runs the Bubble_dynamics_simulation_CPP executable in --parameter_study mode to run a bruteforce parameter study.
@@ -282,7 +289,8 @@ def run_parameter_study(
         timeout (float): Timeout for the simulation.
         save_directory (str): Where to save the parameter study.
         cpu_count (int): Number of CPUs to use for the simulation.
-        print_output (bool): Whether to print the output of the simulation.
+        show_stdout (bool): Whether to show the stdout of the simulation.
+        show_stderr (bool): Whether to show the stderr of the simulation.
     """
     
     # Write the JSON file
@@ -306,7 +314,7 @@ def run_parameter_study(
         command_list.append('--cpu')
         command_list.append(str(cpu_count))
 
-    return_code = _run_cpp_simulation(command_list)
+    return_code = _run_cpp_simulation(command_list, show_stdout=show_stdout, show_stderr=show_stderr)
     print(f'\n{executable_path} returned with code {return_code} after {time.time() - start:.4f} seconds.')
 
 
@@ -326,6 +334,7 @@ def _print_data(data, print_it=True):
     text += f"  ID: {cpar.get('ID', 'N/A')}\n"
     text += f"  Mechanism: {cpar.get('mechanism', 'N/A')}\n"
     text += f"  R_E: {1e6 * cpar.get('R_E', 'N/A')} [um]\n"
+    text += f"  Ratio: {cpar.get('ratio', 'N/A')} [-]\n"
     text += f"  Species: {cpar.get('species', [])}\n"
     text += f"  Fractions: {cpar.get('fractions', [])}\n"
     text += f"  P_amb: {cpar.get('P_amb', 'N/A')} [Pa]\n"
@@ -354,10 +363,16 @@ def _print_data(data, print_it=True):
     text += f"  Num Function Evaluations: {sol.get('num_fun_evals', 'N/A')}\n"
     text += f"  Num Jacobian Evaluations: {sol.get('num_jac_evals', 'N/A')}\n"
     text += f"  t_last = {sol.get('t', ['N/A'])[-1]} [s]\n"
+    text += f"  R_max = {1e6*data.get('R_max', 'N/A')} [um]  (R_max/R_E = {data.get('R_max', 1.0) / cpar.get('R_E', 1.0)})\n"
+    text += f"  R_min = {1e6*data.get('R_min', 'N/A')} [um]  (R_min/R_E = {data.get('R_min', 1.0) / cpar.get('R_E', 1.0)})\n"
+    text += f"  T_max = {data.get('T_max', 'N/A')} [K]  (T_max/T_T_inf = {data.get('T_max', 1.0) / cpar.get('T_inf', 1.0)})\n"
+    text += f"  T_min = {data.get('T_min', 'N/A')} [K]  (T_min/T_T_inf = {data.get('T_min', 1.0) / cpar.get('T_inf', 1.0)})\n"
+    text += f"  t_peak = {1e6*data.get('t_peak', 'N/A')} [us]\n"
 
     # Results
     text += "\nResults:\n"
     text += f"  Dissipated Energy: {data.get('dissipated_energy', 'N/A')} [J]\n"
+    text += f"  Expansion Work: {data.get('expansion_work', 'N/A')} [J]\n"
     text += f"  n_target_specie: {data.get('n_target_specie', 'N/A')} [mol]\n"
     text += f"  Energy Demand: {data.get('energy_demand', 'N/A')} [MJ/kg]\n"
 
@@ -434,8 +449,8 @@ def plot(data, n=5.0, base_name='', format='png',
 # textbox with initial conditions
     text = f'Initial conditions:\n'
     text += f'    $R_E$ = {1e6*cpar["R_E"]: .2f} $[\mu m]$\n'
-    #if cpar['ratio'] != 1.0:
-    #    text += f'    $R_0/R_E$ = {cpar['ratio']: .2f} $[-]$\n'
+    if cpar['ratio'] != 1.0:
+        text += f'    $R_0/R_E$ = {cpar["ratio"]: .2f} $[-]$\n'
     text += f'    $P_{{amb}}$ = {1e-5*cpar["P_amb"]: .2f} $[bar]$\n'
     text += f'    $T_{{inf}}$ = {cpar["T_inf"]-273.15: .2f} $[°C]$\n'
     text += f'    $P_{{vapour}}$ = {cpar["P_v"]: .1f} $[Pa]$\n'
@@ -615,7 +630,7 @@ def line_to_dict(line):
         ID = int(line['ID']),
         mechanism = str(line['mechanism']),
         R_E = float(line['R_E']),
-        #ratio = line['ratio'],
+        ratio = line['ratio'],
         species = species,
         fractions = fractions,
         P_amb = float(line['P_amb']),

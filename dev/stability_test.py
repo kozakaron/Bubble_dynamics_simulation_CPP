@@ -30,6 +30,7 @@ parameter_studies = dict(
     chemkin_ar_he__high_p_A = {
         'mechanism': 'chemkin_ar_he',
         'R_E': {'type': 'LinearRange', 'start': 0.5e-06, 'end': 20e-6, 'num_steps': 20},
+        'ratio': {'type': 'Const', 'value': 1.0},
         'species': ['O2'],
         'fractions': [1.0],
         'P_amb': {'type': 'Const', 'value': 0.5e5},
@@ -55,6 +56,7 @@ parameter_studies = dict(
     chemkin_otomo2018_simple = {
         'mechanism': 'chemkin_otomo2018',
         'R_E': {'type': 'LinearRange', 'start': 1e-06, 'end': 50e-6, 'num_steps': 20},
+        'ratio': {'type': 'Const', 'value': 1.0},
         'species': ['H2', 'N2'],
         'fractions': [0.75, 0.25],
         'P_amb': {'type': 'Const', 'value': 1e5},
@@ -80,6 +82,7 @@ parameter_studies = dict(
     chemkin_kaust2023_n2_simple = {
         'mechanism': 'chemkin_kaust2023_n2',
         'R_E': {'type': 'LinearRange', 'start': 1e-06, 'end': 100e-6, 'num_steps': 20},
+        'ratio': {'type': 'Const', 'value': 1.0},
         'species': ['H2', 'N2'],
         'fractions': [0.75, 0.25],
         'P_amb': {'type': 'Const', 'value': 1e5},
@@ -105,6 +108,7 @@ parameter_studies = dict(
     chemkin_otomo2018_without_O2 = {
         'mechanism': 'chemkin_otomo2018_without_o',
         'R_E': {'type': 'LinearRange', 'start': 0.5e-06, 'end': 10e-6, 'num_steps': 20},
+        'ratio': {'type': 'Const', 'value': 1.0},
         'species': ['H2', 'N2'],
         'fractions': [0.75, 0.25],
         'P_amb': {'type': 'Const', 'value': 0.1e5},
@@ -130,6 +134,7 @@ parameter_studies = dict(
     chemkin_kaust2023_n2_high_T = {
         'mechanism': 'chemkin_kaust2023_n2',
         'R_E': {'type': 'LinearRange', 'start': 10e-06, 'end': 100e-6, 'num_steps': 15},
+        'ratio': {'type': 'Const', 'value': 1.0},
         'species': ['H2', 'O2', 'N2', 'AR', 'HE'],
         'fractions': [0.45, 0.1, 0.15, 0.2, 0.1],
         'P_amb': {'type': 'Const', 'value': 5e5},

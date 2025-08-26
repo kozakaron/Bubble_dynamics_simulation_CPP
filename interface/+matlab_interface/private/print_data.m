@@ -17,6 +17,7 @@ function text = print_data(data, print_it)
     text = text + sprintf("  ID: %s\n", getfield_or_default(cpar, 'ID', 'N/A'));
     text = text + sprintf("  Mechanism: %s\n", getfield_or_default(cpar, 'mechanism', 'N/A'));
     text = text + sprintf("  R_E: %.2f [um]\n", 1e6 * getfield_or_default(cpar, 'R_E', NaN));
+    text = text + sprintf("  Ratio: %.2f [-]\n", getfield_or_default(cpar, 'ratio', NaN));
     text = text + sprintf("  Species: %s\n", strjoin(getfield_or_default(cpar, 'species', {}), ', '));
     text = text + sprintf("  Fractions: %s\n", mat2str(getfield_or_default(cpar, 'fractions', [])));
     text = text + sprintf("  P_amb: %.2f [Pa]\n", getfield_or_default(cpar, 'P_amb', NaN));

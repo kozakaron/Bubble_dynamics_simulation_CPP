@@ -4,7 +4,6 @@
 #include <string>
 
 #include "parameter_study.h"
-#include "ode_solver_sundials.h"
 
 
 std::string save_folder_base_name = "./_parameter_studies/test";
@@ -15,6 +14,7 @@ const size_t num_threads = std::thread::hardware_concurrency();
 ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinator::Builder{
     .mechanism                   = Parameters::mechanism::chemkin_ar_he,
     .R_E                         = LinearRange(0.000005, 0.000125, 20),                // {5e-06, 1.13158e-05, 1.76316e-05, 2.39474e-05, 3.02632e-05, 3.65789e-05, 4.28947e-05, ..., 0.000118684, 0.000125}
+    .ratio                       = Const(1.0),                                         // {1}
     .species                     = {"AR"},
     .fractions                   = {1.00000000000000000e+00},
     .P_amb                       = Const(101325.000000),                               // {101325}
@@ -39,12 +39,6 @@ ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinat
 }};
 
 
-inline OdeSolver* solver_factory(size_t num_dim)
-{
-    return new OdeSolverCVODE(num_dim);
-}
-
-
 void benchmark_parameter_study()
 {
     std::cout << colors::bold << "Small parameter study with SUNDIALS CVODE solver and chemkin_ar_he mechanism" << colors::reset << std::endl;
@@ -54,7 +48,6 @@ void benchmark_parameter_study()
     ParameterStudy parameter_study = ParameterStudy{
         parameter_combinator,
         save_folder_base_name,
-        solver_factory,
         t_max,
         timeout
     };

@@ -7,6 +7,10 @@
             "end": 0.000125,
             "num_steps": 30
         },
+        "ratio": {
+            "type": "Const",
+            "value": 1.0
+        },
         "species": [
             "O2"
         ],

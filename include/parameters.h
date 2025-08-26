@@ -28,7 +28,7 @@ public:
     enum excitation: index_t {no_excitation=0, two_sinusoids=1, sin_impulse=2, sin_impulse_logf=3};
     static constexpr std::array<index_t, 4> excitation_arg_nums = {
         0, // no_excitation
-        5, // two_sinusoids
+        6, // two_sinusoids
         3, // sin_impulse
         3  // sin_impulse_logf
     };
@@ -39,16 +39,16 @@ public:
         "sin_impulse_logf"
     };
     static constexpr std::array<const char*, 4> excitation_arg_names = {
-        "",                                     // no_excitation
-        "p_A1 p_A2 freq1 freq2 theta_pahse",    // two_sinusoids
-        "p_A freq n",                           // sin_impulse
-        "p_A log_f n"                           // sin_impulse_logf
+        "",                                            // no_excitation
+        "p_A1 p_A2 freq1 freq2 theta_phase n_cycles",  // two_sinusoids
+        "p_A freq n_cycles",                           // sin_impulse
+        "p_A log_f n_cycles"                           // sin_impulse_logf
     };
     static constexpr std::array<const char*, 4> excitation_arg_units = {
-        "",                                     // no_excitation
-        "Pa Pa Hz Hz rad",                      // two_sinusoids
-        "Pa Hz -",                              // sin_impulse
-        "Pa - -"                                // sin_impulse_logf
+        "",                                            // no_excitation
+        "Pa Pa Hz Hz rad -",                           // two_sinusoids
+        "Pa Hz -",                                     // sin_impulse
+        "Pa - -"                                       // sin_impulse_logf
     };
     static constexpr std::array<const char*, 5> mechanism_names = {
         "chemkin_ar_he",

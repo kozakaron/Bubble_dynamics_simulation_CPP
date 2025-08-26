@@ -1,58 +1,56 @@
 #ifndef ODE_SOLVER_H
 #define ODE_SOLVER_H
-#include <vector>
-#include <ostream>
 
-#include "nlohmann/json_fwd.hpp"
+#include <cvode/cvode.h>                // prototypes for CVODE fcts., consts.
+#include <nvector/nvector_serial.h>     // access to serial N_Vector
+#include <sunlinsol/sunlinsol_dense.h>  // access to dense SUNLinearSolver
+#include <sunmatrix/sunmatrix_dense.h>  // access to dense SUNMatrix
+
 #include "common.h"
 #include "ode_fun.h"
+#include "ode_solution.h"
 
-class OdeSolution
+
+struct UserData
 {
-public:
-    static constexpr char csv_header[] = "success,num_dim,num_steps,num_repeats,num_fun_evals,num_fun_evals_jac,num_jac_evals,num_lin_iters,num_nonlin_iters,runtime,t_last,x_0,x_last";
+    // right_hand_side function arguments
+    OdeFun* ode_ptr      = nullptr;
+    Timer* timer_ptr     = nullptr;
+    double timeout       = 1.0e30;
+    bool timed_out       = false;
 
-    std::vector<double> t;
-    std::vector<std::vector<double>> x;
-    size_t num_dim;
-    size_t num_steps;
-    size_t num_repeats;
-    size_t num_fun_evals;
-    size_t num_fun_evals_jac;
-    size_t num_jac_evals;
-    size_t num_lin_iters;
-    size_t num_nonlin_iters;
-    std::vector<double> total_error;
-    
-    double runtime;
-    size_t error_ID;
-
-
-    OdeSolution();
-    ~OdeSolution();
-    is_success success() const;
-    void push_t_x(const double t_i, const double *x_i);
-    void clear();
-    std::string to_csv() const;
-    std::string to_string(const bool colored=true, const bool with_code=true) const;
-    nlohmann::ordered_json to_json() const;
-    friend std::ostream &operator<<(std::ostream &os, const OdeSolution &ode);
+    // error_function function arguments
+    size_t* error_ID_ptr = nullptr;
+    size_t ID            = 0;
 };
 
 
 class OdeSolver
 {
 public:
-    virtual ~OdeSolver() = default;
-    virtual OdeSolution solve(
+    SUNContext sun_context;           // An opaque pointer used by SUNDIALS objects for error handling, logging, profiling, etc.
+    double t;                         // simulation time
+    N_Vector x;                       // simulation state vector
+    N_Vector constraints;             // constraints vector
+    N_Vector abstol;                  // absolute tolerance vector
+    sunrealtype reltol;               // relative tolerance
+    SUNMatrix A;                      // matrix for linear solver
+    SUNLinearSolver linear_solver;    // linear solver
+    void* cvode_mem;                  // CVODE memory block
+    size_t init_error_ID;             // error ID from the initialization (solution.error_ID is used during simulation)
+    UserData user_data;               // to pass data to the right_hand_side function and error_function
+
+    OdeSolver(const size_t num_dim);
+    ~OdeSolver();
+    SimulationData solve(
         const double t_max,
         OdeFun* ode_ptr,
         double timeout = 1.0e30,
         bool save_solution = false,
         bool save_jacobian = false
-    ) = 0;
+    );
+    void set_log_file(const std::string& log_file_path);
 };
-
 
 
 #endif // ODE_SOLVER_H
