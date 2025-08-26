@@ -34,6 +34,7 @@ public:
             .ID                          = 0,
             .mechanism                   = Parameters::mechanism::chemkin_ar_he,
             .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
+            .ratio                       = 1.00000000000000000e+00,    // R_0/R_E for unforced oscillations [-]
             .species                     = {"O2"},
             .fractions                   = {1.00000000000000000e+00},
             .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]

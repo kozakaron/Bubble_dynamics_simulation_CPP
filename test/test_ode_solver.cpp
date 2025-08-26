@@ -46,6 +46,7 @@ vector<TestReferenceData> init_test_datas()
         .cpar = ControlParameters{ControlParameters::Builder{
             .mechanism                               = Parameters::mechanism::chemkin_kaust2023_n2,
             .R_E                                     = 50.0e-6,
+            .ratio                                   = 1.0,
             .species                                 = {"H2", "O2", "N2", "AR", "HE"},
             .fractions                               = {0.3, 0.1, 0.15, 0.2, 0.25},
             .P_amb                                   = 1000 * 100000.0,
@@ -107,6 +108,7 @@ vector<TestReferenceData> init_test_datas()
         .cpar = ControlParameters{ControlParameters::Builder{
             .mechanism                               = Parameters::mechanism::chemkin_otomo2018,
             .R_E                                     = 50.0e-6,
+            .ratio                                   = 1.0,
             .species                                 = {"H2", "O2", "N2", "AR", "HE"},
             .fractions                               = {0.3, 0.1, 0.15, 0.2, 0.25},
             .P_amb                                   = 1000 * 100000.0,
@@ -168,6 +170,7 @@ vector<TestReferenceData> init_test_datas()
         .cpar = ControlParameters{ControlParameters::Builder{
             .mechanism                               = Parameters::mechanism::chemkin_otomo2018,
             .R_E                                     = 50.0e-6,
+            .ratio                                   = 1.0,
             .species                                 = {"H2", "O2", "N2", "AR", "HE"},
             .fractions                               = {0.3, 0.1, 0.15, 0.2, 0.25},
             .P_amb                                   = 1 * 100000.0,

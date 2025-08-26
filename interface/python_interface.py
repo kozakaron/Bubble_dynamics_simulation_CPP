@@ -334,6 +334,7 @@ def _print_data(data, print_it=True):
     text += f"  ID: {cpar.get('ID', 'N/A')}\n"
     text += f"  Mechanism: {cpar.get('mechanism', 'N/A')}\n"
     text += f"  R_E: {1e6 * cpar.get('R_E', 'N/A')} [um]\n"
+    text += f"  Ratio: {cpar.get('ratio', 'N/A')} [-]\n"
     text += f"  Species: {cpar.get('species', [])}\n"
     text += f"  Fractions: {cpar.get('fractions', [])}\n"
     text += f"  P_amb: {cpar.get('P_amb', 'N/A')} [Pa]\n"
@@ -371,6 +372,7 @@ def _print_data(data, print_it=True):
     # Results
     text += "\nResults:\n"
     text += f"  Dissipated Energy: {data.get('dissipated_energy', 'N/A')} [J]\n"
+    text += f"  Expansion Work: {data.get('expansion_work', 'N/A')} [J]\n"
     text += f"  n_target_specie: {data.get('n_target_specie', 'N/A')} [mol]\n"
     text += f"  Energy Demand: {data.get('energy_demand', 'N/A')} [MJ/kg]\n"
 
@@ -447,8 +449,8 @@ def plot(data, n=5.0, base_name='', format='png',
 # textbox with initial conditions
     text = f'Initial conditions:\n'
     text += f'    $R_E$ = {1e6*cpar["R_E"]: .2f} $[\mu m]$\n'
-    #if cpar['ratio'] != 1.0:
-    #    text += f'    $R_0/R_E$ = {cpar['ratio']: .2f} $[-]$\n'
+    if cpar['ratio'] != 1.0:
+        text += f'    $R_0/R_E$ = {cpar["ratio"]: .2f} $[-]$\n'
     text += f'    $P_{{amb}}$ = {1e-5*cpar["P_amb"]: .2f} $[bar]$\n'
     text += f'    $T_{{inf}}$ = {cpar["T_inf"]-273.15: .2f} $[°C]$\n'
     text += f'    $P_{{vapour}}$ = {cpar["P_v"]: .1f} $[Pa]$\n'
@@ -628,7 +630,7 @@ def line_to_dict(line):
         ID = int(line['ID']),
         mechanism = str(line['mechanism']),
         R_E = float(line['R_E']),
-        #ratio = line['ratio'],
+        ratio = line['ratio'],
         species = species,
         fractions = fractions,
         P_amb = float(line['P_amb']),

@@ -16,13 +16,14 @@ public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
     static constexpr size_t max_species = 5;
-    static constexpr char csv_header[] = "ID,mechanism,R_E,species,fractions,P_amb,T_inf,alfa_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,target_specie,excitation_params,excitation_type";
+    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alfa_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,target_specie,excitation_params,excitation_type";
 // Members
     size_t ID;                          // ID of control parameter
     Parameters::mechanism mechanism;    // rection mechanism
     size_t error_ID;                    // ID of error in ErrorHandler (ErrorHandler::no_error if no error occured)
     // Initial conditions:
     double R_E;                         // bubble equilibrium radius [m]
+    double ratio;                       // R_0/R_E for unforced oscillations [-]
     index_t species[max_species];       // indexes of species in initial bubble (pointer to array of species index enum)
     double fractions[max_species];      // molar fractions of species in initial bubble (pointer to array of doubles)
     index_t num_initial_species;        // number of species in initial bubble
@@ -58,6 +59,7 @@ public:
         size_t error_ID                         = ErrorHandler::no_error;
         Parameters::mechanism mechanism         = Parameters::mechanism::chemkin_ar_he;
         double R_E                              = 10.0e-6;
+        double ratio                            = 1.0;
         std::vector<std::string> species        = {"O2"};
         std::vector<double> fractions           = {1.0};
         double P_amb                            = 101325.0;

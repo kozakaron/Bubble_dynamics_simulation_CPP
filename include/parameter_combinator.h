@@ -97,6 +97,7 @@ private:
 
     Parameters::mechanism mechanism;
     std::unique_ptr<Range> R_E;
+    std::unique_ptr<Range> ratio;
     std::vector<std::string> species;
     std::vector<double> fractions;
     std::unique_ptr<Range> P_amb;
@@ -119,6 +120,7 @@ public:
     struct Builder {
         Parameters::mechanism mechanism         = Parameters::mechanism::chemkin_ar_he;
         AnyRange R_E                            = Const(10.0e-6);
+        AnyRange ratio                          = Const(1.0);
         std::vector<std::string> species        = {"O2"};
         std::vector<double> fractions           = {1.0};
         AnyRange P_amb                          = Const(101325.0);

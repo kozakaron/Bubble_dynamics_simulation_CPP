@@ -269,6 +269,7 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
     this->total_combination_count =     1;
     this->mechanism =                   builder.mechanism;
     this->R_E =                         get_unique_ptr(builder.R_E);
+    this->ratio =                       get_unique_ptr(builder.ratio);
     this->species =                     builder.species;
     this->fractions =                   builder.fractions;
     this->P_amb =                       get_unique_ptr(builder.P_amb);
@@ -293,6 +294,7 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
     }
 
     this->total_combination_count *= this->R_E->get_num_steps();
+    this->total_combination_count *= this->ratio->get_num_steps();
     this->total_combination_count *= this->P_amb->get_num_steps();
     this->total_combination_count *= this->T_inf->get_num_steps();
     this->total_combination_count *= this->alfa_M->get_num_steps();
@@ -481,7 +483,8 @@ void ParameterCombinator::init(const ordered_json& j)
         builder.mechanism = Parameters::string_to_mechanism(
                                             get_value<std::string>              (j, "mechanism",                Parameters::mechanism_names.at(builder.mechanism))
         );
-        builder.R_E =                       get_range(j, "R_E",                      builder.R_E);
+        builder.R_E =                       get_range                           (j, "R_E",                      builder.R_E);
+        builder.ratio =                     get_range                           (j, "ratio",                    builder.ratio);
         builder.species =                   get_value<std::vector<std::string>> (j, "species",                  builder.species);
         builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
         builder.P_amb =                     get_range                           (j, "P_amb",                    builder.P_amb);
@@ -627,6 +630,7 @@ std::string ParameterCombinator::to_string(const bool with_code) const
 
     ss << format_field_name << ".mechanism" << " = " << ((with_code ? "Parameters::mechanism::" : "") + par->model) << ",\n";
     ss << format_field_name << ".R_E" << " = " << format_range(this->R_E.get()) << "\n";
+    ss << format_field_name << ".ratio" << " = " << format_range(this->ratio.get()) << "\n";
     ss << format_field_name << ".species" << " = " << ::to_string((std::string*)species_names.data(), species_names.size()) << ",\n";
     ss << format_field_name << ".fractions" << " = " << ::to_string((double*)this->fractions.data(), this->fractions.size()) << ",\n";
     ss << format_field_name << ".P_amb" << " = " << format_range(this->P_amb.get()) << "\n";
@@ -666,6 +670,7 @@ ordered_json ParameterCombinator::to_json() const
 
     j["mechanism"] = Parameters::mechanism_names.at(this->mechanism);
     j["R_E"] = this->R_E->to_json();
+    j["ratio"] = this->ratio->to_json();
     j["species"] = this->species;
     j["fractions"] = this->fractions;
     j["P_amb"] = this->P_amb->to_json();
@@ -732,6 +737,7 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         .ID = combination_ID,
         .mechanism = this->mechanism,
         .R_E = get_value(this->R_E),
+        .ratio = get_value(this->ratio),
         .species = this->species,
         .fractions = this->fractions,
         .P_amb = get_value(this->P_amb),
