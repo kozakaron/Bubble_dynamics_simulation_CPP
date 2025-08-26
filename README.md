@@ -128,6 +128,7 @@ cpar = {
     'ID': 0,
     'mechanism': 'chemkin_otomo2018',
     'R_E': 1e-05,
+    'ratio': 1.0,
     'species': ['H2', 'N2'],
     'fractions': [0.25, 0.75],
     'P_amb': 101325.0,
@@ -197,8 +198,9 @@ parameter_study = api.example_parameter_study()
 
 Just like the case of the control parameters, you need to provide the mechanism and excitation type as strings, enable_ variables as bool and species and fractions as lists. However, numerical variables are provided as a range, see [./include/parameter_study.h](./include/parameter_study.h). There are 3 available options:
  * **Constant**: This variable is set as a fixed value, and it isn't changed in the parameter study. E.g.: `{"type": "Const", value=1.0}`
- * **Linear range**: This parameter takes part in the parameter study. The variable is changed from start to stop with num_step equal increment. E.g.: `{"type": "LinearRange", start=0.0, end=1.0, num_steps=10}`
- * **Power range**: This parameter takes part in the parameter study. The variable is changed from start to stop with num_step increments. Subdivision is uneven, controlled by power. E.g.: `{"type": "PowRange", start=1.0, end=100.0, num_steps=10, base=2.0}`
+ * **Linear range**: This parameter takes part in the parameter study. The variable is changed from start to stop with num_step equal increments. E.g.: `{"type": "LinearRange", start=0.0, end=1.0, num_steps=10}`
+ * **Logaritmic range**: This parameter takes part in the parameter study. The variable is changed from start to stop with num_step increments. Subdivision is uneven, changing the same way as Python's numpy.logspace. GeomRange is more versatile. E.g.: `{"type": "LogRange", start=1.0, end=100.0, num_steps=10}`
+ * **Geometric series Rrange**: This parameter takes part in the parameter study. The variable is changed from start to stop with num_step increments. Subdivision is uneven, the difference of consequtive elements form a geometric series with a quotient q. If 0 < q < 1, steps are getting gradually smaller. If 1 < q, steps are getting larger. Increase q to get a larger increase in steps. E.g.: `{"type": "GeomRange", start=1.0, end=100.0, num_steps=10, q=2.0}`
 
  A sample of such a control dict may look like this:
  ```Python
@@ -284,6 +286,51 @@ This code is object oriented. Most classes include some of the following methods
  * **ostream operator<< overload**: use to print objects directly trough `std::cout`.
  * **to_csv()**: convert the object to a csv (sting). Member variables are printed, seperated by a comma. Order is defined by `csv_header`.
 
+### High level overwiev
+
+```
+                                                 ┌─────────────────────────────────┐
+                                                 │Parameters                       │
+              ┌──────────────────────────────┐   ├─────────────────────────────────┤
+              │ControlParameters             │   │Holds constants and coefficients │
+┌──────────┐  ├──────────────────────────────┤   │describing reaction mechanisms:  │
+│JSON input│  │Holds all settings influencing│   │ ∘ chemkin_ar_he                 │
+├──────────┤--│the simulation: R_E, P_amb,   │---│ ∘ chemkin_kaust2023_n2          │
+└──────────┘  │excitation parameters, ...    │   │ ∘ chemkin_kaust2023_n2_without_o│
+              └──────────────────────────────┘   │ ∘ chemkin_otomo2018_without_o   │
+                              |                  │ ∘ chemkin_otomo2018             │
+                              |                  └─────────────────────────────────┘
+                              |                                                     
+                              |                                                     
+   ┌─────────────────────────────────────────────────────┐                          
+   │OdeFun                                               │                          
+   ├─────────────────────────────────────────────────────┤                          
+   │Computes the right-hand-side function: dxdt = f[x, t]│                          
+   │+ init(ControlParameters& cpar)                      │                          
+   │+ initial_conditions(double* x)                      │                          
+   │+ operator(double t, double* x, double* dxdt)        │                          
+   └─────────────────────────────────────────────────────┘                          
+                              |                                                     
+            ┌──────────────────────────────────┐                                    
+            │OdeSolver                         │                                    
+            ├──────────────────────────────────┤                                    
+            │Uses SUNDIALS CVODE to compute the│                                    
+            │numerical solution.               │                                    
+            │ + solve(OdeFun* ode_ptr, ...)    │                                    
+            └──────────────────────────────────┘                                    
+                              |                                                     
+                              |                                                     
+          ┌───────────────────────────────────────┐                                 
+          │SimulationData                         │                                 
+          ├───────────────────────────────────────┤   ┌───────────┐                 
+          │Contains the results of the simulation:│   │JSON output│                 
+          │ ∘ ControlParameters: inputs           │---├───────────┤                 
+          │ ∘ OdeSolution: numerical solution     │   └───────────┘                 
+          │ ∘ post-processing data: output        │                                 
+          │ + postprocess()                       │                                 
+          └───────────────────────────────────────┘                                 
+```
+
 ### Error handling
 
 See `Error` and `ErrorHandler` classes in [./include/common.h](./include/common.h). Each error has:
@@ -312,6 +359,7 @@ ControlParameters cpar = ControlParameters{ControlParameters::Builder{
     .ID                          = 0,
     .mechanism                   = Parameters::mechanism::chemkin_ar_he,
     .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
+    .ratio                       = 1.00000000000000000e+00,    // 
     .species                     = {"O2"},
     .fractions                   = {1.00000000000000000e+00},
     .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]
@@ -362,22 +410,20 @@ OdeFun ode;
 ode.init(cpar);
 
 // solve the ODE      
-OdeSolverCVODE solver(ode.par->num_species+4);
-OdeSolution solution = solver.solve(
+OdeSolver solver(ode.par->num_species+4);
+SimulationData data = solver.solve(
     1.0,     // t_max [s]
     &ode,    // ode_ptr
     60.0,    // timeout [s]
     true     // weither to save solution (or just first and last step)
 );
 
-// do postprocessing and print results (with ostream operator<< overload)
-SimulationData data(cpar, sol);
 std::cout << data << std::endl;
 ```
 
 ### Running a bruteforce parameter study
 
-A bruteforce parameter study can be defined by the `ParameterCombinator` class declared in [./include/parameter_study.h](./include/parameter_study.h). It is also initialized with a builder struct and a designated initializer list, similar to `ControlParameters`. However, arguments have to be a childre of the `Range` class: `Const`, `LinearRange`, `PowRange`. It also has defaults for missing arguments, and can be printed to console in usable code format:
+A bruteforce parameter study can be defined by the `ParameterCombinator` class declared in [./include/parameter_combinator.h](./include/parameter_combinator.h). It is also initialized with a builder struct and a designated initializer list, similar to `ControlParameters`. However, arguments have to be a childre of the `Range` class: `Const`, `LinearRange`, `LogRange`, `GeomRange`. It also has defaults for missing arguments, and can be printed to console in usable code format:
 
 ```cpp
 ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinator::Builder{

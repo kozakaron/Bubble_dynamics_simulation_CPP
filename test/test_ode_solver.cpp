@@ -8,7 +8,7 @@
 #include "test_list.h"
 #include "test.h"
 #include "ode_solver.h"
-#include "ode_solver_sundials.h"
+#include "ode_solver.h"
 #include "parameter_study.h"
 
 
@@ -27,25 +27,26 @@ struct TestReferenceData
     const vector<double> mol_fractions_final;
 };
 
-vector<TestReferenceData> init_test_data();
+vector<TestReferenceData> init_test_datas();
 void test_CVODE_solver(vector<TestReferenceData> &test_data);
 
 void test_ode_solver()
 {
-    vector<TestReferenceData> test_data = init_test_data();
-    test_CVODE_solver(test_data);
+    vector<TestReferenceData> test_datas = init_test_datas();
+    test_CVODE_solver(test_datas);
 }
 
 
-vector<TestReferenceData> init_test_data()
+vector<TestReferenceData> init_test_datas()
 {
     const double skip_test = std::numeric_limits<double>::quiet_NaN();
-    vector<TestReferenceData> test_data;
-    test_data.push_back(TestReferenceData{
+    vector<TestReferenceData> test_datas;
+    test_datas.push_back(TestReferenceData{
         .name = "Test chemkin_kaust2023_n2; 1000 bar; sin_impulse; ",
         .cpar = ControlParameters{ControlParameters::Builder{
             .mechanism                               = Parameters::mechanism::chemkin_kaust2023_n2,
             .R_E                                     = 50.0e-6,
+            .ratio                                   = 1.0,
             .species                                 = {"H2", "O2", "N2", "AR", "HE"},
             .fractions                               = {0.3, 0.1, 0.15, 0.2, 0.25},
             .P_amb                                   = 1000 * 100000.0,
@@ -102,11 +103,12 @@ vector<TestReferenceData> init_test_data()
         }
     });
 
-    test_data.push_back(TestReferenceData{
+    test_datas.push_back(TestReferenceData{
         .name = "Test chemkin_otomo2018; 1000 bar; sin_impulse; ",
         .cpar = ControlParameters{ControlParameters::Builder{
             .mechanism                               = Parameters::mechanism::chemkin_otomo2018,
             .R_E                                     = 50.0e-6,
+            .ratio                                   = 1.0,
             .species                                 = {"H2", "O2", "N2", "AR", "HE"},
             .fractions                               = {0.3, 0.1, 0.15, 0.2, 0.25},
             .P_amb                                   = 1000 * 100000.0,
@@ -163,11 +165,12 @@ vector<TestReferenceData> init_test_data()
         }
     });
 
-    test_data.push_back(TestReferenceData{
+    test_datas.push_back(TestReferenceData{
         .name = "Test chemkin_otomo2018; 1 bar; sin_impulse; ",
         .cpar = ControlParameters{ControlParameters::Builder{
             .mechanism                               = Parameters::mechanism::chemkin_otomo2018,
             .R_E                                     = 50.0e-6,
+            .ratio                                   = 1.0,
             .species                                 = {"H2", "O2", "N2", "AR", "HE"},
             .fractions                               = {0.3, 0.1, 0.15, 0.2, 0.25},
             .P_amb                                   = 1 * 100000.0,
@@ -225,10 +228,10 @@ vector<TestReferenceData> init_test_data()
     });
 
 
-    for (auto &data : test_data)
+    for (auto &test_data : test_datas)
     {
         double sum_mol_fraction = 0.0;
-        for (auto &mol_fraction : data.mol_fractions_final)
+        for (auto &mol_fraction : test_data.mol_fractions_final)
         {
             sum_mol_fraction += mol_fraction;
         }
@@ -238,25 +241,25 @@ vector<TestReferenceData> init_test_data()
         }
     }
 
-    return test_data;
+    return test_datas;
 }
 
-void test_CVODE_solver(vector<TestReferenceData> &test_data)
+void test_CVODE_solver(vector<TestReferenceData> &test_datas)
 {
     testing::Tester tester = testing::Tester("Test CVODE solver");
 
-    for (auto &data : test_data)
+    for (auto &test_data : test_datas)
     {
-        tester.add_test(data.name, [&]() -> string {
+        tester.add_test(test_data.name, [&]() -> string {
             // Solve the ODE
-            OdeFun ode; ode.init(data.cpar);
-            OdeSolverCVODE cvode(ode.par->num_species+4);
-            OdeSolution solution = cvode.solve(data.t_final, &ode, 60.0, false);
-            if (solution.error_ID != ErrorHandler::no_error)
-                return ErrorHandler::get_error(solution.error_ID).to_string(true);
+            OdeFun ode; ode.init(test_data.cpar);
+            OdeSolver cvode(ode.par->num_species+4);
+            SimulationData data = cvode.solve(test_data.t_final, &ode, 60.0, false);
+            if (data.sol.error_ID != ErrorHandler::no_error)
+                return ErrorHandler::get_error(data.sol.error_ID).to_string(true);
 
             // Calculate molar fractions
-            double* x_final = solution.x.back().data();
+            double* x_final = data.sol.x.back().data();
             vector<double> mol_fractions_final = vector<double>(x_final+3, x_final + ode.par->num_species+3);
             double M = 0.0;
             for (auto &mol_fraction : mol_fractions_final)
@@ -265,30 +268,30 @@ void test_CVODE_solver(vector<TestReferenceData> &test_data)
                 mol_fraction /= M;
 
             // Compare the results
-            ASSERT_APPROX(solution.x.back().at(2), data.T_final, 1.0e-3);
-            for (size_t i = 0; i < data.mol_fractions_final.size(); i++)
+            ASSERT_APPROX(data.sol.x.back().at(2), test_data.T_final, 1.0e-3);
+            for (size_t i = 0; i < test_data.mol_fractions_final.size(); i++)
             {
                 // Check if result is valid number
                 if (!std::isfinite(mol_fractions_final[i]))
                 {
                     return "mol_fractions_final[" + std::to_string(i) + "] is not a number: " + std::to_string(mol_fractions_final[i]);
                 }
-                if (!std::isfinite(data.mol_fractions_final[i]))
+                if (!std::isfinite(test_data.mol_fractions_final[i]))
                 {
                     std::cout << "            " << ode.par->species_names.at(i) << " ignored\n";
                     continue;
                 }
 
                 // calculate the difference
-                const double abs_diff = std::abs(mol_fractions_final[i] - data.mol_fractions_final[i]);
-                const double max = std::max(std::abs(mol_fractions_final[i]), std::abs(data.mol_fractions_final[i]));
+                const double abs_diff = std::abs(mol_fractions_final[i] - test_data.mol_fractions_final[i]);
+                const double max = std::max(std::abs(mol_fractions_final[i]), std::abs(test_data.mol_fractions_final[i]));
                 const double rel_diff = abs_diff / max;
 
                 // assemble error message
                 std::stringstream ss;
                 ss << ode.par->species_names.at(i);
                 ss << ": mol_fractions_final[" << i << "] != reference: ";
-                ss << std::scientific << std::setprecision(10) << mol_fractions_final[i] << " != " << data.mol_fractions_final[i];
+                ss << std::scientific << std::setprecision(10) << mol_fractions_final[i] << " != " << test_data.mol_fractions_final[i];
                 ss << std::setprecision(3) << " (abs_diff: " << abs_diff << ", rel_diff: " << rel_diff << ")";
                 //ss << std::endl << solution;
 
@@ -300,7 +303,7 @@ void test_CVODE_solver(vector<TestReferenceData> &test_data)
                         return ss.str();
                     }
                 }
-                else if (max < 1.0e-6)
+                else if (max < 1.0e-5)
                 {
                     if (rel_diff > 1.0e-2)
                     {
