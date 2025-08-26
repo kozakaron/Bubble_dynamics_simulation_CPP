@@ -199,7 +199,7 @@ std::ostream &operator<<(std::ostream &os, const OdeSolution &ode)
 }
 
 
-const std::string SimulationData::csv_header = std::string("dissipated_energy,n_target_specie,energy_demand,R_max,T_max,t_peak,R_min,T_min,t_collapse,")
+const std::string SimulationData::csv_header = std::string("dissipated_energy,n_target_specie,energy_demand,R_max,T_max,t_peak,R_min,T_min,")
                                              + std::string(ControlParameters::csv_header) + std::string(",")
                                              + std::string(OdeSolution::csv_header) + std::string(",") + std::string(Error::csv_header);
 
@@ -213,7 +213,6 @@ SimulationData::SimulationData(const ControlParameters &cpar):
     t_peak(0.0),
     R_min(std::numeric_limits<double>::infinity()),
     T_min(std::numeric_limits<double>::infinity()),
-    t_collapse(0.0),
     dissipated_energy(0.0),
     n_target_specie(0.0),
     energy_demand(std::numeric_limits<double>::infinity()),
@@ -226,15 +225,11 @@ void SimulationData::midprocess(const double t, const double* x)
 {
     if (x[0] > R_max) R_max = x[0];
     if (x[2] < T_min) T_min = x[2];
+    if (x[0] < R_min) R_min = x[0];
     if (x[2] > T_max)
     {
         T_max = x[2];
         t_peak = t;
-    }
-    if (x[0] < R_min)
-    {
-        R_min = x[0];
-        t_collapse = t;
     }
 }
 
@@ -310,7 +305,6 @@ std::string SimulationData::to_csv() const
     ss << format_double << this->t_peak << ",";
     ss << format_double << this->R_min << ",";
     ss << format_double << this->T_min << ",";
-    ss << format_double << this->t_collapse << ",";
     ss << this->cpar.to_csv() << ",";
     ss << this->sol.to_csv() << ",";
 
@@ -346,7 +340,6 @@ std::string SimulationData::to_string() const
     ss << std::setw(strw) << "    .t_peak"             << " = " << format_double << this->t_peak               << ",    // [s]\n";
     ss << std::setw(strw) << "    .R_min"              << " = " << format_double << this->R_min                << ",    // [m]\n";
     ss << std::setw(strw) << "    .T_min"              << " = " << format_double << this->T_min                << ",    // [K]\n";
-    ss << std::setw(strw) << "    .t_collapse"         << " = " << format_double << this->t_collapse           << ",    // [s]\n";
     ss << "    .cpar = ControlParameters{";
     ss << std::regex_replace(this->cpar.to_string(true), std::regex("\n"), "\n    ");
     ss << "},\n    .sol = ";
@@ -444,7 +437,6 @@ nlohmann::ordered_json SimulationData::to_json() const
     j["t_peak"] = this->t_peak;
     j["R_min"] = this->R_min;
     j["T_min"] = this->T_min;
-    j["t_collapse"] = this->t_collapse;
     j["cpar"] = this->cpar.to_json();
     j["sol"] = this->sol.to_json();
     j["excitation"] = nlohmann::ordered_json::object({

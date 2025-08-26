@@ -58,7 +58,6 @@ public:
     double t_peak;             // [s]
     double R_min;              // [m]
     double T_min;              // [K]
-    double t_collapse;         // [s]
 // Post-processing results
     double dissipated_energy;  // [J]
     double n_target_specie;    // [mol]

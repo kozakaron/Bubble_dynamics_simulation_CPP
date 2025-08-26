@@ -331,7 +331,7 @@ void save_jacobian_to_json(void* cvode_mem, long int num_jac_evals, OdeFun* ode_
     }
 
     // Write JSON data to the file
-    file << jacobian_data << std::endl;
+    file << jacobian_data;
     file.close();
 }
 

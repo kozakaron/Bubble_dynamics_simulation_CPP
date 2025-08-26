@@ -362,9 +362,11 @@ def _print_data(data, print_it=True):
     text += f"  Num Function Evaluations: {sol.get('num_fun_evals', 'N/A')}\n"
     text += f"  Num Jacobian Evaluations: {sol.get('num_jac_evals', 'N/A')}\n"
     text += f"  t_last = {sol.get('t', ['N/A'])[-1]} [s]\n"
-    text += f"  R_max = {sol.get('R_max', 'N/A')} [m]  (R_max/R_E = {sol.get('R_max', 'N/A') / cpar.get('R_E', 1.0)})\n"
-    text += f"  T_max = {sol.get('T_max', 'N/A')} [K]  (T_max/T_T_inf = {sol.get('T_max', 'N/A') / cpar.get('T_inf', 1.0)})\n"
-    text += f"  t_max = {sol.get('t_max', 'N/A')} [s]\n"
+    text += f"  R_max = {1e6*data.get('R_max', 'N/A')} [um]  (R_max/R_E = {data.get('R_max', 1.0) / cpar.get('R_E', 1.0)})\n"
+    text += f"  R_min = {1e6*data.get('R_min', 'N/A')} [um]  (R_min/R_E = {data.get('R_min', 1.0) / cpar.get('R_E', 1.0)})\n"
+    text += f"  T_max = {data.get('T_max', 'N/A')} [K]  (T_max/T_T_inf = {data.get('T_max', 1.0) / cpar.get('T_inf', 1.0)})\n"
+    text += f"  T_min = {data.get('T_min', 'N/A')} [K]  (T_min/T_T_inf = {data.get('T_min', 1.0) / cpar.get('T_inf', 1.0)})\n"
+    text += f"  t_peak = {1e6*data.get('t_peak', 'N/A')} [us]\n"
 
     # Results
     text += "\nResults:\n"
