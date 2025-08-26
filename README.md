@@ -286,6 +286,51 @@ This code is object oriented. Most classes include some of the following methods
  * **ostream operator<< overload**: use to print objects directly trough `std::cout`.
  * **to_csv()**: convert the object to a csv (sting). Member variables are printed, seperated by a comma. Order is defined by `csv_header`.
 
+### High level overwiev
+
+```
+                                                 ┌─────────────────────────────────┐
+                                                 │Parameters                       │
+              ┌──────────────────────────────┐   ├─────────────────────────────────┤
+              │ControlParameters             │   │Holds constants and coefficients │
+┌──────────┐  ├──────────────────────────────┤   │describing reaction mechanisms:  │
+│JSON input│  │Holds all settings influencing│   │ ∘ chemkin_ar_he                 │
+├──────────┤--│the simulation: R_E, P_amb,   │---│ ∘ chemkin_kaust2023_n2          │
+└──────────┘  │excitation parameters, ...    │   │ ∘ chemkin_kaust2023_n2_without_o│
+              └──────────────────────────────┘   │ ∘ chemkin_otomo2018_without_o   │
+                              |                  │ ∘ chemkin_otomo2018             │
+                              |                  └─────────────────────────────────┘
+                              |                                                     
+                              |                                                     
+   ┌─────────────────────────────────────────────────────┐                          
+   │OdeFun                                               │                          
+   ├─────────────────────────────────────────────────────┤                          
+   │Computes the right-hand-side function: dxdt = f[x, t]│                          
+   │+ init(ControlParameters& cpar)                      │                          
+   │+ initial_conditions(double* x)                      │                          
+   │+ operator(double t, double* x, double* dxdt)        │                          
+   └─────────────────────────────────────────────────────┘                          
+                              |                                                     
+            ┌──────────────────────────────────┐                                    
+            │OdeSolver                         │                                    
+            ├──────────────────────────────────┤                                    
+            │Uses SUNDIALS CVODE to compute the│                                    
+            │numerical solution.               │                                    
+            │ + solve(OdeFun* ode_ptr, ...)    │                                    
+            └──────────────────────────────────┘                                    
+                              |                                                     
+                              |                                                     
+          ┌───────────────────────────────────────┐                                 
+          │SimulationData                         │                                 
+          ├───────────────────────────────────────┤   ┌───────────┐                 
+          │Contains the results of the simulation:│   │JSON output│                 
+          │ ∘ ControlParameters: inputs           │---├───────────┤                 
+          │ ∘ OdeSolution: numerical solution     │   └───────────┘                 
+          │ ∘ post-processing data: output        │                                 
+          │ + postprocess()                       │                                 
+          └───────────────────────────────────────┘                                 
+```
+
 ### Error handling
 
 See `Error` and `ErrorHandler` classes in [./include/common.h](./include/common.h). Each error has:
@@ -314,7 +359,7 @@ ControlParameters cpar = ControlParameters{ControlParameters::Builder{
     .ID                          = 0,
     .mechanism                   = Parameters::mechanism::chemkin_ar_he,
     .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
-    .ratio                       = 1.00000000000000000e+00,    // R_0/R_E for unforced oscillations [-]
+    .ratio                       = 1.00000000000000000e+00,    // 
     .species                     = {"O2"},
     .fractions                   = {1.00000000000000000e+00},
     .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]
@@ -365,16 +410,14 @@ OdeFun ode;
 ode.init(cpar);
 
 // solve the ODE      
-OdeSolverCVODE solver(ode.par->num_species+4);
-OdeSolution solution = solver.solve(
+OdeSolver solver(ode.par->num_species+4);
+SimulationData data = solver.solve(
     1.0,     // t_max [s]
     &ode,    // ode_ptr
     60.0,    // timeout [s]
     true     // weither to save solution (or just first and last step)
 );
 
-// do postprocessing and print results (with ostream operator<< overload)
-SimulationData data(cpar, sol);
 std::cout << data << std::endl;
 ```
 
