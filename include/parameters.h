@@ -82,8 +82,8 @@ public:
 // MECHANISM DEPENDENT PARAMETERS
 
 // Common mechanism data
-    const std::string model;                             // Name of the mechanism
-    const std::string input_file;                        // Original input (.inp) file's name
+    const std::string model;                        // Name of the mechanism
+    const std::string input_file;                   // Original input (.inp) file's name
 // Species
     const index_t num_elements;                     // Number of elements
     const index_t num_species;                      // Number of species
@@ -100,8 +100,8 @@ public:
     const double *temp_range;                       // Temperature ranges for NASA polynomials [K] (num_species, 3)
     const double *a_low;                            // Low  NASA coefficients (num_species, NASA_order+2)
     const double *a_high;                           // High NASA coefficients (num_species, NASA_order+2)
-    const double *interval_values;                  // Values at T_low and T_high (num_species, 6): {C_p_low, H_low, S_low, C_p_high, H_high, S_high}
-    const double *interval_derivatives;             // Derivatives at T_low and T_high (num_species, 6): {dC_p_low/dT, dH_low/dT, dS_low/dT, dC_p_high/dT, dH_high/dT, dS_high/dT}
+    const double *interval_values;                  // Values at T_low and T_high (num_species, 3): {C_p_high, H_high, S_high}
+    const double *interval_derivatives;             // Derivatives at T_low and T_high (num_species, 3): {dC_p_high/dT, dH_high/dT, dS_high/dT}
 // Reactions constants
     const index_t num_reactions;                    // Number of reactions
     const double *A;                                // Pre-exponential factors [cm^3/mol/s v 1/s] (num_reactions)
