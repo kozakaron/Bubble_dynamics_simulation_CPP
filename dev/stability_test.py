@@ -250,6 +250,7 @@ def main():
     with open(output_file_path, 'a') as output_file:
         output_file.write('\n\n')
         output_file.write(results_df.to_string(index=True, justify='center'))
+        output_file.write('\n\n')
 
 if __name__ == "__main__":
     main()
