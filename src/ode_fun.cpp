@@ -356,9 +356,6 @@ void OdeFun::thermodynamic(
     const double T
 ) //noexcept
 {
-    const double *a;  // NASA coefficients (length: Parameters::NASA_order+2)
-    const double *interval_values;  // {C_p_low, H_low, S_low, C_p_high, H_high, S_high}
-    const double *interval_derivatives;  // {dC_p_low/dT, dH_low/dT, dS_low/dT, dC_p_high/dT, dH_high/dT, dS_high/dT}
     for (index_t k = 0; k < par->num_species; ++k)
     {
     // get coefficients for T
@@ -366,22 +363,20 @@ void OdeFun::thermodynamic(
         const double& T_high = par->temp_range[3*k+1];
         const double& T_mid = par->temp_range[3*k+2];
 
-        if (T < T_mid)
-        {
-            a = &(par->a_low[k*(par->NASA_order+2)]);
-            interval_values = &(par->interval_values[k*6]);
-            interval_derivatives = &(par->interval_derivatives[k*6]);
-        }
-        else
-        {
-            a = &(par->a_high[k*(par->NASA_order+2)]);
-            interval_values = &(par->interval_values[k*6 + 3]);
-            interval_derivatives = &(par->interval_derivatives[k*6 + 3]);
-        }
-
-        if (/*T_low < T && */T < T_high)
+        if (T < T_high)
         {
         // calculate polynomials
+            const double *a;  // NASA coefficients: {a1, a2, a3, a4, a5, a6, a7}
+            if (T < T_mid)
+            {
+                a = &(par->a_low[k*(par->NASA_order+2)]);
+
+            }
+            else
+            {
+                a = &(par->a_high[k*(par->NASA_order+2)]);
+            }
+
             const double T1 = T;
             const double T2 = T1 * T1;
             const double T3 = T2 * T1;
@@ -400,10 +395,11 @@ void OdeFun::thermodynamic(
         else
         {
         // linear extrapolation
-            const double T_interval = T < T_mid ? T_low : T_high;
-            this->C_p[k] = interval_values[0] + interval_derivatives[0] * (T - T_interval);
-            this->H[k]   = interval_values[1] + interval_derivatives[1] * (T - T_interval);
-            this->S[k]   = interval_values[2] + interval_derivatives[2] * (T - T_interval);
+            const double *interval_values      = &(par->interval_values[k*3]);       // {C_p_high, H_high, S_high}
+            const double *interval_derivatives = &(par->interval_derivatives[k*3]);  // {dC_p_high/dT, dH_high/dT, dS_high/dT}
+            this->C_p[k] = interval_values[0] + interval_derivatives[0] * (T - T_high);
+            this->H[k]   = interval_values[1] + interval_derivatives[1] * (T - T_high);
+            this->S[k]   = interval_values[2] + interval_derivatives[2] * (T - T_high);
             this->C_v[k]  = this->C_p[k] - par->R_erg;
         }
     }
