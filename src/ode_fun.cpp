@@ -278,12 +278,12 @@ std::pair<double, double> OdeFun::pressures(
     {
     case Parameters::excitation::two_sinusoids:
         {
-            double p_A1 = cpar.excitation_params[0];
-            double p_A2 = cpar.excitation_params[1];
-            double freq1 = cpar.excitation_params[2];
-            double freq2 = cpar.excitation_params[3];
-            double theta_phase = cpar.excitation_params[4];
-            double n_cycles = cpar.excitation_params[5];
+            const double& p_A1 = cpar.excitation_params[0];
+            const double& p_A2 = cpar.excitation_params[1];
+            const double& freq1 = cpar.excitation_params[2];
+            const double& freq2 = cpar.excitation_params[3];
+            const double& theta_phase = cpar.excitation_params[4];
+            const double& n_cycles = cpar.excitation_params[5];
 
             if (t < 0.0 || (t > n_cycles / freq1 && t > n_cycles / freq2))
             {
@@ -299,9 +299,9 @@ std::pair<double, double> OdeFun::pressures(
         }
     case Parameters::excitation::sin_impulse:
         {
-            double p_A = cpar.excitation_params[0];
-            double freq = cpar.excitation_params[1];
-            double n_cycles = cpar.excitation_params[2];
+            const double& p_A = cpar.excitation_params[0];
+            const double& freq = cpar.excitation_params[1];
+            const double& n_cycles = cpar.excitation_params[2];
 
             if (t < 0.0 || t > n_cycles / freq)
             {
@@ -318,9 +318,9 @@ std::pair<double, double> OdeFun::pressures(
         }
     case Parameters::excitation::sin_impulse_logf:
         {
-            double p_A = cpar.excitation_params[0];
-            double freq = pow(10.0, cpar.excitation_params[1]);
-            double n_cycles = cpar.excitation_params[2];
+            const double& p_A = cpar.excitation_params[0];
+            const double& freq = pow(10.0, cpar.excitation_params[1]);
+            const double& n_cycles = cpar.excitation_params[2];
 
             if (t < 0.0 || t > n_cycles / freq)
             {
@@ -343,10 +343,10 @@ std::pair<double, double> OdeFun::pressures(
         }
     }
     
-    double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
-    double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // + 4.0 * cpar.mu_L * R_ddot / R;
-    double delta = (p_L - p_Inf) / cpar.rho_L;
-    double delta_dot = (p_L_dot - p_Inf_dot) / cpar.rho_L;
+    const double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
+    const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // + 4.0 * cpar.mu_L * R_ddot / R;
+    const double delta = (p_L - p_Inf) / cpar.rho_L;
+    const double delta_dot = (p_L_dot - p_Inf_dot) / cpar.rho_L;
 
     return std::make_pair(delta, delta_dot);
 }
@@ -357,36 +357,55 @@ void OdeFun::thermodynamic(
 ) //noexcept
 {
     const double *a;  // NASA coefficients (length: Parameters::NASA_order+2)
+    const double *interval_values;  // {C_p_low, H_low, S_low, C_p_high, H_high, S_high}
+    const double *interval_derivatives;  // {dC_p_low/dT, dH_low/dT, dS_low/dT, dC_p_high/dT, dH_high/dT, dS_high/dT}
     for (index_t k = 0; k < par->num_species; ++k)
     {
     // get coefficients for T
-        if (T <= par->temp_range[3*k+2]) // T <= T_mid
+        const double& T_low = par->temp_range[3*k];
+        const double& T_high = par->temp_range[3*k+1];
+        const double& T_mid = par->temp_range[3*k+2];
+
+        if (T < T_mid)
         {
             a = &(par->a_low[k*(par->NASA_order+2)]);
+            interval_values = &(par->interval_values[k*6]);
+            interval_derivatives = &(par->interval_derivatives[k*6]);
         }
         else
         {
             a = &(par->a_high[k*(par->NASA_order+2)]);
+            interval_values = &(par->interval_values[k*6 + 3]);
+            interval_derivatives = &(par->interval_derivatives[k*6 + 3]);
         }
-    // calculate sums
-        double C_p = 0.0, H = 0.0, S = 0.0;
-        double T_pow = 1.0;
-        for (index_t n = 0; n < par->NASA_order; ++n)
+
+        if (/*T_low < T && */T < T_high)
         {
-            C_p += a[n] * T_pow;
-            H += a[n] * T_pow / (n + 1);
-            if (n != 0) S += a[n] * T_pow / n;
-            T_pow *= T;
+        // calculate polynomials
+            const double T1 = T;
+            const double T2 = T1 * T1;
+            const double T3 = T2 * T1;
+            const double T4 = T2 * T2;
+            const double T5 = T3 * T2;
+
+            // Molar heat capacities at constant pressure (isobaric) [erg/mol/K]
+            this->C_p[k] = par->R_erg * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4);
+            // Enthalpies [erg/mol]
+            this->H[k] = par->R_erg * (a[0]*T1 + a[1]*T2/2.0 + a[2]*T3/3.0 + a[3]*T4/4.0 + a[4]*T5/5.0 + a[5]);
+            // Entropies [erg/mol/K]
+            this->S[k] = par->R_erg * (a[0] * std::log(T) + a[1]*T1 + a[2]*T2/2.0 + a[3]*T3/3.0 + a[4]*T4/4.0 + a[6]);
+            // Molar heat capacities at constant volume (isochoric) [erg/mol/K]
+            this->C_v[k] = this->C_p[k] - par->R_erg;
         }
-    // calculations outside the sums
-        // Molar heat capacities at constant pressure (isobaric) [erg/mol/K]
-        this->C_p[k] = par->R_erg * C_p;
-        // Enthalpies [erg/mol]
-        this->H[k] = par->R_erg * (T * H + a[par->NASA_order]);
-        // Entropies [erg/mol/K]
-        this->S[k] = par->R_erg * (a[0] * std::log(T) + S + a[par->NASA_order+1]);
-        // Molar heat capacities at constant volume (isochoric) [erg/mol/K]
-        this->C_v[k] = this->C_p[k] - par->R_erg;
+        else
+        {
+        // linear extrapolation
+            const double T_interval = T < T_mid ? T_low : T_high;
+            this->C_p[k] = interval_values[0] + interval_derivatives[0] * (T - T_interval);
+            this->H[k]   = interval_values[1] + interval_derivatives[1] * (T - T_interval);
+            this->S[k]   = interval_values[2] + interval_derivatives[2] * (T - T_interval);
+            this->C_v[k]  = this->C_p[k] - par->R_erg;
+        }
     }
 }
 
@@ -398,10 +417,10 @@ std::pair<double, double> OdeFun::evaporation(
 ) //noexcept
 {
 // condensation and evaporation
-    double p_H2O = p * X_H2O;
-    double n_eva_dot = 1.0e3 * cpar.alfa_M * par->P_v / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * cpar.T_inf));
-    double n_con_dot = 1.0e3 * cpar.alfa_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
-    double n_net_dot = n_eva_dot - n_con_dot;
+    const double p_H2O = p * X_H2O;
+    const double n_eva_dot = 1.0e3 * cpar.alfa_M * par->P_v / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * cpar.T_inf));
+    const double n_con_dot = 1.0e3 * cpar.alfa_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
+    const double n_net_dot = n_eva_dot - n_con_dot;
 // Molar heat capacity of water at constant volume (isochoric) [J/mol/K]
     // get coefficients for T
     const double *a;
