@@ -426,7 +426,7 @@ std::pair<double, double> OdeFun::evaporation(
     const double n_con_dot = 1.0e3 * cpar.alfa_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
     const double n_net_dot = n_eva_dot - n_con_dot;
 // Evaporation energy [J/mol]
-    const double& C_v = this->C_v[par->index_of_water]; // Molar heat capacity of water at constant volume (isochoric) [J/mol/K]
+    const double& C_v = this->C_v[par->index_of_water]; // Molar heat capacity of water at constant volume (isochoric) [erg/mol/K]
     double e_eva = this->C_v_inf * cpar.T_inf * 1.0e-7;
     double e_con = C_v * T * 1.0e-7;
     double evap_energy = n_eva_dot * e_eva - n_con_dot * e_con;    // [W/m^2]
