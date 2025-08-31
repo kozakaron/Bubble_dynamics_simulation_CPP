@@ -414,10 +414,10 @@ std::pair<double, double> OdeFun::evaporation(
 {
 // condensation and evaporation
     const double p_H2O = p * X_H2O;
-    const double n_eva_dot = 1.0e3 * cpar.alfa_M * par->P_v / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * cpar.T_inf));
+    const double n_eva_dot = 1.0e3 * cpar.alfa_M * cpar.P_v / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * cpar.T_inf));
     const double n_con_dot = 1.0e3 * cpar.alfa_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
     const double n_net_dot = n_eva_dot - n_con_dot;
-// Molar heat capacity of water at constant volume (isochoric) [J/mol/K]
+    // Molar heat capacity of water at constant volume (isochoric) [J/mol/K]
     // get coefficients for T
     const double *a;
     if (T <= par->temp_range[par->index_of_water * 3 + 2]) // T <= T_mid
@@ -428,7 +428,7 @@ std::pair<double, double> OdeFun::evaporation(
     {
         a = &(par->a_high[par->index_of_water*(par->NASA_order+2)]);
     }
-    // calculate sum
+    // calculate sum // TODO: linear extrapolation for T > T_high (or get from object)
     double C_v = 0.0; double T_pow = 1.0;
     for (index_t n = 0; n < par->NASA_order; ++n)
     {
@@ -535,21 +535,19 @@ void OdeFun::forward_rate(
         const double k_upper = par->plog[upper*4+1] * std::pow(T, par->plog[upper*4+2]) * std::exp(-par->plog[upper*4+3] / (par->R_cal * T));
 
         // interpolation
-        double ln_k;
         if (p < par->plog[par->plog_seperators[j]*4+0])    // p < smallest pressure level
         {
-            ln_k = std::log(k_lower);
+            this->k_forward[index] = k_lower;
         }
         else if (par->plog[(par->plog_seperators[j+1]-1)*4+0] < p)    // p > largest pressure level
         {
-            ln_k = std::log(k_upper);
+            this->k_forward[index] = k_upper;
         }
         else
         {
-            ln_k = std::log(k_lower) + (std::log(p) - std::log(par->plog[lower*4+0])) / (std::log(par->plog[upper*4+0]) / (std::log(par->plog[upper*4+0]) - std::log(par->plog[lower*4+0]))) * (std::log(k_upper) - std::log(k_lower));
+            const double ln_k = std::log(k_lower) + (std::log(p) - std::log(par->plog[lower*4+0])) / (std::log(par->plog[upper*4+0]) - std::log(par->plog[lower*4+0])) * (std::log(k_upper) - std::log(k_lower));
+            this->k_forward[index] = std::exp(ln_k);
         }
-
-        this->k_forward[index] = std::exp(ln_k);
     }
 
 // Forward rate thresholding
