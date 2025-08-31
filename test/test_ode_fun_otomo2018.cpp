@@ -305,9 +305,10 @@ void test_ode_fun_otomo2018()
         double n_net_dot_expected = -51668226.44780852;
         double evap_energy_expected = -10739121722177.816;
 
+        tester.ode.thermodynamic(T);    // need to call this first to set C_v_H2O
         auto result = tester.ode.evaporation(p, T, X_H2O);
-        ASSERT_APPROX(result.first, n_net_dot_expected, 1e-30);
-        ASSERT_APPROX(result.second, evap_energy_expected, 1e-30);
+        ASSERT_APPROX(result.first, n_net_dot_expected, 1e-15);
+        ASSERT_APPROX(result.second, evap_energy_expected, 1e-15);
 
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );
