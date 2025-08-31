@@ -186,25 +186,34 @@ is_success OdeFun::init(const ControlParameters& cpar)
         return true;
     }
 
-    // get coefficients for T_inf
-    const double *a;  // NASA coefficients (length: Parameters::NASA_order+2)
-    if (this->cpar.T_inf <= par->temp_range[par->index_of_water*3+2]) // T_inf <= T_mid
+    // calculate C_v_inf for water
+    const double& T_high = par->temp_range[3*par->index_of_water+1];
+    const double& T_mid = par->temp_range[3*par->index_of_water+2];
+
+    if (this->cpar.T_inf < T_high)
     {
-        a = &(par->a_low[par->index_of_water*(par->NASA_order+2)]);
+    // get NASA coefficients: a={a1, a2, a3, a4, a5, a6, a7}
+        const double *a;
+        if (this->cpar.T_inf < T_mid)
+            a = &(par->a_low[par->index_of_water*(par->NASA_order+2)]);
+        else
+            a = &(par->a_high[par->index_of_water*(par->NASA_order+2)]);
+
+    // calculate polynomial
+        const double T1 = this->cpar.T_inf;
+        const double T2 = T1 * T1;
+        const double T3 = T2 * T1;
+        const double T4 = T2 * T2;
+
+        this->C_v_inf = par->R_erg * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4 - 1.0);
     }
     else
     {
-        a = &(par->a_high[par->index_of_water*(par->NASA_order+2)]);
+    // linear extrapolation
+        const double *interval_values      = &(par->interval_values[par->index_of_water*3]);       // {C_p_high, H_high, S_high}
+        const double *interval_derivatives = &(par->interval_derivatives[par->index_of_water*3]);  // {dC_p_high/dT, dH_high/dT, dS_high/dT}
+        this->C_v_inf = interval_values[0] + interval_derivatives[0] * (this->cpar.T_inf - T_high) - par->R_erg;
     }
-    // calculate sum
-    this->C_v_inf = 0.0;
-    double T_pow = 1.0;
-    for (index_t n = 0; n < par->NASA_order; ++n)
-    {
-        this->C_v_inf += a[n] * T_pow;
-        T_pow *= this->cpar.T_inf;
-    }
-    this->C_v_inf = par->R_erg * (this->C_v_inf - 1.0);
 
     return true;
 }
@@ -358,31 +367,30 @@ void OdeFun::thermodynamic(
 {
     for (index_t k = 0; k < par->num_species; ++k)
     {
-    // get coefficients for T
         const double& T_low = par->temp_range[3*k];
         const double& T_high = par->temp_range[3*k+1];
         const double& T_mid = par->temp_range[3*k+2];
 
         if (T < T_high)
         {
-        // calculate polynomials
-            const double *a;  // NASA coefficients: {a1, a2, a3, a4, a5, a6, a7}
+        // get NASA coefficients: a={a1, a2, a3, a4, a5, a6, a7}
+            const double *a;
             if (T < T_mid)
             {
                 a = &(par->a_low[k*(par->NASA_order+2)]);
-
             }
             else
             {
                 a = &(par->a_high[k*(par->NASA_order+2)]);
             }
 
+        // calculate polynomials
             const double T1 = T;
             const double T2 = T1 * T1;
             const double T3 = T2 * T1;
             const double T4 = T2 * T2;
             const double T5 = T3 * T2;
-
+        
             // Molar heat capacities at constant pressure (isobaric) [erg/mol/K]
             this->C_p[k] = par->R_erg * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4);
             // Enthalpies [erg/mol]
@@ -417,26 +425,8 @@ std::pair<double, double> OdeFun::evaporation(
     const double n_eva_dot = 1.0e3 * cpar.alfa_M * cpar.P_v / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * cpar.T_inf));
     const double n_con_dot = 1.0e3 * cpar.alfa_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
     const double n_net_dot = n_eva_dot - n_con_dot;
-    // Molar heat capacity of water at constant volume (isochoric) [J/mol/K]
-    // get coefficients for T
-    const double *a;
-    if (T <= par->temp_range[par->index_of_water * 3 + 2]) // T <= T_mid
-    {
-        a = &(par->a_low[par->index_of_water*(par->NASA_order+2)]);
-    }
-    else
-    {
-        a = &(par->a_high[par->index_of_water*(par->NASA_order+2)]);
-    }
-    // calculate sum // TODO: linear extrapolation for T > T_high (or get from object)
-    double C_v = 0.0; double T_pow = 1.0;
-    for (index_t n = 0; n < par->NASA_order; ++n)
-    {
-        C_v += a[n] * T_pow;
-        T_pow *= T;
-    }
-    C_v = par->R_erg * (C_v - 1.0);
 // Evaporation energy [J/mol]
+    const double& C_v = this->C_v[par->index_of_water]; // Molar heat capacity of water at constant volume (isochoric) [J/mol/K]
     double e_eva = this->C_v_inf * cpar.T_inf * 1.0e-7;
     double e_con = C_v * T * 1.0e-7;
     double evap_energy = n_eva_dot * e_eva - n_con_dot * e_con;    // [W/m^2]
