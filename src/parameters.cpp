@@ -25,6 +25,35 @@ const Parameters Parameters::chemkin_otomo2018_params              = Parameters(
 }
 
 
+void compute_interval_values_and_derivatives(
+    const double T_interval, // T_low or T_high
+    const double* a,         // NASA coefficients: {a1, a2, a3, a4, a5, a6, a7}
+    double* values,          // values: {C_p_interval, H_interval, S_interval}
+    double* derivatives      // derivatives: {dC_p_interval/dT, dH_interval/dT, dS_interval/dT}
+)
+{
+    // Cp/R = a1 + a2*T + a3*T^2 + a4*T^3 + a5*T^4
+    // H/RT = a1 + a2*T /2 + a3*T^2 /3 + a4*T^3 /4 + a5*T^4 /5 + a6/T
+    // S/R  = a1*lnT + a2*T + a3*T^2 /2 + a4*T^3 /3 + a5*T^4 /4 + a7
+    // dCp/dT = R * (a2 + 2*a3*T + 3*a4*T^2 + 4*a5*T^3)
+    // dH/dT = R * (a1 + a2*T + a3*T^2 + a4*T^3 + a5*T^4)
+    // dS/dT = R * (a1/T + a2 + a3*T + a4*T^2 + a5*T^3)
+
+    const double T1 = T_interval;
+    const double T2 = T1 * T1;
+    const double T3 = T2 * T1;
+    const double T4 = T2 * T2;
+    const double T5 = T3 * T2;
+
+    values[0] = Parameters::R_erg * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4);   // C_p
+    values[1] = Parameters::R_erg * (a[0]*T1 + a[1]*T2/2.0 + a[2]*T3/3.0 + a[3]*T4/4.0 + a[4]*T5/5.0 + a[5]);   // H
+    values[2] = Parameters::R_erg * (a[0]*std::log(T1) + a[1]*T1 + a[2]*T2/2.0 + a[3]*T3/3.0 + a[4]*T4/4.0 + a[6]);   // S
+
+    derivatives[0] = Parameters::R_erg * (a[1] + 2.0*a[2]*T1 + 3.0*a[3]*T2 + 4.0*a[4]*T3);   // dC_p/dT
+    derivatives[1] = Parameters::R_erg * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4);   // dH/dT
+    derivatives[2] = Parameters::R_erg * (a[0]/T1 + a[1] + a[2]*T1 + a[3]*T2 + a[4]*T3);   // dS/dT
+}   
+
 template <typename T>
 Parameters::Parameters(T dummy):
     _elements(),
@@ -55,6 +84,19 @@ Parameters::Parameters(T dummy):
     COPY_ARRAY(double, temp_range, T::num_species*3);
     COPY_ARRAY(double, a_low, T::num_species*(T::NASA_order+2));
     COPY_ARRAY(double, a_high, T::num_species*(T::NASA_order+2));
+    double* interval_values_temp = new double[T::num_species*3];
+    double* interval_derivatives_temp = new double[T::num_species*3];
+    this->interval_values = (const double*)interval_values_temp;
+    this->interval_derivatives = (const double*)interval_derivatives_temp;
+    for(index_t i = 0; i < T::num_species; i++)
+    {
+        compute_interval_values_and_derivatives(
+            T::temp_range[i][1],    // T_high
+            &(T::a_high[i][0]),
+            &(interval_values_temp[i*3]),
+            &(interval_derivatives_temp[i*3])
+        );
+    }
     COPY_ARRAY(double, A, T::num_reactions);
     COPY_ARRAY(double, b, T::num_reactions);
     COPY_ARRAY(double, E, T::num_reactions);
@@ -135,6 +177,8 @@ Parameters::~Parameters()
     if (temp_range != nullptr) delete[] temp_range;
     if (a_low != nullptr) delete[] a_low;
     if (a_high != nullptr) delete[] a_high;
+    if (interval_values != nullptr) delete[] interval_values;
+    if (interval_derivatives != nullptr) delete[] interval_derivatives;
     if (A != nullptr) delete[] A;
     if (b != nullptr) delete[] b;
     if (E != nullptr) delete[] E;
