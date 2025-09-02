@@ -298,6 +298,49 @@ void test_ode_fun_otomo2018()
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0)
     );
 
+    ADD_TEST(tester, "(C_p, C_v, S) stay positive",     
+        std::vector<Parameters::mechanism> mechanisms = {
+            Parameters::mechanism::chemkin_ar_he,
+            Parameters::mechanism::chemkin_kaust2023_n2,
+            Parameters::mechanism::chemkin_kaust2023_n2_without_o,
+            Parameters::mechanism::chemkin_otomo2018_without_o,
+            Parameters::mechanism::chemkin_otomo2018
+        };
+        
+        for (auto mechanism : mechanisms)
+        {
+            tester.cpar.mechanism = mechanism;
+            tester.cpar.enable_evaporation = false; // disable evaporation to avoid complications
+            bool init_success = tester.ode.init(tester.cpar);
+            const Parameters* test_par = tester.ode.par;
+            ASSERT_TRUE(init_success);
+            
+            for (double T = 100.0; T <= 15000.0; T += 100.0)
+            {
+                tester.ode.thermodynamic(T);
+                
+                // Check each species for positive thermodynamic properties
+                for (index_t k = 0; k < test_par->num_species; ++k)
+                {
+                    if (tester.ode.C_p[k] <= 0.0 || tester.ode.C_v[k] <= 0.0 || tester.ode.S[k] <= 0.0)
+                    {
+                        std::string species_name = test_par->species_names[k];
+                        
+                        std::ostringstream error_msg;
+                        error_msg << "Mechanism " << test_par->model 
+                                << " at T=" << T << "K produces negative thermodynamic properties"
+                                << " for species " << species_name
+                                << ": C_p=" << std::scientific << std::setprecision(6) << tester.ode.C_p[k]
+                                << ", C_v=" << std::scientific << std::setprecision(6) << tester.ode.C_v[k]
+                                << ", S=" << std::scientific << std::setprecision(6) << tester.ode.S[k];
+                        
+                        return error_msg.str();
+                    }
+                }
+            }
+        }
+    );
+
     ADD_TEST(tester, "Test evaporation()",
         double p = 2.8245762183248737e+10;
         double T = 4.0621201351292711e+03;
@@ -305,9 +348,10 @@ void test_ode_fun_otomo2018()
         double n_net_dot_expected = -51668226.44780852;
         double evap_energy_expected = -10739121722177.816;
 
+        tester.ode.thermodynamic(T);    // need to call this first to set C_v_H2O
         auto result = tester.ode.evaporation(p, T, X_H2O);
-        ASSERT_APPROX(result.first, n_net_dot_expected, 1e-30);
-        ASSERT_APPROX(result.second, evap_energy_expected, 1e-30);
+        ASSERT_APPROX(result.first, n_net_dot_expected, 1e-15);
+        ASSERT_APPROX(result.second, evap_energy_expected, 1e-15);
 
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );

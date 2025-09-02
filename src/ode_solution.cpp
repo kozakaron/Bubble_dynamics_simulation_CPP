@@ -205,7 +205,7 @@ const std::string SimulationData::csv_header = std::string("dissipated_energy,ex
 
 const Error SimulationData::no_error = Error(Error::severity::info, Error::type::general, "No error", "", __FILE__, __LINE__, 0);
 
-const double SimulationData::infinite_energy_demand = std::numeric_limits<double>::infinity();
+const double SimulationData::infinite_energy_demand = std::numeric_limits<double>::max();
 
 SimulationData::SimulationData(const ControlParameters &cpar):
     R_max(0.0),
