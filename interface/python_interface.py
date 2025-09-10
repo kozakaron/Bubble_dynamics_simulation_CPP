@@ -36,7 +36,6 @@ api.plot(data)
 
 import numpy as np
 import pandas as pd
-from scipy.signal import argrelmin
 import matplotlib.pyplot as plt
 import json
 import os
@@ -405,13 +404,8 @@ def plot(data, n=5.0, base_name='', format='png',
     sol = data['sol']
     x = sol['x']
     t = sol['t']
-    loc_min = argrelmin(x[:, 0])
-    if not len(loc_min) == 0 and not len(loc_min[0]) == 0:
-        collapse_time = t[loc_min[0][0]] # collapse time (first loc min of R) [s]
-    else:
-        collapse_time = t[-1]
 
-    t_last = n * collapse_time
+    t_last = n * data['t_peak']
     if t_last < 1e-7 or t[-1] < t_last or n < 0 or not sol['success']:
         end_index = -1
     else:

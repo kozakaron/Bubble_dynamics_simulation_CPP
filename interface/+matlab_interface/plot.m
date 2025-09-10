@@ -23,12 +23,7 @@ function plot(data, n, show_cpar)
     end
 
     % Determine time interval for plotting
-    t_last = n * collapse_time;
-    if t_last < 1e-7 || t(end) < t_last || n < 0 || ~sol.success
-        end_index = length(t);
-    else
-        end_index = find(t >= t_last, 1);
-    end
+    t_last = n * data.t_peak
 
     % Adjust time scale
     if t(end_index) < 1e-3
