@@ -18,15 +18,9 @@ file_list1 = [
 ]
 
 file_list2 = [
-    ##('chem_ARAMCO_full.inp',                                            'chemkin_aramco_full'),
     ('chem_ELTE2016_ethanol.inp',                                       'chemkin_elte2016_ethanol'),
     ('chem_ELTE2016_syngas.inp',                                        'chemkin_elte2016_syngas'),
     ('chem_ELTE2017_methanol.inp',                                      'chemkin_elte2017_methanol'),
-    ##('chem_GRI30_full.inp',                                             'chemkin_gri30_full'),
-    ('chem_GRI30_syngas.inp',                                           'chemkin_gri30_syngas'),
-    ('chem_NUIG2012_syngas.inp',                                        'chemkin_nuig2012_syngas'),
-    ##('chem_NUIG2010_syngas.inp',                                        'chemkin_nuig2010_syngas'), # REV!
-    ##('chem_NUIG2020_full.inp',                                          'chemkin_nuig2020_full'),
 ]
 
 for file, name in file_list1:

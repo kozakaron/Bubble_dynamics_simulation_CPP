@@ -24,8 +24,8 @@ public:
     // Initial conditions:
     double R_E;                         // bubble equilibrium radius [m]
     double ratio;                       // R_0/R_E for unforced oscillations [-]
-    index_t species[max_species];       // indexes of species in initial bubble (pointer to array of species index enum)
-    double fractions[max_species];      // molar fractions of species in initial bubble (pointer to array of doubles)
+    index_t species[max_species];       // indexes of species in initial bubble (array of species index enum)
+    double fractions[max_species];      // molar fractions of species in initial bubble (array of doubles)
     index_t num_initial_species;        // number of species in initial bubble
     // Ambient parameters:
     double P_amb;                       // ambient pressure [Pa]
