@@ -521,8 +521,12 @@ void OdeFun::forward_rate(
         index_t upper = lower + 1;
 
         // reaction rates at the lower and upper pressures
-        const double k_lower = par->plog[lower*4+1] * std::pow(T, par->plog[lower*4+2]) * std::exp(-par->plog[lower*4+3] / (par->R_cal * T));
-        const double k_upper = par->plog[upper*4+1] * std::pow(T, par->plog[upper*4+2]) * std::exp(-par->plog[upper*4+3] / (par->R_cal * T));
+        double k_lower = par->plog[lower*4+1] * std::pow(T, par->plog[lower*4+2]) * std::exp(-par->plog[lower*4+3] / (par->R_cal * T));
+        double k_upper = par->plog[upper*4+1] * std::pow(T, par->plog[upper*4+2]) * std::exp(-par->plog[upper*4+3] / (par->R_cal * T));
+        // TODO: experiment with lower limit
+        //constexpr double lower_limit = 1e-200;
+        //k_lower = k_lower < lower_limit ? lower_limit : k_lower;
+        //k_upper = k_upper < lower_limit ? lower_limit : k_upper;
 
         // interpolation
         if (p < par->plog[par->plog_seperators[j]*4+0])    // p < smallest pressure level

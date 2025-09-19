@@ -534,6 +534,14 @@ void ParameterCombinator::init(const ordered_json& j)
                 }
             }
         }
+        else
+        {
+            LOG_ERROR(
+                Error::severity::warning,
+                Error::type::preprocess,
+                std::string("Warning, key excitation_params is missing. Excitation params are: ") + Parameters::excitation_arg_names.at(builder.excitation_type)
+            );
+        }
     }
     catch(const std::exception& e)
     {

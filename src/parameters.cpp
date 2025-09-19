@@ -13,8 +13,6 @@
 #include "chemkin_elte2016_ethanol.h"
 #include "chemkin_elte2016_syngas.h"
 #include "chemkin_elte2017_methanol.h"
-#include "chemkin_gri30_syngas.h"
-#include "chemkin_nuig2012_syngas.h"
 
 const Parameters Parameters::chemkin_ar_he_params                  = Parameters(chemkin_ar_he_struct());
 const Parameters Parameters::chemkin_kaust2023_n2_params           = Parameters(chemkin_kaust2023_n2_struct());
@@ -24,8 +22,6 @@ const Parameters Parameters::chemkin_otomo2018_params              = Parameters(
 const Parameters Parameters::chemkin_elte2016_ethanol_params       = Parameters(chemkin_elte2016_ethanol_struct());
 const Parameters Parameters::chemkin_elte2016_syngas_params        = Parameters(chemkin_elte2016_syngas_struct());
 const Parameters Parameters::chemkin_elte2017_methanol_params      = Parameters(chemkin_elte2017_methanol_struct());
-const Parameters Parameters::chemkin_gri30_syngas_params           = Parameters(chemkin_gri30_syngas_struct());
-const Parameters Parameters::chemkin_nuig2012_syngas_params        = Parameters(chemkin_nuig2012_syngas_struct());
 
 
 #define COPY_ARRAY(type, name, size) { \
@@ -234,11 +230,6 @@ const Parameters *Parameters::get_parameters(const Parameters::mechanism mech)
             return &Parameters::chemkin_elte2016_syngas_params;
         case mechanism::chemkin_elte2017_methanol:
             return &Parameters::chemkin_elte2017_methanol_params;
-        case mechanism::chemkin_gri30_syngas:
-            return &Parameters::chemkin_gri30_syngas_params;
-        case mechanism::chemkin_nuig2012_syngas:
-            return &Parameters::chemkin_nuig2012_syngas_params;
-
         default:
             LOG_ERROR("Unknown mechanisms: " + std::to_string(mech));
             return nullptr;

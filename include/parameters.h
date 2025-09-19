@@ -20,8 +20,6 @@ private:
     static const Parameters chemkin_elte2016_ethanol_params;
     static const Parameters chemkin_elte2016_syngas_params;
     static const Parameters chemkin_elte2017_methanol_params;
-    static const Parameters chemkin_gri30_syngas_params;
-    static const Parameters chemkin_nuig2012_syngas_params;
 
     std::unordered_map<std::string, index_t> _elements;       // Names of elements (num_elements)
     std::unordered_map<std::string, index_t> _species;        // Names of species (num_species)
@@ -36,9 +34,7 @@ public:
         chemkin_otomo2018,
         chemkin_elte2016_ethanol,
         chemkin_elte2016_syngas,
-        chemkin_elte2017_methanol,
-        chemkin_gri30_syngas,
-        chemkin_nuig2012_syngas,
+        chemkin_elte2017_methanol
     };
     enum reac_type: index_t {lindemann_reac, troe_reac, sri_reac};
     enum excitation: index_t {no_excitation=0, two_sinusoids=1, sin_impulse=2, sin_impulse_logf=3};
@@ -74,9 +70,7 @@ public:
         "chemkin_otomo2018",
         "chemkin_elte2016_ethanol",
         "chemkin_elte2016_syngas",
-        "chemkin_elte2017_methanol",
-        "chemkin_gri30_syngas",
-        "chemkin_nuig2012_syngas",
+        "chemkin_elte2017_methanol"
     };
 
 // PHYSICAL CONSTANTS
