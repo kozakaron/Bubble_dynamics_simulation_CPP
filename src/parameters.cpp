@@ -10,12 +10,18 @@
 #include "chemkin_kaust2023_n2_without_o.h"
 #include "chemkin_otomo2018_without_o.h"
 #include "chemkin_otomo2018.h"
+#include "chemkin_elte2016_ethanol.h"
+#include "chemkin_elte2016_syngas.h"
+#include "chemkin_elte2017_methanol.h"
 
 const Parameters Parameters::chemkin_ar_he_params                  = Parameters(chemkin_ar_he_struct());
 const Parameters Parameters::chemkin_kaust2023_n2_params           = Parameters(chemkin_kaust2023_n2_struct());
 const Parameters Parameters::chemkin_kaust2023_n2_without_o_params = Parameters(chemkin_kaust2023_n2_without_o_struct());
 const Parameters Parameters::chemkin_otomo2018_without_o_params    = Parameters(chemkin_otomo2018_without_o_struct());
 const Parameters Parameters::chemkin_otomo2018_params              = Parameters(chemkin_otomo2018_struct());
+const Parameters Parameters::chemkin_elte2016_ethanol_params       = Parameters(chemkin_elte2016_ethanol_struct());
+const Parameters Parameters::chemkin_elte2016_syngas_params        = Parameters(chemkin_elte2016_syngas_struct());
+const Parameters Parameters::chemkin_elte2017_methanol_params      = Parameters(chemkin_elte2017_methanol_struct());
 
 
 #define COPY_ARRAY(type, name, size) { \
@@ -218,6 +224,12 @@ const Parameters *Parameters::get_parameters(const Parameters::mechanism mech)
             return &Parameters::chemkin_otomo2018_without_o_params;
         case mechanism::chemkin_otomo2018:
             return &Parameters::chemkin_otomo2018_params;
+        case mechanism::chemkin_elte2016_ethanol:
+            return &Parameters::chemkin_elte2016_ethanol_params;
+        case mechanism::chemkin_elte2016_syngas:
+            return &Parameters::chemkin_elte2016_syngas_params;
+        case mechanism::chemkin_elte2017_methanol:
+            return &Parameters::chemkin_elte2017_methanol_params;
         default:
             LOG_ERROR("Unknown mechanisms: " + std::to_string(mech));
             return nullptr;

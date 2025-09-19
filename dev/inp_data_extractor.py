@@ -289,7 +289,7 @@ def _get_thermo(lines, species):
     materials = []
 
     i = _find('THER', lines)
-    if 'THERMO ALL' in lines[i]:
+    if 'THER' in lines[i]:
         i += 2
 
     while not 'END' in lines[i]:
@@ -443,6 +443,8 @@ def _get_reactions(lines, species):
             else:
                 keyword = keywords[[keyword in lines[i] for keyword in keywords].index(True)]
                 print(colored(f'Warning, keyword \'{keyword}\' is not supported in line {i} (\'{line}\')', 'yellow'))
+                i += 1
+                line = lines[i]
             if not any([keyword in line for keyword in keywords+['END']]):
                 i += 1
                 line = lines[i]
@@ -650,7 +652,7 @@ def extract(path, name=''):
   # Open file
     print(f'path={path}')
     try:
-        file = open(path, 'r')
+        file = open(path, 'r', encoding='utf-8', errors='replace')
         text = file.read()
         model = os.path.basename(path)[:-4]
     except:
