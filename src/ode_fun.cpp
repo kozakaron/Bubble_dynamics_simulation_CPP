@@ -635,6 +635,26 @@ void OdeFun::backward_rate(
 }
 
 
+// Most stoichiometric coefficients are 0, 1, or 2
+inline double pow_stoich(double c, stoich_t nu)
+{
+    switch (nu)
+    {
+    case 0:
+        return 1.0;
+        break;
+    case 1:
+        return c;
+        break;
+    case 2:
+        return c * c;
+        break;
+    default:
+        return std::pow(c, nu);
+    }
+}
+
+
 void OdeFun::production_rate(
     const double T,
     const double M,
@@ -665,12 +685,14 @@ void OdeFun::production_rate(
         for (index_t k = index * par->num_max_specie_per_reaction; k < (index + 1) * par->num_max_specie_per_reaction; ++k)
         {
             index_t nu_index = par->nu_indexes[k];
-            if (nu_index == par->invalid_index) continue;
+            if (nu_index == par->invalid_index) break;
 
-            forward  *= std::pow(conc[nu_index], par->nu_forward[k]);
-            backward *= std::pow(conc[nu_index], par->nu_backward[k]);
+            forward  *= pow_stoich(conc[nu_index], par->nu_forward[k]);
+            backward *= pow_stoich(conc[nu_index], par->nu_backward[k]);
         }
-        this->net_rates[index] = std::exp(this->ln_k_forward[index]) * forward - std::exp(this->ln_k_backward[index]) * backward;
+        const double k_forward = std::exp(this->ln_k_forward[index]);
+        const double k_backward = std::exp(this->ln_k_backward[index]);
+        this->net_rates[index] = k_forward * forward - k_backward * backward;
     }
 // Third body reaction rates
     for (index_t j = 0; j < par->num_third_bodies; ++j)
@@ -692,7 +714,7 @@ void OdeFun::production_rate(
         for (index_t k = index * par->num_max_specie_per_reaction; k < (index + 1) * par->num_max_specie_per_reaction; ++k)
         {
             index_t nu_index = par->nu_indexes[k];
-            if (nu_index == par->invalid_index) continue;
+            if (nu_index == par->invalid_index) break;
 
             this->omega_dot[nu_index] += par->nu[k] * this->net_rates[index];
         }
