@@ -113,12 +113,7 @@ Parameters::Parameters(T dummy):
     COPY_ARRAY(double, E_over_R, T::num_reactions);
 
     // Reaction order and stoichiometric coefficients
-    double* temp_N_A_pow_reaction_order = new double[T::num_reactions];
-    for(index_t i = 0; i < T::num_reactions; i++)
-    {
-        temp_N_A_pow_reaction_order[i] = std::pow(Parameters::N_A, T::reaction_order[i]);
-    }
-    this->N_A_pow_reaction_order = (const double*)temp_N_A_pow_reaction_order;
+    COPY_ARRAY(index_t, reaction_order, T::num_reactions);
     COPY_ARRAY(index_t, nu_indexes, T::num_reactions*T::num_max_specie_per_reaction);
     for(index_t i = 0; i < T::num_elements; i++)
     {
@@ -201,7 +196,7 @@ Parameters::~Parameters()
     if (nu_indexes != nullptr) delete[] nu_indexes;
     if (nu_forward != nullptr) delete[] nu_forward;
     if (nu_backward != nullptr) delete[] nu_backward;
-    if (N_A_pow_reaction_order != nullptr) delete[] N_A_pow_reaction_order;
+    if (reaction_order != nullptr) delete[] reaction_order;
     if (nu != nullptr) delete[] nu;
     if (sum_nu != nullptr) delete[] sum_nu;
     if (third_body_indexes != nullptr) delete[] third_body_indexes;
