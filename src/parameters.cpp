@@ -110,7 +110,7 @@ Parameters::Parameters(T dummy):
     // Arrhenius parameters
     COPY_ARRAY(double, b, T::num_reactions);
     // Compute logarithmic forms for efficient calculation
-    double* temp_logA = new double[T::num_reactions];
+    double* temp_ln_A = new double[T::num_reactions];
     double* temp_E_over_R = new double[T::num_reactions];
     for(index_t i = 0; i < T::num_reactions; i++)
     {
@@ -121,10 +121,10 @@ Parameters::Parameters(T dummy):
                 std::to_string(i) + " has A = " + std::to_string(T::A[i]) + " in mechanism " + std::string(T::model) + "."
             );
         }
-        temp_logA[i] = std::log(T::A[i]);
+        temp_ln_A[i] = std::log(T::A[i]);
         temp_E_over_R[i] = T::E[i] / Parameters::R_cal;
     }
-    this->logA = (const double*)temp_logA;
+    this->ln_A = (const double*)temp_ln_A;
     this->E_over_R = (const double*)temp_E_over_R;
 
     // Reaction order and stoichiometric coefficients
@@ -209,7 +209,7 @@ Parameters::~Parameters()
     if (interval_values != nullptr) delete[] interval_values;
     if (interval_derivatives != nullptr) delete[] interval_derivatives;
     if (b != nullptr) delete[] b;
-    if (logA != nullptr) delete[] logA;
+    if (ln_A != nullptr) delete[] ln_A;
     if (E_over_R != nullptr) delete[] E_over_R;
     if (nu_indexes != nullptr) delete[] nu_indexes;
     if (nu_forward != nullptr) delete[] nu_forward;
