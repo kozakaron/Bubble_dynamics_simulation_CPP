@@ -121,7 +121,7 @@ public:
 // Reactions constants
     const index_t num_reactions;                    // Number of reactions
     const double *b;                                // Temperature exponents [-] (num_reactions)
-    const double *logA;                             // Logarithm of pre-exponential factors [ln(cm^3/mol/s) v ln(1/s)] (num_reactions)
+    const double *ln_A;                             // Logarithm of pre-exponential factors [ln(cm^3/mol/s) v ln(1/s)] (num_reactions)
     const double *E_over_R;                         // Activation energies / universal gas constant [K] (num_reactions)
     const double *N_A_pow_reaction_order;           // N_A^reaction_order (num_reactions)
 // Reaction matrixes
