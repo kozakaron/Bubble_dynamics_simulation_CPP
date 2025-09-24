@@ -435,6 +435,20 @@ std::pair<double, double> OdeFun::evaporation(
 }
 
 
+double calculate_log_arrhenius_rate(
+    const double logA,       // logarithm of pre-exponential factor
+    const double b,          // temperature exponent
+    const double E_over_R,   // activation energy / universal gas constant
+    const double T,          // temperature
+    const double logT        // logarithm of temperature
+)
+{
+    // Arrhenius equation: k_forward = A * T^b * exp(-E/(R*T))
+    // ln(k_forward) = ln(A) + b * ln(T) - E/(R*T)
+    return logA + b * logT - E_over_R / T;
+}
+
+
 void OdeFun::forward_rate(
     const double T,
     const double M,
@@ -443,10 +457,17 @@ void OdeFun::forward_rate(
 ) //noexcept
 {
 // Arrhenius reactions
+    const double logT = std::log(T);
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
-        const double exponent = -par->E[index] / (par->R_cal * T);
-        this->k_forward[index] = par->A[index] * std::pow(T, par->b[index]) * std::exp(exponent);
+        const double log_k_forward = calculate_log_arrhenius_rate(
+            par->logA[index],
+            par->b[index],
+            par->E_over_R[index],
+            T,
+            logT
+        );
+        this->k_forward[index] = std::exp(log_k_forward);
     }
 
 // Pressure dependent reactions

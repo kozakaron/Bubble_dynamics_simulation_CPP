@@ -84,9 +84,12 @@ Parameters::Parameters(T dummy):
     num_plog_levels(T::num_plog_levels)
 {
     (void)dummy;
-        
+    
+    // Physical constants
     COPY_ARRAY(double, W, T::num_species);
     COPY_ARRAY(double, lambdas, T::num_species);
+
+    // NASA polynomials
     COPY_ARRAY(double, temp_range, T::num_species*3);
     COPY_ARRAY(double, a_low, T::num_species*(T::NASA_order+2));
     COPY_ARRAY(double, a_high, T::num_species*(T::NASA_order+2));
@@ -103,10 +106,28 @@ Parameters::Parameters(T dummy):
             &(interval_derivatives_temp[i*3])
         );
     }
-    COPY_ARRAY(double, A, T::num_reactions);
+
+    // Arrhenius parameters
     COPY_ARRAY(double, b, T::num_reactions);
-    COPY_ARRAY(double, E, T::num_reactions);
-    COPY_ARRAY(index_t, reaction_order, T::num_reactions);
+    // Compute logarithmic forms for efficient calculation
+    double* temp_logA = new double[T::num_reactions];
+    double* temp_E_over_R = new double[T::num_reactions];
+    for(index_t i = 0; i < T::num_reactions; i++)
+    {
+        if (T::A[i] <= 0.0)
+        {
+            LOG_ERROR(Error::severity::error, Error::type::preprocess, 
+                "Pre-exponential factor A must be positive in all reactions, but reaction " + \
+                std::to_string(i) + " has A = " + std::to_string(T::A[i]) + " in mechanism " + std::string(T::model) + "."
+            );
+        }
+        temp_logA[i] = std::log(T::A[i]);
+        temp_E_over_R[i] = T::E[i] / Parameters::R_cal;
+    }
+    this->logA = (const double*)temp_logA;
+    this->E_over_R = (const double*)temp_E_over_R;
+
+    // Reaction order and stoichiometric coefficients
     double* temp_N_A_pow_reaction_order = new double[T::num_reactions];
     for(index_t i = 0; i < T::num_reactions; i++)
     {
@@ -155,6 +176,8 @@ Parameters::Parameters(T dummy):
     this->nu_backward = (const stoich_t*)temp_nu_backward;
     this->nu = (const stoich_t*)temp_nu;
     this->sum_nu = (const stoich_t*)temp_sum_nu;
+
+    // Third body and pressure-dependent reactions
     COPY_ARRAY(index_t, third_body_indexes, T::num_third_bodies);
     COPY_ARRAY(bool, is_pressure_dependent, T::num_third_bodies);
     COPY_ARRAY(double, alfa, T::num_third_bodies*T::num_species);
@@ -185,13 +208,12 @@ Parameters::~Parameters()
     if (a_high != nullptr) delete[] a_high;
     if (interval_values != nullptr) delete[] interval_values;
     if (interval_derivatives != nullptr) delete[] interval_derivatives;
-    if (A != nullptr) delete[] A;
     if (b != nullptr) delete[] b;
-    if (E != nullptr) delete[] E;
+    if (logA != nullptr) delete[] logA;
+    if (E_over_R != nullptr) delete[] E_over_R;
     if (nu_indexes != nullptr) delete[] nu_indexes;
     if (nu_forward != nullptr) delete[] nu_forward;
     if (nu_backward != nullptr) delete[] nu_backward;
-    if (reaction_order != nullptr) delete[] reaction_order;
     if (N_A_pow_reaction_order != nullptr) delete[] N_A_pow_reaction_order;
     if (nu != nullptr) delete[] nu;
     if (sum_nu != nullptr) delete[] sum_nu;
