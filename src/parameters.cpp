@@ -109,23 +109,8 @@ Parameters::Parameters(T dummy):
 
     // Arrhenius parameters
     COPY_ARRAY(double, b, T::num_reactions);
-    // Compute logarithmic forms for efficient calculation
-    double* temp_ln_A = new double[T::num_reactions];
-    double* temp_E_over_R = new double[T::num_reactions];
-    for(index_t i = 0; i < T::num_reactions; i++)
-    {
-        if (T::A[i] <= 0.0)
-        {
-            LOG_ERROR(Error::severity::error, Error::type::preprocess, 
-                "Pre-exponential factor A must be positive in all reactions, but reaction " + \
-                std::to_string(i) + " has A = " + std::to_string(T::A[i]) + " in mechanism " + std::string(T::model) + "."
-            );
-        }
-        temp_ln_A[i] = std::log(T::A[i]);
-        temp_E_over_R[i] = T::E[i] / Parameters::R_cal;
-    }
-    this->ln_A = (const double*)temp_ln_A;
-    this->E_over_R = (const double*)temp_E_over_R;
+    COPY_ARRAY(double, ln_A, T::num_reactions);
+    COPY_ARRAY(double, E_over_R, T::num_reactions);
 
     // Reaction order and stoichiometric coefficients
     double* temp_N_A_pow_reaction_order = new double[T::num_reactions];
@@ -177,7 +162,7 @@ Parameters::Parameters(T dummy):
     this->nu = (const stoich_t*)temp_nu;
     this->sum_nu = (const stoich_t*)temp_sum_nu;
 
-    // Third body and pressure-dependent reactions
+    // Third body and fallof  pressure-dependent reactions
     COPY_ARRAY(index_t, third_body_indexes, T::num_third_bodies);
     COPY_ARRAY(bool, is_pressure_dependent, T::num_third_bodies);
     COPY_ARRAY(double, alfa, T::num_third_bodies*T::num_species);
@@ -188,6 +173,8 @@ Parameters::Parameters(T dummy):
     COPY_ARRAY(double, reac_const, T::num_pressure_dependent*3);
     COPY_ARRAY(double, troe, T::num_troe*4);
     COPY_ARRAY(double, sri, T::num_sri*5);
+
+    // PLOG reactions
     COPY_ARRAY(index_t, plog_indexes, T::num_plog);
     if (T::num_plog > 0)
     {

@@ -147,15 +147,15 @@ public:
     const index_t *pressure_dependent_indexes;      // Indexes of pressure dependent reactions (num_pressure_dependent)
     const reac_type *pressure_dependent_reac_types; // Types of pressure dependent reactions (num_pressure_dependent)
     const index_t *is_third_body_indexes;           // Indexes of third body species for pressure dependent reactions (num_pressure_dependent)
-    const double *reac_const;                       // Fall-off parameters (num_pressure_dependent, 3)
-    const double *troe;                             // Troe parameters (num_troe, 4)
-    const double *sri;                              // SRI parameters (num_sri, 5)
+    const double *reac_const;                       // Fall-off parameters (num_pressure_dependent, 3): {ln_A0, b_0, E0_over_R}
+    const double *troe;                             // Troe parameters (num_troe, 4): {alfa, T***, T**, T*}
+    const double *sri;                              // SRI parameters (num_sri, 5): {a, b, c, d, e}
 // PLOG reactions
     const index_t num_plog;                         // Number of PLOG reactions
     const index_t num_plog_levels;                  // Number of PLOG levels
     const index_t *plog_indexes;                    // Indexes of PLOG reactions (num_plog)
     const index_t *plog_seperators;                 // Seperators of PLOG reactions (num_plog+1)
-    const double *plog;                             // PLOG parameters (num_plog_levels, 4)
+    const double *plog;                             // PLOG parameters (num_plog_levels, 4): {P_j, ln_Aj, b_j, Ej_over_R}
 
 // CONSTRUCTORS
     template <typename Parameters_struct>
