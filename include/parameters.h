@@ -62,7 +62,7 @@ public:
         "Pa Hz -",                                     // sin_impulse
         "Pa - -"                                       // sin_impulse_logf
     };
-    static constexpr std::array<const char*, 10> mechanism_names = {
+    static constexpr std::array<const char*, 8> mechanism_names = {
         "chemkin_ar_he",
         "chemkin_kaust2023_n2",
         "chemkin_kaust2023_n2_without_o",
@@ -86,6 +86,7 @@ public:
     static constexpr double R_erg         = 83144600.0;         // Universal gas constant [erg/mol/K]
     static constexpr double R_cal         = 1.987204;           // Universal gas constant [cal/mol/K]
     static constexpr double N_A           = 6.02214e+23;        // Avogadro's number [-]
+    static constexpr double log_N_A       = 54.754899816742695; // Natural logarithm of Avogadro's number
     static constexpr double h             = 6.62607015e-34;     // Planck constant [m^2*kg/s]
     static constexpr double R_v           = 461.521126;         // Specific gas constant of water [J/kg/K]
     static constexpr double erg2J         = 1e-07;              // Conversion factor from erg to J
@@ -119,10 +120,9 @@ public:
     const double *interval_derivatives;             // Derivatives at T_low and T_high (num_species, 3): {dC_p_high/dT, dH_high/dT, dS_high/dT}
 // Reactions constants
     const index_t num_reactions;                    // Number of reactions
-    const double *A;                                // Pre-exponential factors [cm^3/mol/s v 1/s] (num_reactions)
     const double *b;                                // Temperature exponents [-] (num_reactions)
-    const double *E;                                // Activation energies [cal/mol] (num_reactions)
-    const index_t *reaction_order;                  // Reaction orders (num_reactions)
+    const double *logA;                             // Logarithm of pre-exponential factors [ln(cm^3/mol/s) v ln(1/s)] (num_reactions)
+    const double *E_over_R;                         // Activation energies / universal gas constant [K] (num_reactions)
     const double *N_A_pow_reaction_order;           // N_A^reaction_order (num_reactions)
 // Reaction matrixes
     const index_t num_max_specie_per_reaction;      // Maximum number of species participating in a reaction
