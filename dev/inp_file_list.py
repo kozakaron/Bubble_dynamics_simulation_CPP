@@ -27,8 +27,10 @@ for file, name in file_list1:
     #base_folder = os.path.abspath(base_folder)
     file = os.path.join(base_folder1, file).replace('\\', '/')
     inp.extract(file, name=name)
+    print('-'*50)
 
 for file, name in file_list2:
     #base_folder = os.path.abspath(base_folder)
     file = os.path.join(base_folder2, file).replace('\\', '/')
     inp.extract(file, name=name)
+    print('-'*50)
