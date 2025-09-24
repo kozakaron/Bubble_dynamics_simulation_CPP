@@ -31,7 +31,7 @@ OdeFun::OdeFun():
     C_v(nullptr),
     M_eff(nullptr),
     ln_k_forward(nullptr),
-    k_backward(nullptr),
+    ln_k_backward(nullptr),
     net_rates(nullptr),
     omega_dot(nullptr)
 { }
@@ -45,15 +45,15 @@ OdeFun::~OdeFun()
 
 void OdeFun::delete_memory()
 {
-    if (this->C_p != nullptr)        delete[] this->C_p;
-    if (this->H != nullptr)          delete[] this->H;
-    if (this->S != nullptr)          delete[] this->S;
-    if (this->C_v != nullptr)        delete[] this->C_v;
-    if (this->M_eff != nullptr)      delete[] this->M_eff;
-    if (this->ln_k_forward != nullptr)  delete[] this->ln_k_forward;
-    if (this->k_backward != nullptr) delete[] this->k_backward;
-    if (this->net_rates != nullptr)  delete[] this->net_rates;
-    if (this->omega_dot != nullptr)  delete[] this->omega_dot;
+    if (this->C_p != nullptr)            delete[] this->C_p;
+    if (this->H != nullptr)              delete[] this->H;
+    if (this->S != nullptr)              delete[] this->S;
+    if (this->C_v != nullptr)            delete[] this->C_v;
+    if (this->M_eff != nullptr)          delete[] this->M_eff;
+    if (this->ln_k_forward != nullptr)   delete[] this->ln_k_forward;
+    if (this->ln_k_backward != nullptr)  delete[] this->ln_k_backward;
+    if (this->net_rates != nullptr)      delete[] this->net_rates;
+    if (this->omega_dot != nullptr)      delete[] this->omega_dot;
 
     this->C_p = nullptr;
     this->H = nullptr;
@@ -61,7 +61,7 @@ void OdeFun::delete_memory()
     this->C_v = nullptr;
     this->M_eff = nullptr;
     this->ln_k_forward = nullptr;
-    this->k_backward = nullptr;
+    this->ln_k_backward = nullptr;
     this->net_rates = nullptr;
     this->omega_dot = nullptr;
 }
@@ -160,15 +160,15 @@ is_success OdeFun::init(const ControlParameters& cpar)
     if (old_par != this->par || this->omega_dot == nullptr)
     {
         this->delete_memory();
-        this->C_p        = new double[par->num_species];
-        this->H          = new double[par->num_species];
-        this->S          = new double[par->num_species];
-        this->C_v        = new double[par->num_species];
-        this->M_eff      = new double[par->num_third_bodies];
+        this->C_p           = new double[par->num_species];
+        this->H             = new double[par->num_species];
+        this->S             = new double[par->num_species];
+        this->C_v           = new double[par->num_species];
+        this->M_eff         = new double[par->num_third_bodies];
         this->ln_k_forward  = new double[par->num_reactions];
-        this->k_backward = new double[par->num_reactions];
-        this->net_rates  = new double[par->num_reactions];
-        this->omega_dot  = new double[par->num_species];
+        this->ln_k_backward = new double[par->num_reactions];
+        this->net_rates     = new double[par->num_reactions];
+        this->omega_dot     = new double[par->num_species];
     }
     if(this->cpar.error_ID != ErrorHandler::no_error)
     {
@@ -496,22 +496,13 @@ void OdeFun::forward_rate(
                 const double exp_negT_over_Tx   = (T_x   >= large_num) ? 1.0 : std::exp(-T / T_x);
                 const double exp_negTxx_over_T  = (T_xx  >= large_num) ? 0.0 : std::exp(-T_xx / T);
                 const double F_cent = (1.0 - alfa) * exp_negT_over_Txxx + alfa * exp_negT_over_Tx + exp_negTxx_over_T;
-                const double log10_F_cent = F_cent < 1e-300 ? -300.0 : std::log10(F_cent);
+                const double log10_F_cent = std::log10(F_cent);
                 
-                double log10_F;
-                if (log10_Pr > -32.0)
-                {
-                    const double c = -0.4 - 0.67 * log10_F_cent;
-                    const double n = 0.75 - 1.27 * log10_F_cent;
-                    constexpr double d = 0.14;
-                    const double e = log10_Pr + c;
-                    log10_F = log10_F_cent / (1.0 + std::pow(e / (n - d * e), 2));
-                }
-                else    // log(P_r) -> -inf limit
-                {
-                    constexpr double inv_d = 1.0 / 0.14;
-                    log10_F = log10_F_cent / (1.0 + inv_d * inv_d);
-                }
+                const double c = -0.4 - 0.67 * log10_F_cent;
+                const double n = 0.75 - 1.27 * log10_F_cent;
+                constexpr double d = 0.14;
+                const double e = log10_Pr + c;
+                const double log10_F = log10_F_cent / (1.0 + std::pow(e / (n - d * e), 2));
                 
                 ln_F = log10_F * std::numbers::ln10;
                 ++troe_index;
@@ -537,10 +528,10 @@ void OdeFun::forward_rate(
         }
 
         // TODO: remove after testing
-        if (!std::isfinite(ln_F) || ln_F < -690.0 || ln_F > 690.0)  // exp(690) ~ 1e300
-            LOG_ERROR(Error::severity::warning, Error::type::odefun, "Non finite or extreme ln_F in pressure dependent reaction: " + std::to_string(ln_F), this->cpar.ID);
-        if (!std::isfinite(ln_Pr) || ln_Pr < -690.0 || ln_Pr > 690.0)  // exp(690) ~ 1e300
-            LOG_ERROR(Error::severity::warning, Error::type::odefun, "Non finite or extreme ln_P_r in pressure dependent reaction: " + std::to_string(ln_Pr), this->cpar.ID);
+        if (!std::isfinite(ln_F))
+            LOG_ERROR(Error::severity::warning, Error::type::odefun, "Non finite ln_F in pressure dependent reaction: " + std::to_string(ln_F), this->cpar.ID);
+        if (!std::isfinite(ln_Pr))
+            LOG_ERROR(Error::severity::warning, Error::type::odefun, "Non finite ln_P_r in pressure dependent reaction: " + std::to_string(ln_Pr), this->cpar.ID);
 
         this->ln_k_forward[index] = ln_k_inf + ln_Pr - std::log1p(std::exp(ln_Pr)) + ln_F;  // std::log(1.0 + P_r) = std::log1p(P_r)
     } // pressure dependent reactions end
@@ -595,20 +586,18 @@ void OdeFun::forward_rate(
         const double ln_k_forward = this->ln_k_forward[index];
         if (!std::isfinite(ln_k_forward) || ln_k_forward > ln_treshold)
             this->ln_k_forward[index] = ln_treshold;
-
-        // TODO: remove
-        this->ln_k_forward[index] = std::exp(this->ln_k_forward[index]);
     }
 }
 
 
 void OdeFun::backward_rate(
     const double T,
-    const double reaction_rate_threshold
+    const double ln_reaction_rate_threshold
 ) //noexcept 
 {
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
+        // Equilibrium constants (K_c)
         double Delta_S = 0.0, Delta_H = 0.0;
         for (index_t k = index * par->num_max_specie_per_reaction; k < (index + 1) * par->num_max_specie_per_reaction; ++k)
         {
@@ -620,25 +609,28 @@ void OdeFun::backward_rate(
             Delta_H += nu * this->H[nu_index];
         }
 
-        //const double treshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
-        const double treshold = reaction_rate_threshold * std::pow(par->N_A, par->reaction_order[index]);
-        const double K_p = std::exp(Delta_S / par->R_erg - Delta_H / (par->R_erg * T));
-        double K_c = K_p * std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), par->sum_nu[index]);
-        if (K_c == 0.0) K_c = std::copysign(1e-323, K_c == 0.0 ? 1.0 : K_c);
+        const double ln_treshold = ln_reaction_rate_threshold + par->ln_N_A * par->reaction_order[index];
+        const double ln_K_p = Delta_S / par->R_erg - Delta_H / (par->R_erg * T);
+        double ln_K_c = ln_K_p + par->sum_nu[index] * std::log(par->atm2Pa * 10.0 / (par->R_erg * T));
+
+        if (!std::isfinite(ln_K_c))
+            LOG_ERROR(Error::severity::warning, Error::type::odefun, "Non finite ln_K_c in backward reaction: " + std::to_string(ln_K_c), this->cpar.ID);
         
-        double k_backward = this->ln_k_forward[index] / K_c;
-        if (std::abs(k_backward) > treshold || !std::isfinite(k_backward))
+        // Backward rate thresholding
+        double ln_k_backward = this->ln_k_forward[index] - ln_K_c;
+        if (ln_k_backward > ln_treshold || !std::isfinite(ln_k_backward))
         {
-            k_backward = std::copysign(treshold, k_backward);
-            this->ln_k_forward[index] = k_backward * K_c;
+            ln_k_backward = ln_treshold;
+            this->ln_k_forward[index] = ln_k_backward + ln_K_c;
         }
-        this->k_backward[index] = k_backward;
+        this->ln_k_backward[index] = ln_k_backward;
     }
 
+    // Irreversible reactions
     for(index_t j = 0; j < par->num_irreversible; ++j)
     {
         index_t index = par->irreversible_indexes[j];
-        this->k_backward[index] = 0.0;
+        this->ln_k_backward[index] = -1e300;
     }
 }
 
@@ -664,7 +656,7 @@ void OdeFun::production_rate(
     const double reaction_rate_threshold = par->k_B * T / par->h;
     const double ln_reaction_rate_threshold = std::log(reaction_rate_threshold);
     this->forward_rate(T, M, p, ln_reaction_rate_threshold);
-    this->backward_rate(T, reaction_rate_threshold);
+    this->backward_rate(T, ln_reaction_rate_threshold);
 // Net rates
     for (index_t index = 0; index < par->num_reactions; ++index)
     {
@@ -678,7 +670,7 @@ void OdeFun::production_rate(
             forward  *= std::pow(conc[nu_index], par->nu_forward[k]);
             backward *= std::pow(conc[nu_index], par->nu_backward[k]);
         }
-        this->net_rates[index] = this->ln_k_forward[index] * forward - this->k_backward[index] * backward;
+        this->net_rates[index] = std::exp(this->ln_k_forward[index]) * forward - std::exp(this->ln_k_backward[index]) * backward;
     }
 // Third body reaction rates
     for (index_t j = 0; j < par->num_third_bodies; ++j)
