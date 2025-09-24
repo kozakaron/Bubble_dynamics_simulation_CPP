@@ -510,7 +510,12 @@ void OdeFun::forward_rate(
                 const double &T_x   = troe[2];  // T*
                 const double &T_xx  = troe[3];  // T**
 
-                const double F_cent = (1.0 - alfa) * std::exp(-T / T_xxx) + alfa * std::exp(-T / T_x) + std::exp(-T_xx / T);
+                constexpr double small_num = 1.0e-30;
+                constexpr double large_num = 1.0e30;
+                const double exp_negT_over_Txxx = (T_xxx <= small_num) ? 0.0 : std::exp(-T / T_xxx);
+                const double exp_negT_over_Tx   = (T_x   >= large_num) ? 1.0 : std::exp(-T / T_x);
+                const double exp_negTxx_over_T  = (T_xx  >= large_num) ? 0.0 : std::exp(-T_xx / T);
+                const double F_cent = (1.0 - alfa) * exp_negT_over_Txxx + alfa * exp_negT_over_Tx + exp_negTxx_over_T;
                 const double logF_cent = F_cent < 1e-300 ? -300.0 : std::log10(F_cent);
                 
                 double logF;
@@ -524,7 +529,7 @@ void OdeFun::forward_rate(
                 }
                 else    // log(P_r) -> -inf limit
                 {
-                    static constexpr inv_d = 1.0 / 0.14;
+                    constexpr double inv_d = 1.0 / 0.14;
                     logF = logF_cent / (1.0 + inv_d * inv_d);
                 }
                 
