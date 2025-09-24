@@ -63,7 +63,7 @@ private:
         const double T,
         const double M,
         const double p,
-        const double reaction_rate_threshold
+        const double ln_reaction_rate_threshold
     ) ; //noexcept
 
 

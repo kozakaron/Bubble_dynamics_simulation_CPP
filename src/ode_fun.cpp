@@ -439,7 +439,7 @@ void OdeFun::forward_rate(
     const double T,
     const double M,
     const double p,
-    const double reaction_rate_threshold
+    const double ln_reaction_rate_threshold
 ) //noexcept
 {
 // Arrhenius reactions
@@ -591,11 +591,13 @@ void OdeFun::forward_rate(
 // Forward rate thresholding
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
-        const double treshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
+        const double ln_treshold = ln_reaction_rate_threshold + par->ln_N_A * par->reaction_order[index];
         const double ln_k_forward = this->ln_k_forward[index];
-        const double k_forward = std::exp(ln_k_forward);
-        if (!std::isfinite(k_forward) || std::abs(k_forward) > treshold)
-            this->ln_k_forward[index] = std::log(std::copysign(treshold, k_forward));
+        if (!std::isfinite(ln_k_forward) || ln_k_forward > ln_treshold)
+            this->ln_k_forward[index] = ln_treshold;
+
+        // TODO: remove
+        this->ln_k_forward[index] = std::exp(this->ln_k_forward[index]);
     }
 }
 
@@ -618,7 +620,8 @@ void OdeFun::backward_rate(
             Delta_H += nu * this->H[nu_index];
         }
 
-        const double treshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
+        //const double treshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
+        const double treshold = reaction_rate_threshold * std::pow(par->N_A, par->reaction_order[index]);
         const double K_p = std::exp(Delta_S / par->R_erg - Delta_H / (par->R_erg * T));
         double K_c = K_p * std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), par->sum_nu[index]);
         if (K_c == 0.0) K_c = std::copysign(1e-323, K_c == 0.0 ? 1.0 : K_c);
@@ -658,8 +661,9 @@ void OdeFun::production_rate(
         this->M_eff[j] = M_eff_j;
     }
 // Forward and backward rates
-    double reaction_rate_threshold = par->k_B * T / par->h;
-    this->forward_rate(T, M, p, reaction_rate_threshold);
+    const double reaction_rate_threshold = par->k_B * T / par->h;
+    const double ln_reaction_rate_threshold = std::log(reaction_rate_threshold);
+    this->forward_rate(T, M, p, ln_reaction_rate_threshold);
     this->backward_rate(T, reaction_rate_threshold);
 // Net rates
     for (index_t index = 0; index < par->num_reactions; ++index)
