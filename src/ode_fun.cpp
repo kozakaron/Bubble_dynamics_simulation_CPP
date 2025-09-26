@@ -582,10 +582,10 @@ void OdeFun::forward_rate(
 // Forward rate thresholding
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
-        const double ln_treshold = ln_reaction_rate_threshold + par->ln_N_A * par->reaction_order[index];
+        const double ln_threshold = ln_reaction_rate_threshold + par->ln_N_A * par->reaction_order[index];
         const double ln_k_forward = this->ln_k_forward[index];
-        if (!std::isfinite(ln_k_forward) || ln_k_forward > ln_treshold)
-            this->ln_k_forward[index] = ln_treshold;
+        if (!std::isfinite(ln_k_forward) || ln_k_forward > ln_threshold)
+            this->ln_k_forward[index] = ln_threshold;
     }
 }
 
@@ -609,18 +609,19 @@ void OdeFun::backward_rate(
             Delta_H += nu * this->H[nu_index];
         }
 
-        const double ln_treshold = ln_reaction_rate_threshold + par->ln_N_A * par->reaction_order[index];
         const double ln_K_p = Delta_S / par->R_erg - Delta_H / (par->R_erg * T);
         double ln_K_c = ln_K_p + par->sum_nu[index] * std::log(par->atm2Pa * 10.0 / (par->R_erg * T));
+        double ln_k_backward = this->ln_k_forward[index] - ln_K_c;
 
         if (!std::isfinite(ln_K_c))
             LOG_ERROR(Error::severity::warning, Error::type::odefun, "Non finite ln_K_c in backward reaction: " + std::to_string(ln_K_c), this->cpar.ID);
         
         // Backward rate thresholding
-        double ln_k_backward = this->ln_k_forward[index] - ln_K_c;
-        if (ln_k_backward > ln_treshold || !std::isfinite(ln_k_backward))
+        
+        const double ln_threshold = ln_reaction_rate_threshold + par->ln_N_A * par->reaction_order[index] - ln_K_c;
+        if (ln_k_backward > ln_threshold || !std::isfinite(ln_k_backward))
         {
-            ln_k_backward = ln_treshold;
+            ln_k_backward = ln_threshold;
             this->ln_k_forward[index] = ln_k_backward + ln_K_c;
         }
         this->ln_k_backward[index] = ln_k_backward;
@@ -636,7 +637,7 @@ void OdeFun::backward_rate(
 
 
 // Most stoichiometric coefficients are 0, 1, or 2
-inline double pow_stoich(double c, stoich_t nu)
+inline double pow_stoich(const double conc, const stoich_t nu)
 {
     switch (nu)
     {
@@ -644,13 +645,13 @@ inline double pow_stoich(double c, stoich_t nu)
         return 1.0;
         break;
     case 1:
-        return c;
+        return conc;
         break;
     case 2:
-        return c * c;
+        return conc * conc;
         break;
     default:
-        return std::pow(c, nu);
+        return std::pow(conc, nu);
     }
 }
 
