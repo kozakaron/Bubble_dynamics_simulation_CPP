@@ -294,6 +294,7 @@ std::pair<double, double> OdeFun::pressures(
             const double& theta_phase = cpar.excitation_params[4];
             const double& n_cycles = cpar.excitation_params[5];
 
+            // TODO: fix discontinuities if freq1 and freq2 are not harmonics
             if (t < 0.0 || (t > n_cycles / freq1 && t > n_cycles / freq2))
             {
                 p_Inf = cpar.P_amb;
@@ -370,6 +371,7 @@ void OdeFun::thermodynamic(
         const double& T_low = par->temp_range[3*k];
         const double& T_high = par->temp_range[3*k+1];
         const double& T_mid = par->temp_range[3*k+2];
+        (void)T_low;
 
         if (T < T_high)
         {
@@ -396,7 +398,7 @@ void OdeFun::thermodynamic(
             // Enthalpies [erg/mol]
             this->H[k] = par->R_erg * (a[0]*T1 + a[1]*T2/2.0 + a[2]*T3/3.0 + a[3]*T4/4.0 + a[4]*T5/5.0 + a[5]);
             // Entropies [erg/mol/K]
-            this->S[k] = par->R_erg * (a[0] * std::log(T) + a[1]*T1 + a[2]*T2/2.0 + a[3]*T3/3.0 + a[4]*T4/4.0 + a[6]);
+            this->S[k] = par->R_erg * (a[0]*std::log(T) + a[1]*T1 + a[2]*T2/2.0 + a[3]*T3/3.0 + a[4]*T4/4.0 + a[6]);
             // Molar heat capacities at constant volume (isochoric) [erg/mol/K]
             this->C_v[k] = this->C_p[k] - par->R_erg;
         }
@@ -527,12 +529,6 @@ void OdeFun::forward_rate(
             break;
         }
 
-        // TODO: remove after testing
-        if (!std::isfinite(ln_F))
-            LOG_ERROR(Error::severity::warning, Error::type::odefun, "Non finite ln_F in pressure dependent reaction: " + std::to_string(ln_F), this->cpar.ID);
-        if (!std::isfinite(ln_Pr))
-            LOG_ERROR(Error::severity::warning, Error::type::odefun, "Non finite ln_P_r in pressure dependent reaction: " + std::to_string(ln_Pr), this->cpar.ID);
-
         this->ln_k_forward[index] = ln_k_inf + ln_Pr - std::log1p(std::exp(ln_Pr)) + ln_F;  // std::log(1.0 + P_r) = std::log1p(P_r)
     } // pressure dependent reactions end
 
@@ -602,7 +598,7 @@ void OdeFun::backward_rate(
         for (index_t k = index * par->num_max_specie_per_reaction; k < (index + 1) * par->num_max_specie_per_reaction; ++k)
         {
             index_t nu_index = par->nu_indexes[k];
-            if (nu_index == par->invalid_index) continue;
+            if (nu_index == par->invalid_index) break;
 
             stoich_t nu = par->nu[k];
             Delta_S += nu * this->S[nu_index];
@@ -617,7 +613,6 @@ void OdeFun::backward_rate(
             LOG_ERROR(Error::severity::warning, Error::type::odefun, "Non finite ln_K_c in backward reaction: " + std::to_string(ln_K_c), this->cpar.ID);
         
         // Backward rate thresholding
-        
         const double ln_threshold = ln_reaction_rate_threshold + par->ln_N_A * par->reaction_order[index] - ln_K_c;
         if (ln_k_backward > ln_threshold || !std::isfinite(ln_k_backward))
         {
