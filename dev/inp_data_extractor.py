@@ -711,13 +711,31 @@ def extract(path, name=''):
     text += f'static constexpr double a_low[num_species][NASA_order+2] = '+ print_array(a_low, 16, species, ['a_1', 'a_2', 'a_3', 'a_4', 'a_5', 'a_6', 'a_7']) + ';\n\n'
     text += f'static constexpr double a_high[num_species][NASA_order+2] = '+ print_array(a_high, 16, species, ['a_1', 'a_2', 'a_3', 'a_4', 'a_5', 'a_6', 'a_7']) + ';\n\n'
     
-    # Reaction constants
-    text += line_start + 'REACTION CONSTANTS' + line_end
-    text += f'static constexpr index_t num_reactions = {len(reactions)};\n'
-    text += f'static constexpr double A[num_reactions] = '+ print_array(A, 20, max_len=5) + ';\n\n'
-    text += f'static constexpr double b[num_reactions] = '+ print_array(B, 20, max_len=5) + ';\n\n'
-    text += f'static constexpr double E[num_reactions] = '+ print_array(E, 20, max_len=5) + ';\n\n'
-    text += f'static constexpr index_t reaction_order[num_reactions] = '+ print_array(reaction_order, 4, max_len=10) + ';\n\n'
+    # Reaction constants (transformed)
+    # NOTE:
+    #   We pre-transform Arrhenius parameters here to reduce runtime work in C++.
+    #   A  -> ln_A        (natural logarithm of the pre-exponential factor)
+    #   E  -> E_over_R    (activation energy divided by R_cal = 1.987204 [cal/mol/K])
+    #   Fall-off (reac_const)  {A_0, b_0, E_0} -> {ln_A0, b_0, E0_over_R}
+    #   PLOG entries {P, A, b, E} -> {P, ln_A, b, E_over_R}
+    #   Units of ln_A are the natural log of the original A units: ln(1/s) or ln(cm^3/mol/s), etc.
+    #   E_over_R has units of Kelvin.
+    R_CAL = 1.987204
+    # warning for negative A
+    for i in range(len(A)):
+        if A[i] <= 0.0:
+            print(colored(f'Error, pre-exponential factor (A={A[i]}) in reaction {i} (\'{reactions[i]}\') is negative or zero, ln(A) is undefined', 'red'))
+    ln_A = np.log(np.array(A, dtype=np.float64))
+    E_over_R = np.array(E, dtype=np.float64) / R_CAL
+    text += line_start + 'REACTION CONSTANTS (TRANSFORMED)' + line_end
+    text += f'static constexpr index_t num_reactions = {len(reactions)};\n\n'
+    text += f'/* Logarithm of pre-exponential factors [ln(cm^3/mol/s) v ln(1/s)] */\n'
+    text += f'static constexpr double ln_A[num_reactions] = ' + print_array(ln_A, 20, max_len=5) + ';\n\n'
+    text += f'/* Temperature exponents [-] */\n'
+    text += f'static constexpr double b[num_reactions] = ' + print_array(B, 20, max_len=5) + ';\n\n'
+    text += f'/* Activation energies / universal gas constant [K] */\n'
+    text += f'static constexpr double E_over_R[num_reactions] = ' + print_array(E_over_R, 20, max_len=5) + ';\n\n'
+    text += f'static constexpr index_t reaction_order[num_reactions] = ' + print_array(reaction_order, 4, max_len=10) + ';\n\n'
     
     # Reaction matrixes
     text += line_start + 'REACTION MATRIXES' + line_end
@@ -780,17 +798,31 @@ def extract(path, name=''):
         else:
             isThirdBodyIndexes.append(invalid_index)
     if len(PressureDependentIndexes) != 0:
+        # Transform fall-off reaction constants: {A_0, b_0, E_0} -> {ln_A0, b_0, E0_over_R}
+        ReacConst_arr = np.array(ReacConst, dtype=np.float64)
+        if ReacConst_arr.size != 0:
+            ReacConst_transformed = ReacConst_arr.copy()
+            # Check for negative A_0
+            for i in range(len(ReacConst_transformed)):
+                if ReacConst_transformed[i][0] <= 0.0:
+                    print(colored(f"Warning: Fall-off A_0 <= 0 encountered (A_0={ReacConst_transformed[i][0]}) for reaction index {PressureDependentIndexes[i]}. Skipping log transform (will set ln_A0 to -inf).", 'red'))
+            # Column 0: A_0 -> ln_A0
+            ReacConst_transformed[:,0] = np.log(ReacConst_transformed[:,0])
+            # Column 2: E_0 -> E0_over_R
+            ReacConst_transformed[:,2] = ReacConst_transformed[:,2] / R_CAL
+        else:
+            ReacConst_transformed = ReacConst_arr
         text += f'static constexpr index_t is_third_body_indexes[num_pressure_dependent] = {print_array(isThirdBodyIndexes, 6)};\n\n'
-        text += f'static constexpr double reac_const[num_pressure_dependent][3] = '+ print_array(ReacConst, 18, [f'{x:>2}. {reactions[x]}' for x in PressureDependentIndexes], ['A_0', 'b_0', 'E_0']) + ';\n\n'
+        text += f'static constexpr double reac_const[num_pressure_dependent][3] = ' + print_array(ReacConst_transformed, 20, [f'{x:>2}. {reactions[x]}' for x in PressureDependentIndexes], ['ln_A0', 'b_0', 'E0_over_R']) + ';\n\n'
     else:
         text += f'static constexpr index_t *is_third_body_indexes = nullptr;\n'
         text += f'static constexpr double *reac_const = nullptr;\n\n'
     if len(Troe) != 0:
-        text += f'static constexpr double troe[{len(Troe)}][4] = '+ print_array(Troe, 18, [f'{x:>2}. {reactions[x]}' for x in TroeIndexes], ['alfa',  'T***',  'T*',  'T**']) + ';\n\n'
+        text += f'static constexpr double troe[{len(Troe)}][4] = '+ print_array(Troe, 20, [f'{x:>2}. {reactions[x]}' for x in TroeIndexes], ['alfa',  'T***',  'T*',  'T**']) + ';\n\n'
     else:
         text += f'static constexpr double *troe = nullptr;\n\n'
     if len(SRI[0]) != 0:
-        text += f'static constexpr double sri[{len(SRI)}][5] = '+ print_array(SRI, 18, [f'{x:>2}. {reactions[x]}' for x in SRIIndexes], ['a',  'b',  'c',  'd', 'e']) + ';\n\n'
+        text += f'static constexpr double sri[{len(SRI)}][5] = '+ print_array(SRI, 20, [f'{x:>2}. {reactions[x]}' for x in SRIIndexes], ['a',  'b',  'c',  'd', 'e']) + ';\n\n'
     else:
         text += f'static constexpr double *sri = nullptr;\n\n'
 
@@ -799,7 +831,18 @@ def extract(path, name=''):
     for i in range(len(Plog)):
         PlogSperators.append(PlogSperators[-1] + len(Plog[i]))
         for PlogLine in Plog[i]:
-            PlogFlattened.append(PlogLine)
+            # PlogLine: [P, A, b, E] -> [P, ln_A, b, E_over_R]
+            if len(PlogLine) == 4:
+                P_val = PlogLine[0]
+                A_val = PlogLine[1]
+                b_val = PlogLine[2]
+                E_val = PlogLine[3]
+                if A_val <= 0.0:
+                    print(colored(f"Warning: PLOG A <= 0 encountered (A={A_val}) for reaction index {PlogIndexes[i]} at pressure {P_val}. Skipping log transform (will set ln_A to -inf).", 'red'))
+                PlogFlattened.append([P_val, np.log(A_val), b_val, E_val / R_CAL])
+            else:
+                if len(PlogLine) != 0:
+                    print(colored(f'Error, PLOG line has only 3 entries (P, A, b), missing E: {PlogLine}', 'red'))
     PlogFlattened = np.array(PlogFlattened, dtype=np.float64)
     text += f'static constexpr index_t num_plog = {len(PlogIndexes)};\n'
     text += f'static constexpr index_t num_plog_levels = {len(PlogFlattened) if len(PlogIndexes)!=0 else 0};\n'
@@ -811,7 +854,7 @@ def extract(path, name=''):
     PlogComments = [f'{x:>2}. {reactions[x]}' for x in PlogIndexes]
     PlogComments = sum([[comment] + (len(Plog[i])-1) * [''] for i, comment in enumerate(PlogComments)], [])
     if len(PlogIndexes) != 0:
-        text += f'static constexpr double plog[num_plog_levels][4] = ' + print_array(PlogFlattened, 18, PlogComments, ['P_1',  'A_1',  'b_1',  'E_1']) + ';\n\n'
+        text += f'static constexpr double plog[num_plog_levels][4] = ' + print_array(PlogFlattened, 20, PlogComments, ['P',  'ln_A',  'b',  'E_over_R']) + ';\n\n'
     else:
         text += f'static constexpr double *plog = nullptr;\n\n'
 

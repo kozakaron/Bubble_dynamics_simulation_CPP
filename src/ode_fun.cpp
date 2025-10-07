@@ -28,10 +28,9 @@ OdeFun::OdeFun():
     C_p(nullptr),
     H(nullptr),
     S(nullptr),
-    C_v(nullptr),
     M_eff(nullptr),
-    k_forward(nullptr),
-    k_backward(nullptr),
+    ln_k_forward(nullptr),
+    ln_k_backward(nullptr),
     net_rates(nullptr),
     omega_dot(nullptr)
 { }
@@ -45,23 +44,21 @@ OdeFun::~OdeFun()
 
 void OdeFun::delete_memory()
 {
-    if (this->C_p != nullptr)        delete[] this->C_p;
-    if (this->H != nullptr)          delete[] this->H;
-    if (this->S != nullptr)          delete[] this->S;
-    if (this->C_v != nullptr)        delete[] this->C_v;
-    if (this->M_eff != nullptr)      delete[] this->M_eff;
-    if (this->k_forward != nullptr)  delete[] this->k_forward;
-    if (this->k_backward != nullptr) delete[] this->k_backward;
-    if (this->net_rates != nullptr)  delete[] this->net_rates;
-    if (this->omega_dot != nullptr)  delete[] this->omega_dot;
+    if (this->C_p != nullptr)            delete[] this->C_p;
+    if (this->H != nullptr)              delete[] this->H;
+    if (this->S != nullptr)              delete[] this->S;
+    if (this->M_eff != nullptr)          delete[] this->M_eff;
+    if (this->ln_k_forward != nullptr)   delete[] this->ln_k_forward;
+    if (this->ln_k_backward != nullptr)  delete[] this->ln_k_backward;
+    if (this->net_rates != nullptr)      delete[] this->net_rates;
+    if (this->omega_dot != nullptr)      delete[] this->omega_dot;
 
     this->C_p = nullptr;
     this->H = nullptr;
     this->S = nullptr;
-    this->C_v = nullptr;
     this->M_eff = nullptr;
-    this->k_forward = nullptr;
-    this->k_backward = nullptr;
+    this->ln_k_forward = nullptr;
+    this->ln_k_backward = nullptr;
     this->net_rates = nullptr;
     this->omega_dot = nullptr;
 }
@@ -160,15 +157,14 @@ is_success OdeFun::init(const ControlParameters& cpar)
     if (old_par != this->par || this->omega_dot == nullptr)
     {
         this->delete_memory();
-        this->C_p        = new double[par->num_species];
-        this->H          = new double[par->num_species];
-        this->S          = new double[par->num_species];
-        this->C_v        = new double[par->num_species];
-        this->M_eff      = new double[par->num_third_bodies];
-        this->k_forward  = new double[par->num_reactions];
-        this->k_backward = new double[par->num_reactions];
-        this->net_rates  = new double[par->num_reactions];
-        this->omega_dot  = new double[par->num_species];
+        this->C_p           = new double[par->num_species];
+        this->H             = new double[par->num_species];
+        this->S             = new double[par->num_species];
+        this->M_eff         = new double[par->num_third_bodies];
+        this->ln_k_forward  = new double[par->num_reactions];
+        this->ln_k_backward = new double[par->num_reactions];
+        this->net_rates     = new double[par->num_reactions];
+        this->omega_dot     = new double[par->num_species];
     }
     if(this->cpar.error_ID != ErrorHandler::no_error)
     {
@@ -294,6 +290,7 @@ std::pair<double, double> OdeFun::pressures(
             const double& theta_phase = cpar.excitation_params[4];
             const double& n_cycles = cpar.excitation_params[5];
 
+            // TODO: fix discontinuities if freq1 and freq2 are not harmonics
             if (t < 0.0 || (t > n_cycles / freq1 && t > n_cycles / freq2))
             {
                 p_Inf = cpar.P_amb;
@@ -370,6 +367,7 @@ void OdeFun::thermodynamic(
         const double& T_low = par->temp_range[3*k];
         const double& T_high = par->temp_range[3*k+1];
         const double& T_mid = par->temp_range[3*k+2];
+        (void)T_low;
 
         if (T < T_high)
         {
@@ -396,9 +394,7 @@ void OdeFun::thermodynamic(
             // Enthalpies [erg/mol]
             this->H[k] = par->R_erg * (a[0]*T1 + a[1]*T2/2.0 + a[2]*T3/3.0 + a[3]*T4/4.0 + a[4]*T5/5.0 + a[5]);
             // Entropies [erg/mol/K]
-            this->S[k] = par->R_erg * (a[0] * std::log(T) + a[1]*T1 + a[2]*T2/2.0 + a[3]*T3/3.0 + a[4]*T4/4.0 + a[6]);
-            // Molar heat capacities at constant volume (isochoric) [erg/mol/K]
-            this->C_v[k] = this->C_p[k] - par->R_erg;
+            this->S[k] = par->R_erg * (a[0]*std::log(T) + a[1]*T1 + a[2]*T2/2.0 + a[3]*T3/3.0 + a[4]*T4/4.0 + a[6]);
         }
         else
         {
@@ -408,7 +404,6 @@ void OdeFun::thermodynamic(
             this->C_p[k] = interval_values[0] + interval_derivatives[0] * (T - T_high);
             this->H[k]   = interval_values[1] + interval_derivatives[1] * (T - T_high);
             this->S[k]   = interval_values[2] + interval_derivatives[2] * (T - T_high);
-            this->C_v[k]  = this->C_p[k] - par->R_erg;
         }
     }
 }
@@ -426,7 +421,7 @@ std::pair<double, double> OdeFun::evaporation(
     const double n_con_dot = 1.0e3 * cpar.alfa_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
     const double n_net_dot = n_eva_dot - n_con_dot;
 // Evaporation energy [J/mol]
-    const double& C_v = this->C_v[par->index_of_water]; // Molar heat capacity of water at constant volume (isochoric) [erg/mol/K]
+    const double& C_v = this->C_p[par->index_of_water] - par->R_erg; // Molar heat capacity of water at constant volume (isochoric) [erg/mol/K]
     double e_eva = this->C_v_inf * cpar.T_inf * 1.0e-7;
     double e_con = C_v * T * 1.0e-7;
     double evap_energy = n_eva_dot * e_eva - n_con_dot * e_con;    // [W/m^2]
@@ -439,25 +434,20 @@ void OdeFun::forward_rate(
     const double T,
     const double M,
     const double p,
-    const double reaction_rate_threshold
+    const double ln_reaction_rate_threshold
 ) //noexcept
 {
 // Arrhenius reactions
+    const double logT = std::log(T);
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
-        const double exponent = -par->E[index] / (par->R_cal * T);
-        this->k_forward[index] = par->A[index] * std::pow(T, par->b[index]) * std::exp(exponent);
+        this->ln_k_forward[index] = par->ln_A[index] + par->b[index] * logT - par->E_over_R[index] / T;
     }
 
 // Pressure dependent reactions
     index_t troe_index=0, sri_index=0;
     for(index_t j = 0; j < par->num_pressure_dependent; ++j)
     {
-        index_t index = par->pressure_dependent_indexes[j];
-        const double k_inf = this->k_forward[index];
-        const double *reac_const = &(par->reac_const[j*3]);
-        const double k_0 = reac_const[0] * std::pow(T, reac_const[1]) * std::exp(-reac_const[2] / (par->R_cal * T));
-        
     // Third body reactions
         double M_eff_loc = M;
         index_t third_body_index = par->is_third_body_indexes[j];
@@ -466,8 +456,19 @@ void OdeFun::forward_rate(
             M_eff_loc = this->M_eff[third_body_index];
         }
         
-        const double P_r = k_0 / k_inf * M_eff_loc;
-        double F = 1.0;
+    // Pressure dependent formalisms
+        index_t index = par->pressure_dependent_indexes[j];
+        const double *reac_const = &(par->reac_const[j*3]);
+        const double &ln_A0 = reac_const[0];
+        const double &b_0 = reac_const[1];
+        const double &E0_over_R = reac_const[2];
+
+        const double ln_k_inf = this->ln_k_forward[index];
+        const double ln_k_0 = ln_A0 + b_0 * logT - E0_over_R / T;
+        const double ln_Pr = ln_k_0 + std::log(M_eff_loc) - ln_k_inf;
+        const double log10_Pr = ln_Pr / std::numbers::ln10;
+
+        double ln_F = 0.0;  // F = 1.0
 
         switch (par->pressure_dependent_reac_types[j])
         {
@@ -479,22 +480,41 @@ void OdeFun::forward_rate(
         case Parameters::reac_type::troe_reac:
             {
                 const double *troe = &(par->troe[troe_index*4]);
-                const double F_cent = (1.0 - troe[0]) * std::exp(-T / troe[1]) + troe[0] * std::exp(-T / troe[2]) + std::exp(-troe[3] / T);
-                const double logF_cent = std::log10(F_cent);
-                const double c2 = -0.4 - 0.67 * logF_cent;
-                const double n = 0.75 - 1.27 * logF_cent;
+                const double &alfa  = troe[0];
+                const double &T_xxx = troe[1];  // T***
+                const double &T_x   = troe[2];  // T*
+                const double &T_xx  = troe[3];  // T**
+
+                constexpr double small_num = 1.0e-30;
+                constexpr double large_num = 1.0e30;
+                const double exp_negT_over_Txxx = (T_xxx <= small_num) ? 0.0 : std::exp(-T / T_xxx);
+                const double exp_negT_over_Tx   = (T_x   >= large_num) ? 1.0 : std::exp(-T / T_x);
+                const double exp_negTxx_over_T  = (T_xx  >= large_num) ? 0.0 : std::exp(-T_xx / T);
+                const double F_cent = (1.0 - alfa) * exp_negT_over_Txxx + alfa * exp_negT_over_Tx + exp_negTxx_over_T;
+                const double log10_F_cent = std::log10(F_cent);
+                
+                const double c = -0.4 - 0.67 * log10_F_cent;
+                const double n = 0.75 - 1.27 * log10_F_cent;
                 constexpr double d = 0.14;
-                const double logP_r = std::log10(P_r);
-                const double logF = 1.0 / (1.0 + std::pow((logP_r + c2) / (n - d * (logP_r + c2)), 2)) * logF_cent;
-                F = std::pow(10.0, logF);
+                const double e = log10_Pr + c;
+                const double log10_F = log10_F_cent / (1.0 + std::pow(e / (n - d * e), 2));
+                
+                ln_F = log10_F * std::numbers::ln10;
                 ++troe_index;
                 break;
             }
         case Parameters::reac_type::sri_reac:   // TODO: We don't have any SRI reactions in the current mechanisms
             {
-                const double X = 1.0 / (1.0 + std::pow(std::log10(P_r), 2));
                 const double *sri = &(par->sri[sri_index*5]);
-                F = sri[3] * std::pow(sri[0] * std::exp(-sri[1] / T) + std::exp(-T / sri[2]), X) * std::pow(T, sri[4]);
+                const double &a = sri[0];
+                const double &b = sri[1];
+                const double &c = sri[2];
+                const double &d = sri[3];
+                const double &e = sri[4];
+
+                const double X = 1.0 / (1.0 + log10_Pr * log10_Pr);
+                const double F = d * std::pow(a * std::exp(-b / T) + std::exp(-T / c), X) * std::pow(T, e);
+                ln_F = std::log(F);
                 ++sri_index;
                 break;
             }
@@ -502,7 +522,7 @@ void OdeFun::forward_rate(
             break;
         }
 
-        this->k_forward[index] = k_inf * P_r / (1.0 + P_r) * F;
+        this->ln_k_forward[index] = ln_k_inf + ln_Pr - std::log1p(std::exp(ln_Pr)) + ln_F;  // std::log(1.0 + P_r) = std::log1p(P_r)
     } // pressure dependent reactions end
 
 // PLOG reactions
@@ -513,84 +533,110 @@ void OdeFun::forward_rate(
         index_t lower = par->plog_seperators[j];
         for (index_t k = par->plog_seperators[j] + 1; k < par->plog_seperators[j+1] - 1; ++k)
         {
-            if (par->plog[k*4+0] < p)
-            {
+            const double &P_j = par->plog[k*4+0];
+            if (P_j < p)
                 lower = k;
-            }
+            else
+                break;
         }
         index_t upper = lower + 1;
+        const double &P_lower        = par->plog[lower*4+0];
+        const double &P_upper        = par->plog[upper*4+0];
+        const double &ln_A_lower     = par->plog[lower*4+1];
+        const double &ln_A_upper     = par->plog[upper*4+1];
+        const double &b_lower        = par->plog[lower*4+2];
+        const double &b_upper        = par->plog[upper*4+2];
+        const double &E_lower_over_R = par->plog[lower*4+3];
+        const double &E_upper_over_R = par->plog[upper*4+3];
 
         // reaction rates at the lower and upper pressures
-        double k_lower = par->plog[lower*4+1] * std::pow(T, par->plog[lower*4+2]) * std::exp(-par->plog[lower*4+3] / (par->R_cal * T));
-        double k_upper = par->plog[upper*4+1] * std::pow(T, par->plog[upper*4+2]) * std::exp(-par->plog[upper*4+3] / (par->R_cal * T));
-        // TODO: experiment with lower limit
-        //constexpr double lower_limit = 1e-200;
-        //k_lower = k_lower < lower_limit ? lower_limit : k_lower;
-        //k_upper = k_upper < lower_limit ? lower_limit : k_upper;
+        const double ln_k_lower = ln_A_lower + b_lower * logT - E_lower_over_R / T;
+        const double ln_k_upper = ln_A_upper + b_upper * logT - E_upper_over_R / T;
 
         // interpolation
         if (p < par->plog[par->plog_seperators[j]*4+0])    // p < smallest pressure level
         {
-            this->k_forward[index] = k_lower;
+            this->ln_k_forward[index] = ln_k_lower;
         }
         else if (par->plog[(par->plog_seperators[j+1]-1)*4+0] < p)    // p > largest pressure level
         {
-            this->k_forward[index] = k_upper;
+            this->ln_k_forward[index] = ln_k_upper;
         }
         else
         {
-            const double ln_k = std::log(k_lower) + (std::log(p) - std::log(par->plog[lower*4+0])) / (std::log(par->plog[upper*4+0]) - std::log(par->plog[lower*4+0])) * (std::log(k_upper) - std::log(k_lower));
-            this->k_forward[index] = std::exp(ln_k);
+            this->ln_k_forward[index] = ln_k_lower + (std::log(p) - std::log(P_lower)) / (std::log(P_upper) - std::log(P_lower)) * (ln_k_upper - ln_k_lower);
         }
     }
 
 // Forward rate thresholding
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
-        const double treshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
-        const double k_forward = this->k_forward[index];
-        if (!std::isfinite(k_forward) || std::abs(k_forward) > treshold)
-            this->k_forward[index] = std::copysign(treshold, k_forward);
+        const double ln_threshold = ln_reaction_rate_threshold + par->ln_N_A * par->reaction_order[index];
+        const double ln_k_forward = this->ln_k_forward[index];
+        if (!std::isfinite(ln_k_forward) || ln_k_forward > ln_threshold)
+            this->ln_k_forward[index] = ln_threshold;
     }
 }
 
 
 void OdeFun::backward_rate(
     const double T,
-    const double reaction_rate_threshold
+    const double ln_reaction_rate_threshold
 ) //noexcept 
 {
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
+        // Equilibrium constants (K_c)
         double Delta_S = 0.0, Delta_H = 0.0;
         for (index_t k = index * par->num_max_specie_per_reaction; k < (index + 1) * par->num_max_specie_per_reaction; ++k)
         {
             index_t nu_index = par->nu_indexes[k];
-            if (nu_index == par->invalid_index) continue;
+            if (nu_index == par->invalid_index) break;
 
             stoich_t nu = par->nu[k];
             Delta_S += nu * this->S[nu_index];
             Delta_H += nu * this->H[nu_index];
         }
 
-        const double treshold = reaction_rate_threshold * par->N_A_pow_reaction_order[index];
-        const double K_p = std::exp(Delta_S / par->R_erg - Delta_H / (par->R_erg * T));
-        double K_c = K_p * std::pow((par->atm2Pa * 10.0 / (par->R_erg * T)), par->sum_nu[index]);
-        if (K_c == 0.0) K_c = std::copysign(1e-323, K_c == 0.0 ? 1.0 : K_c);
-        
-        double k_backward = this->k_forward[index] / K_c;
-        if (std::abs(k_backward) > treshold || !std::isfinite(k_backward))
+        const double ln_K_p = Delta_S / par->R_erg - Delta_H / (par->R_erg * T);
+        double ln_K_c = ln_K_p + par->sum_nu[index] * std::log(par->atm2Pa * 10.0 / (par->R_erg * T));
+        double ln_k_backward = this->ln_k_forward[index] - ln_K_c;
+
+        // Backward rate thresholding
+        const double ln_threshold = ln_reaction_rate_threshold + par->ln_N_A * par->reaction_order[index] - ln_K_c;
+        if (ln_k_backward > ln_threshold || !std::isfinite(ln_k_backward))
         {
-            k_backward = std::copysign(treshold, k_backward);
-            this->k_forward[index] = k_backward * K_c;
+            ln_k_backward = ln_threshold;
+            this->ln_k_forward[index] = ln_k_backward + ln_K_c;
         }
-        this->k_backward[index] = k_backward;
+        this->ln_k_backward[index] = ln_k_backward;
     }
 
+    // Irreversible reactions
     for(index_t j = 0; j < par->num_irreversible; ++j)
     {
         index_t index = par->irreversible_indexes[j];
-        this->k_backward[index] = 0.0;
+        this->ln_k_backward[index] = -1e300;
+    }
+}
+
+
+// Most stoichiometric coefficients are 0, 1, or 2
+inline double pow_stoich(const double conc, const stoich_t nu)
+{
+    switch (nu)
+    {
+    case 0:
+        return 1.0;
+        break;
+    case 1:
+        return conc;
+        break;
+    case 2:
+        return conc * conc;
+        break;
+    default:
+        return std::pow(conc, nu);
     }
 }
 
@@ -599,7 +645,7 @@ void OdeFun::production_rate(
     const double T,
     const double M,
     const double p,
-    const double* c
+    const double* conc
 ) //noexcept
 {
 // Third body correction factors
@@ -608,14 +654,15 @@ void OdeFun::production_rate(
         double M_eff_j = 0.0;
         for (index_t k = 0; k < par->num_species; ++k)
         {
-            M_eff_j += par->alfa[j*par->num_species+k] * c[k];
+            M_eff_j += par->alfa[j*par->num_species+k] * conc[k];
         }
         this->M_eff[j] = M_eff_j;
     }
 // Forward and backward rates
-    double reaction_rate_threshold = par->k_B * T / par->h;
-    this->forward_rate(T, M, p, reaction_rate_threshold);
-    this->backward_rate(T, reaction_rate_threshold);
+    const double reaction_rate_threshold = par->k_B * T / par->h;
+    const double ln_reaction_rate_threshold = std::log(reaction_rate_threshold);
+    this->forward_rate(T, M, p, ln_reaction_rate_threshold);
+    this->backward_rate(T, ln_reaction_rate_threshold);
 // Net rates
     for (index_t index = 0; index < par->num_reactions; ++index)
     {
@@ -624,12 +671,14 @@ void OdeFun::production_rate(
         for (index_t k = index * par->num_max_specie_per_reaction; k < (index + 1) * par->num_max_specie_per_reaction; ++k)
         {
             index_t nu_index = par->nu_indexes[k];
-            if (nu_index == par->invalid_index) continue;
+            if (nu_index == par->invalid_index) break;
 
-            forward  *= std::pow(c[nu_index], par->nu_forward[k]);
-            backward *= std::pow(c[nu_index], par->nu_backward[k]);
+            forward  *= pow_stoich(conc[nu_index], par->nu_forward[k]);
+            backward *= pow_stoich(conc[nu_index], par->nu_backward[k]);
         }
-        this->net_rates[index] = this->k_forward[index] * forward - this->k_backward[index] * backward;
+        const double k_forward = std::exp(this->ln_k_forward[index]);
+        const double k_backward = std::exp(this->ln_k_backward[index]);
+        this->net_rates[index] = k_forward * forward - k_backward * backward;
     }
 // Third body reaction rates
     for (index_t j = 0; j < par->num_third_bodies; ++j)
@@ -651,7 +700,7 @@ void OdeFun::production_rate(
         for (index_t k = index * par->num_max_specie_per_reaction; k < (index + 1) * par->num_max_specie_per_reaction; ++k)
         {
             index_t nu_index = par->nu_indexes[k];
-            if (nu_index == par->invalid_index) continue;
+            if (nu_index == par->invalid_index) break;
 
             this->omega_dot[nu_index] += par->nu[k] * this->net_rates[index];
         }
@@ -668,35 +717,33 @@ is_success OdeFun::operator()(
     if (!this->check_before_call(x))
         return false;
 // Thermodynamics
-    this->thermodynamic(x[2]);    // set C_p, H, S, C_v
+    this->thermodynamic(x[2]);    // set C_p, H, S
 
 // Common variables
-    const double R = x[0];                      // bubble radius [m]
-    const double R_dot = x[1];                  // bubble radius derivative [m/s]
-    const double T = x[2];                      // temperature [K]
-    const double* c = x + 3;                    // molar concentrations [mol/cm^3]
-    double* c_dot = dxdt + 3;                   // molar concentrations derivative [mol/cm^3/s]
-    double M = 0.0;                             // sum of molar concentrations [mol/cm^3]
-    double p = 0.0;                             // Partial pressure of the gases [Pa]
-    double W_avg = 0.0;                         // average molecular weight [g/mol]
-    double C_p_avg = 0.0;                       // average molar heat capacity at constant pressure [erg/mol/K]
-    double C_v_avg = 0.0;                       // average molar heat capacity at constant volume [erg/mol/K]
-    double lambda_avg = 0.0;                    // average thermal conductivity [W/m/K]
-    double sum_omega_dot = 0.0;                 // sum of production rates [mol/cm^3/s]
+    const double R = x[0];                          // bubble radius [m]
+    const double R_dot = x[1];                      // bubble radius derivative [m/s]
+    const double T = x[2];                          // temperature [K]
+    const double* conc = x + 3;                     // molar concentrations [mol/cm^3]
+    double* conc_dot = dxdt + 3;                    // molar concentrations derivative [mol/cm^3/s]
+    double M = 0.0;                                 // sum of molar concentrations [mol/cm^3]
+    double W_avg = 0.0;                             // average molecular weight [g/mol]
+    double C_p_avg = 0.0;                           // average molar heat capacity at constant pressure [erg/mol/K]
+    double lambda_avg = 0.0;                        // average thermal conductivity [W/m/K]
+    double sum_omega_dot = 0.0;                     // sum of production rates [mol/cm^3/s]
     
     for (index_t k = 0; k < par->num_species; ++k)
     {
-        M += c[k];
+        M += conc[k];
     }
-    p = 0.1 * M * par->R_erg * T;
     for (index_t k = 0; k < par->num_species; ++k)
     {
-        const double X_k = c[k] / M;
+        const double X_k = conc[k] / M;
         W_avg += par->W[k] * X_k;
         C_p_avg += C_p[k] * X_k;
-        C_v_avg += C_v[k] * X_k;
         lambda_avg += par->lambdas[k] * X_k;
     }
+    const double p = 0.1 * M * par->R_erg * T;      // partial pressure of the gases [Pa]
+    const double C_v_avg = C_p_avg - par->R_erg;    // average molar heat capacity at constant volume [erg/mol/K]
 
 // Heat transfer
     double Q_th_dot = 0.0;
@@ -716,10 +763,10 @@ is_success OdeFun::operator()(
 // d/dt R
     dxdt[0] = R_dot;
 
-// d/dt c
+// d/dt conc
     if (cpar.enable_reactions)
     {
-        this->production_rate(T, M, p, c);   // set omega_dot
+        this->production_rate(T, M, p, conc);   // set omega_dot
     }
     else
     {
@@ -727,7 +774,7 @@ is_success OdeFun::operator()(
     }
     for (index_t k = 0; k < par->num_species; ++k)
     {
-        c_dot[k] = this->omega_dot[k] - c[k] * 3.0 * R_dot / R;
+        conc_dot[k] = this->omega_dot[k] - conc[k] * 3.0 * R_dot / R;
         sum_omega_dot += this->omega_dot[k];
     }
 
@@ -736,10 +783,10 @@ is_success OdeFun::operator()(
     double evap_energy = 0.0;
     if (cpar.enable_evaporation)
     {
-        std::pair<double, double> _evap = this->evaporation(p, T, c[par->index_of_water]/M);
+        std::pair<double, double> _evap = this->evaporation(p, T, conc[par->index_of_water]/M);
         n_net_dot = _evap.first;
         evap_energy = _evap.second;
-        c_dot[par->index_of_water] += 1.0e-6 * n_net_dot * 3.0 / R;
+        conc_dot[par->index_of_water] += 1.0e-6 * n_net_dot * 3.0 / R;
     }
 
 // d/dt T
