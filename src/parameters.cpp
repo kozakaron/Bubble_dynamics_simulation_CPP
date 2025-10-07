@@ -84,9 +84,12 @@ Parameters::Parameters(T dummy):
     num_plog_levels(T::num_plog_levels)
 {
     (void)dummy;
-        
+    
+    // Physical constants
     COPY_ARRAY(double, W, T::num_species);
     COPY_ARRAY(double, lambdas, T::num_species);
+
+    // NASA polynomials
     COPY_ARRAY(double, temp_range, T::num_species*3);
     COPY_ARRAY(double, a_low, T::num_species*(T::NASA_order+2));
     COPY_ARRAY(double, a_high, T::num_species*(T::NASA_order+2));
@@ -103,16 +106,14 @@ Parameters::Parameters(T dummy):
             &(interval_derivatives_temp[i*3])
         );
     }
-    COPY_ARRAY(double, A, T::num_reactions);
+
+    // Arrhenius parameters
     COPY_ARRAY(double, b, T::num_reactions);
-    COPY_ARRAY(double, E, T::num_reactions);
+    COPY_ARRAY(double, ln_A, T::num_reactions);
+    COPY_ARRAY(double, E_over_R, T::num_reactions);
+
+    // Reaction order and stoichiometric coefficients
     COPY_ARRAY(index_t, reaction_order, T::num_reactions);
-    double* temp_N_A_pow_reaction_order = new double[T::num_reactions];
-    for(index_t i = 0; i < T::num_reactions; i++)
-    {
-        temp_N_A_pow_reaction_order[i] = std::pow(Parameters::N_A, T::reaction_order[i]);
-    }
-    this->N_A_pow_reaction_order = (const double*)temp_N_A_pow_reaction_order;
     COPY_ARRAY(index_t, nu_indexes, T::num_reactions*T::num_max_specie_per_reaction);
     for(index_t i = 0; i < T::num_elements; i++)
     {
@@ -155,6 +156,8 @@ Parameters::Parameters(T dummy):
     this->nu_backward = (const stoich_t*)temp_nu_backward;
     this->nu = (const stoich_t*)temp_nu;
     this->sum_nu = (const stoich_t*)temp_sum_nu;
+
+    // Third body and fallof  pressure-dependent reactions
     COPY_ARRAY(index_t, third_body_indexes, T::num_third_bodies);
     COPY_ARRAY(bool, is_pressure_dependent, T::num_third_bodies);
     COPY_ARRAY(double, alfa, T::num_third_bodies*T::num_species);
@@ -165,6 +168,8 @@ Parameters::Parameters(T dummy):
     COPY_ARRAY(double, reac_const, T::num_pressure_dependent*3);
     COPY_ARRAY(double, troe, T::num_troe*4);
     COPY_ARRAY(double, sri, T::num_sri*5);
+
+    // PLOG reactions
     COPY_ARRAY(index_t, plog_indexes, T::num_plog);
     if (T::num_plog > 0)
     {
@@ -185,14 +190,13 @@ Parameters::~Parameters()
     if (a_high != nullptr) delete[] a_high;
     if (interval_values != nullptr) delete[] interval_values;
     if (interval_derivatives != nullptr) delete[] interval_derivatives;
-    if (A != nullptr) delete[] A;
     if (b != nullptr) delete[] b;
-    if (E != nullptr) delete[] E;
+    if (ln_A != nullptr) delete[] ln_A;
+    if (E_over_R != nullptr) delete[] E_over_R;
     if (nu_indexes != nullptr) delete[] nu_indexes;
     if (nu_forward != nullptr) delete[] nu_forward;
     if (nu_backward != nullptr) delete[] nu_backward;
     if (reaction_order != nullptr) delete[] reaction_order;
-    if (N_A_pow_reaction_order != nullptr) delete[] N_A_pow_reaction_order;
     if (nu != nullptr) delete[] nu;
     if (sum_nu != nullptr) delete[] sum_nu;
     if (third_body_indexes != nullptr) delete[] third_body_indexes;

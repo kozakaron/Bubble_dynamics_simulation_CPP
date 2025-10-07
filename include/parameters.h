@@ -62,7 +62,7 @@ public:
         "Pa Hz -",                                     // sin_impulse
         "Pa - -"                                       // sin_impulse_logf
     };
-    static constexpr std::array<const char*, 10> mechanism_names = {
+    static constexpr std::array<const char*, 8> mechanism_names = {
         "chemkin_ar_he",
         "chemkin_kaust2023_n2",
         "chemkin_kaust2023_n2_without_o",
@@ -86,6 +86,7 @@ public:
     static constexpr double R_erg         = 83144600.0;         // Universal gas constant [erg/mol/K]
     static constexpr double R_cal         = 1.987204;           // Universal gas constant [cal/mol/K]
     static constexpr double N_A           = 6.02214e+23;        // Avogadro's number [-]
+    static constexpr double ln_N_A       = 54.754899816742695;  // Natural logarithm of Avogadro's number
     static constexpr double h             = 6.62607015e-34;     // Planck constant [m^2*kg/s]
     static constexpr double R_v           = 461.521126;         // Specific gas constant of water [J/kg/K]
     static constexpr double erg2J         = 1e-07;              // Conversion factor from erg to J
@@ -119,11 +120,10 @@ public:
     const double *interval_derivatives;             // Derivatives at T_low and T_high (num_species, 3): {dC_p_high/dT, dH_high/dT, dS_high/dT}
 // Reactions constants
     const index_t num_reactions;                    // Number of reactions
-    const double *A;                                // Pre-exponential factors [cm^3/mol/s v 1/s] (num_reactions)
     const double *b;                                // Temperature exponents [-] (num_reactions)
-    const double *E;                                // Activation energies [cal/mol] (num_reactions)
-    const index_t *reaction_order;                  // Reaction orders (num_reactions)
-    const double *N_A_pow_reaction_order;           // N_A^reaction_order (num_reactions)
+    const double *ln_A;                             // Logarithm of pre-exponential factors [ln(cm^3/mol/s) v ln(1/s)] (num_reactions)
+    const double *E_over_R;                         // Activation energies / universal gas constant [K] (num_reactions)
+    const index_t *reaction_order;                  // reaction_order (num_reactions)
 // Reaction matrixes
     const index_t num_max_specie_per_reaction;      // Maximum number of species participating in a reaction
     const index_t *nu_indexes;                      // Indexes of species participating in reactions (num_reactions, num_max_specie_per_reaction)
@@ -147,15 +147,15 @@ public:
     const index_t *pressure_dependent_indexes;      // Indexes of pressure dependent reactions (num_pressure_dependent)
     const reac_type *pressure_dependent_reac_types; // Types of pressure dependent reactions (num_pressure_dependent)
     const index_t *is_third_body_indexes;           // Indexes of third body species for pressure dependent reactions (num_pressure_dependent)
-    const double *reac_const;                       // Fall-off parameters (num_pressure_dependent, 3)
-    const double *troe;                             // Troe parameters (num_troe, 4)
-    const double *sri;                              // SRI parameters (num_sri, 5)
+    const double *reac_const;                       // Fall-off parameters (num_pressure_dependent, 3): {ln_A0, b_0, E0_over_R}
+    const double *troe;                             // Troe parameters (num_troe, 4): {alfa, T***, T**, T*}
+    const double *sri;                              // SRI parameters (num_sri, 5): {a, b, c, d, e}
 // PLOG reactions
     const index_t num_plog;                         // Number of PLOG reactions
     const index_t num_plog_levels;                  // Number of PLOG levels
     const index_t *plog_indexes;                    // Indexes of PLOG reactions (num_plog)
     const index_t *plog_seperators;                 // Seperators of PLOG reactions (num_plog+1)
-    const double *plog;                             // PLOG parameters (num_plog_levels, 4)
+    const double *plog;                             // PLOG parameters (num_plog_levels, 4): {P_j, ln_Aj, b_j, Ej_over_R}
 
 // CONSTRUCTORS
     template <typename Parameters_struct>

@@ -29,11 +29,10 @@ private:
     double* C_p;                        // molar heat capacities at constant pressure (length: Parameters::num_species)
     double* H;                          // enthalpies (length: Parameters::num_species)
     double* S;                          // entropies (length: Parameters::num_species)
-    double* C_v;                        // molar heat capacities at constant volume (length: Parameters::num_species)
     // production rates
     double* M_eff;                      // effective molar masses of third bodies (length: Parameters::num_third_bodies)
-    double* k_forward;                  // forward reaction rates (length: Parameters::num_reactions)
-    double* k_backward;                 // backward reaction rates (length: Parameters::num_reactions)
+    double* ln_k_forward;               // forward reaction rates (length: Parameters::num_reactions)
+    double* ln_k_backward;              // backward reaction rates (length: Parameters::num_reactions)
     double* net_rates;                  // net production rates (length: Parameters::num_reactions)
     double* omega_dot;                  // production rates (length: Parameters::num_species)
 
@@ -63,13 +62,13 @@ private:
         const double T,
         const double M,
         const double p,
-        const double reaction_rate_threshold
+        const double ln_reaction_rate_threshold
     ) ; //noexcept
 
 
     void backward_rate(
         const double T,
-        const double reaction_rate_threshold
+        const double ln_reaction_rate_threshold
     ) ; //noexcept
 
     
