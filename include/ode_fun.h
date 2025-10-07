@@ -29,7 +29,6 @@ private:
     double* C_p;                        // molar heat capacities at constant pressure (length: Parameters::num_species)
     double* H;                          // enthalpies (length: Parameters::num_species)
     double* S;                          // entropies (length: Parameters::num_species)
-    double* C_v;                        // molar heat capacities at constant volume (length: Parameters::num_species)
     // production rates
     double* M_eff;                      // effective molar masses of third bodies (length: Parameters::num_third_bodies)
     double* ln_k_forward;               // forward reaction rates (length: Parameters::num_reactions)
