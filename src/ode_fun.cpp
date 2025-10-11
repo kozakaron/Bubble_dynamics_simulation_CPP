@@ -65,7 +65,7 @@ void OdeFun::delete_memory()
 
 is_success OdeFun::check_before_call(const double* x)
 {
-    // Check if iinitialization was correct
+    // Check if initialization was correct
     if (this->cpar.error_ID != ErrorHandler::no_error)
     {
         return false;
@@ -797,6 +797,8 @@ is_success OdeFun::operator()(
     }
     Q_r_dot += sum_omega_dot * par->R_erg * T;
     const double T_dot = (Q_r_dot + 30.0 / R * (-p * R_dot + Q_th_dot + evap_energy)) / (M * C_v_avg);
+    //const double M_dot = sum_omega_dot - 3.0 * R_dot / R * M + 1.0e-6 * n_net_dot * 3.0 / R;
+    //const double p_dot = 0.1 * (M_dot * par->R_erg * T + M * par->R_erg * T_dot);
     const double p_dot = p * (sum_omega_dot / M + T_dot / T - 3.0 * R_dot / R);
     dxdt[2] = T_dot;
 
