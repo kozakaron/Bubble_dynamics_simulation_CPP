@@ -494,7 +494,7 @@ def _get_reactions(lines, species):
     i = _find('REAC', lines)
     if len(PlogIndexes) != 0:
         for j in range(len(Plog)):
-            Plog[j][:, 0] *= 1.0e5   # convert bar to Pa
+            Plog[j][:, 0] *= 101325  # [atm -> Pa]
     if 'MOLEC' in lines[i]: # MOLECULE
         print(colored(f'Note, pre-exponential factor is modified from units of [cm^3/molecule/s] to [cm^3/mol/s]', 'blue'))
         A /= 6.02214e23
@@ -650,8 +650,8 @@ def change_CGS_to_SI(A_i, reac_order):
     """ Changes pre-exponential factor A from CGS to SI units."""
 
     # n = reaction order
-    # old: mol^(n-1) / cm^(3n-3) / s
-    # new: kmol^(n-1) /  m^(3n-3) / s
+    # old: cm^(3n-3) / mol^(n-1) / s
+    # new: m^(3n-3) / kmol^(n-1) / s
     return A_i * (1.0e-3)**(reac_order - 1)
 
 
@@ -821,11 +821,7 @@ def extract(path, name=''):
                     print(colored(f"Warning: Fall-off A_0 <= 0 encountered (A_0={ReacConst_transformed[i][0]: .4e}) for reaction index {PressureDependentIndexes[i]}. Skipping log transform (will set ln_A0 to -inf).", 'red'))
             # Column 0: Modify units of A_0 from cm^3/mol/s to m^3/mol/s
             for i in range(len(ReacConst_transformed)):
-                print(f'ReacConst_transformed[{i}][0] (before) = {ReacConst_transformed[i][0]}; order = {reaction_order[PressureDependentIndexes[i]]};')
-
-                ReacConst_transformed[i][0] = change_CGS_to_SI(ReacConst_transformed[i][0], reaction_order[PressureDependentIndexes[i]])
-                
-                print(f'ReacConst_transformed[{i}][0] (after) = {ReacConst_transformed[i][0]: .4e};')
+                ReacConst_transformed[i][0] = change_CGS_to_SI(ReacConst_transformed[i][0], reaction_order[PressureDependentIndexes[i]]+1)   # all falloff reactions have an effective molecularity that increases by +1 in the low-pressure limit, due to the participation of the third body M
                 # Column 0: A_0 -> ln_A0
                 ReacConst_transformed[i][0] = np.log(ReacConst_transformed[i][0])
                 # Column 2: E_0 -> E0_over_R

@@ -222,8 +222,8 @@ struct chemkin_ar_he_struct{
     
     static constexpr double reac_const[num_pressure_dependent][3] = {
         //               ln_A0                  b_0            E0_over_R 
-        {   38.50280344208563,            -1.37367,                 0.0},    //  8. H+O2(+M)=HO2(+M)
-        {   35.22831707987652,            -1.17797, -2150.3056716874567}     // 15. 2OH(+M)=H2O2(+M)
+        {   31.59504816310349,            -1.37367,                 0.0},    //  8. H+O2(+M)=HO2(+M)
+        {   28.32056180089438,            -1.17797, -2150.3056716874567}     // 15. 2OH(+M)=H2O2(+M)
     };
     
     static constexpr double troe[2][4] = {
