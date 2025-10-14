@@ -651,8 +651,8 @@ def change_CGS_to_SI(A_i, reac_order):
 
     # n = reaction order
     # old: mol^(n-1) / cm^(3n-3) / s
-    # new: mol^(n-1) /  m^(3n-3) / s
-    return A_i * (1.0e-6)**(reac_order - 1)
+    # new: kmol^(n-1) /  m^(3n-3) / s
+    return A_i * (1.0e-3)**(reac_order - 1)
 
 
 def extract(path, name=''):
@@ -711,7 +711,7 @@ def extract(path, name=''):
     text += f'static constexpr std::pair<const char*, index_t> species[{len(species)}] = ' + '{' + ''.join(['{'+f'"{specie}", {i}'+'}, ' for i, specie in enumerate(species)])[:-2] + '};\n'
     text += f'static constexpr const char *species_names[] = ' + '{' + ''.join(['"'+f'{specie}'+'", ' for specie in species])[:-2] + '};\n'
     text += f'    //                                           ' + (print_array([species[i] for i in range(len(species))], 12)[1:-1]).replace('",', ' ').replace('"', '  ') + '\n'
-    text += f'static constexpr double W[num_species] =        {print_array([round(1e-3*w, 12) for w in W], 12, max_len=0)};    // [kg/mol]\n'
+    text += f'static constexpr double W[num_species] =        {print_array([round(1.0*w, 12) for w in W], 12, max_len=0)};    // [kg/kmol]\n'
     text += f'static constexpr double lambdas[num_species] =  {print_array(lambdas, 12, max_len=0)};    // [W/m/K]\n\n'
     
     # NASA polynomials
@@ -818,10 +818,14 @@ def extract(path, name=''):
             # Check for negative A_0
             for i in range(len(ReacConst_transformed)):
                 if ReacConst_transformed[i][0] <= 0.0:
-                    print(colored(f"Warning: Fall-off A_0 <= 0 encountered (A_0={ReacConst_transformed[i][0]}) for reaction index {PressureDependentIndexes[i]}. Skipping log transform (will set ln_A0 to -inf).", 'red'))
+                    print(colored(f"Warning: Fall-off A_0 <= 0 encountered (A_0={ReacConst_transformed[i][0]: .4e}) for reaction index {PressureDependentIndexes[i]}. Skipping log transform (will set ln_A0 to -inf).", 'red'))
             # Column 0: Modify units of A_0 from cm^3/mol/s to m^3/mol/s
             for i in range(len(ReacConst_transformed)):
+                print(f'ReacConst_transformed[{i}][0] (before) = {ReacConst_transformed[i][0]}; order = {reaction_order[PressureDependentIndexes[i]]};')
+
                 ReacConst_transformed[i][0] = change_CGS_to_SI(ReacConst_transformed[i][0], reaction_order[PressureDependentIndexes[i]])
+                
+                print(f'ReacConst_transformed[{i}][0] (after) = {ReacConst_transformed[i][0]: .4e};')
                 # Column 0: A_0 -> ln_A0
                 ReacConst_transformed[i][0] = np.log(ReacConst_transformed[i][0])
                 # Column 2: E_0 -> E0_over_R

@@ -83,6 +83,7 @@ public:
     static constexpr double alfa_M        = 0.35;               // Water accommodation coefficient [-]
     static constexpr double k_B           = 1.380649e-23;       // Boltzmann constant [J/K]
     static constexpr double R_g           = 8.31446;            // Universal gas constant [J/mol/K]
+    static constexpr double R_kmol        = 8314.46;            // Universal gas constant [J/kmol/K]
     static constexpr double R_erg         = 83144600.0;         // Universal gas constant [erg/mol/K]
     static constexpr double R_cal         = 1.987204;           // Universal gas constant [cal/mol/K]
     static constexpr double N_A           = 6.02214e+23;        // Avogadro's number [-]
