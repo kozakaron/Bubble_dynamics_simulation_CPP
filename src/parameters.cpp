@@ -51,13 +51,13 @@ void compute_interval_values_and_derivatives(
     const double T4 = T2 * T2;
     const double T5 = T3 * T2;
 
-    values[0] = Parameters::R_g * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4);   // C_p
-    values[1] = Parameters::R_g * (a[0]*T1 + a[1]*T2/2.0 + a[2]*T3/3.0 + a[3]*T4/4.0 + a[4]*T5/5.0 + a[5]);   // H
-    values[2] = Parameters::R_g * (a[0]*std::log(T1) + a[1]*T1 + a[2]*T2/2.0 + a[3]*T3/3.0 + a[4]*T4/4.0 + a[6]);   // S
+    values[0] = Parameters::R_kmol * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4);   // C_p
+    values[1] = Parameters::R_kmol * (a[0]*T1 + a[1]*T2/2.0 + a[2]*T3/3.0 + a[3]*T4/4.0 + a[4]*T5/5.0 + a[5]);   // H
+    values[2] = Parameters::R_kmol * (a[0]*std::log(T1) + a[1]*T1 + a[2]*T2/2.0 + a[3]*T3/3.0 + a[4]*T4/4.0 + a[6]);   // S
 
-    derivatives[0] = Parameters::R_g * (a[1] + 2.0*a[2]*T1 + 3.0*a[3]*T2 + 4.0*a[4]*T3);   // dC_p/dT
-    derivatives[1] = Parameters::R_g * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4);   // dH/dT
-    derivatives[2] = Parameters::R_g * (a[0]/T1 + a[1] + a[2]*T1 + a[3]*T2 + a[4]*T3);   // dS/dT
+    derivatives[0] = Parameters::R_kmol * (a[1] + 2.0*a[2]*T1 + 3.0*a[3]*T2 + 4.0*a[4]*T3);   // dC_p/dT
+    derivatives[1] = Parameters::R_kmol * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4);   // dH/dT
+    derivatives[2] = Parameters::R_kmol * (a[0]/T1 + a[1] + a[2]*T1 + a[3]*T2 + a[4]*T3);   // dS/dT
 }   
 
 template <typename T>
