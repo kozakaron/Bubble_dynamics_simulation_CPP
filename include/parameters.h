@@ -109,7 +109,7 @@ public:
     std::vector<std::string> species_names;         // Names of species (num_species)
     index_t get_element(std::string name) const;    // Get index of element by name
     index_t get_species(std::string name) const;    // Get index of species by name
-    const double *W;                                // Molar masses [g/mol] (num_species)
+    const double *W;                                // Molar masses [kg/mol] (num_species)
     const double *lambdas;                          // Thermal conductivities [W/m/K] (num_species)
 // NASA polynomials
     const index_t NASA_order;                       // Degree of NASA polynomials
@@ -121,7 +121,7 @@ public:
 // Reactions constants
     const index_t num_reactions;                    // Number of reactions
     const double *b;                                // Temperature exponents [-] (num_reactions)
-    const double *ln_A;                             // Logarithm of pre-exponential factors [ln(cm^3/mol/s) v ln(1/s)] (num_reactions)
+    const double *ln_A;                             // Logarithm of pre-exponential factors [ln(m^3/mol/s) v ln(1/s)] (num_reactions)
     const double *E_over_R;                         // Activation energies / universal gas constant [K] (num_reactions)
     const index_t *reaction_order;                  // reaction_order (num_reactions)
 // Reaction matrixes

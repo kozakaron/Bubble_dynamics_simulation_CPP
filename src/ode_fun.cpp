@@ -201,14 +201,14 @@ is_success OdeFun::init(const ControlParameters& cpar)
         const double T3 = T2 * T1;
         const double T4 = T2 * T2;
 
-        this->C_v_inf = par->R_erg * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4 - 1.0);
+        this->C_v_inf = par->R_g * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4 - 1.0);
     }
     else
     {
     // linear extrapolation
         const double *interval_values      = &(par->interval_values[par->index_of_water*3]);       // {C_p_high, H_high, S_high}
         const double *interval_derivatives = &(par->interval_derivatives[par->index_of_water*3]);  // {dC_p_high/dT, dH_high/dT, dS_high/dT}
-        this->C_v_inf = interval_values[0] + interval_derivatives[0] * (this->cpar.T_inf - T_high) - par->R_erg;
+        this->C_v_inf = interval_values[0] + interval_derivatives[0] * (this->cpar.T_inf - T_high) - par->R_g;
     }
 
     return true;
@@ -252,12 +252,12 @@ is_success OdeFun::initial_conditions(
     x[3+par->num_species] = 0.0;   // dissipated energy [J]
     if (cpar.enable_evaporation && par->index_of_water != par->invalid_index)
     {
-        x[3+par->index_of_water] = 1.0e-6 * c_H2O; // c_H2O_0 [mol/cm^3]
+        x[3+par->index_of_water] = c_H2O; // c_H2O_0 [mol/m^3]
     }
     for (index_t k = 0; k < cpar.num_initial_species; ++k)
     {
         index_t index = cpar.species[k];
-        x[3+index] = 1.0e-6 * cpar.fractions[k] * c_gas;   // c_k_0 [mol/cm^3]
+        x[3+index] = cpar.fractions[k] * c_gas;   // c_k_0 [mol/m^3]
     }
 
 // Errors
@@ -389,12 +389,12 @@ void OdeFun::thermodynamic(
             const double T4 = T2 * T2;
             const double T5 = T3 * T2;
         
-            // Molar heat capacities at constant pressure (isobaric) [erg/mol/K]
-            this->C_p[k] = par->R_erg * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4);
-            // Enthalpies [erg/mol]
-            this->H[k] = par->R_erg * (a[0]*T1 + a[1]*T2/2.0 + a[2]*T3/3.0 + a[3]*T4/4.0 + a[4]*T5/5.0 + a[5]);
-            // Entropies [erg/mol/K]
-            this->S[k] = par->R_erg * (a[0]*std::log(T) + a[1]*T1 + a[2]*T2/2.0 + a[3]*T3/3.0 + a[4]*T4/4.0 + a[6]);
+            // Molar heat capacities at constant pressure (isobaric) [J/mol/K]
+            this->C_p[k] = par->R_g * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4);
+            // Enthalpies [J/mol]
+            this->H[k] = par->R_g * (a[0]*T1 + a[1]*T2/2.0 + a[2]*T3/3.0 + a[3]*T4/4.0 + a[4]*T5/5.0 + a[5]);
+            // Entropies [J/mol/K]
+            this->S[k] = par->R_g * (a[0]*std::log(T) + a[1]*T1 + a[2]*T2/2.0 + a[3]*T3/3.0 + a[4]*T4/4.0 + a[6]);
         }
         else
         {
@@ -417,13 +417,13 @@ std::pair<double, double> OdeFun::evaporation(
 {
 // condensation and evaporation
     const double p_H2O = p * X_H2O;
-    const double n_eva_dot = 1.0e3 * cpar.alfa_M * cpar.P_v / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * cpar.T_inf));
-    const double n_con_dot = 1.0e3 * cpar.alfa_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
+    const double n_eva_dot = cpar.alfa_M * cpar.P_v / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * cpar.T_inf));
+    const double n_con_dot = cpar.alfa_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
     const double n_net_dot = n_eva_dot - n_con_dot;
 // Evaporation energy [J/mol]
-    const double& C_v = this->C_p[par->index_of_water] - par->R_erg; // Molar heat capacity of water at constant volume (isochoric) [erg/mol/K]
-    double e_eva = this->C_v_inf * cpar.T_inf * 1.0e-7;
-    double e_con = C_v * T * 1.0e-7;
+    const double& C_v = this->C_p[par->index_of_water] - par->R_g; // Molar heat capacity of water at constant volume (isochoric) [J/mol/K]
+    double e_eva = this->C_v_inf * cpar.T_inf;
+    double e_con = C_v * T;
     double evap_energy = n_eva_dot * e_eva - n_con_dot * e_con;    // [W/m^2]
 
     return std::make_pair(n_net_dot, evap_energy);
@@ -584,6 +584,7 @@ void OdeFun::backward_rate(
     const double ln_reaction_rate_threshold
 ) //noexcept 
 {
+    const double ln_p_over_RT = std::log(par->atm2Pa / (par->R_g * T));
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
         // Equilibrium constants (K_c)
@@ -598,8 +599,8 @@ void OdeFun::backward_rate(
             Delta_H += nu * this->H[nu_index];
         }
 
-        const double ln_K_p = Delta_S / par->R_erg - Delta_H / (par->R_erg * T);
-        double ln_K_c = ln_K_p + par->sum_nu[index] * std::log(par->atm2Pa * 10.0 / (par->R_erg * T));
+        const double ln_K_p = Delta_S / par->R_g - Delta_H / (par->R_g * T);
+        double ln_K_c = ln_K_p + par->sum_nu[index] * ln_p_over_RT;
         double ln_k_backward = this->ln_k_forward[index] - ln_K_c;
 
         // Backward rate thresholding
@@ -723,14 +724,14 @@ is_success OdeFun::operator()(
     const double R = x[0];                          // bubble radius [m]
     const double R_dot = x[1];                      // bubble radius derivative [m/s]
     const double T = x[2];                          // temperature [K]
-    const double* conc = x + 3;                     // molar concentrations [mol/cm^3]
-    double* conc_dot = dxdt + 3;                    // molar concentrations derivative [mol/cm^3/s]
-    double M = 0.0;                                 // sum of molar concentrations [mol/cm^3]
+    const double* conc = x + 3;                     // molar concentrations [mol/m^3]
+    double* conc_dot = dxdt + 3;                    // molar concentrations derivative [mol/m^3/s]
+    double M = 0.0;                                 // sum of molar concentrations [mol/m^3]
     double W_avg = 0.0;                             // average molecular weight [g/mol]
-    double C_p_avg = 0.0;                           // average molar heat capacity at constant pressure [erg/mol/K]
+    double C_p_avg = 0.0;                           // average molar heat capacity at constant pressure [J/mol/K]
     double lambda_avg = 0.0;                        // average thermal conductivity [W/m/K]
-    double sum_omega_dot = 0.0;                     // sum of production rates [mol/cm^3/s]
-    
+    double sum_omega_dot = 0.0;                     // sum of production rates [mol/m^3/s]
+
     for (index_t k = 0; k < par->num_species; ++k)
     {
         M += conc[k];
@@ -742,15 +743,16 @@ is_success OdeFun::operator()(
         C_p_avg += C_p[k] * X_k;
         lambda_avg += par->lambdas[k] * X_k;
     }
-    const double p = 0.1 * M * par->R_erg * T;      // partial pressure of the gases [Pa]
-    const double C_v_avg = C_p_avg - par->R_erg;    // average molar heat capacity at constant volume [erg/mol/K]
+    const double p = M * par->R_g * T;      // partial pressure of the gases [Pa]
+    const double C_v_avg = C_p_avg - par->R_g;    // average molar heat capacity at constant volume [J/mol/K]
 
 // Heat transfer
     double Q_th_dot = 0.0;
     if (cpar.enable_heat_transfer)
     {
-        const double rho_avg = W_avg * M;
-        const double chi_avg = 10.0 * lambda_avg * W_avg / (C_p_avg * rho_avg);
+        //const double rho_avg = W_avg * M;
+        const double chi_avg = lambda_avg / (C_p_avg * M);
+        //const double chi_avg = lambda_avg * W_avg / (C_p_avg * rho_avg);
         double l_th = std::numeric_limits<double>::max();
         if (R_dot != 0.0)
         {
@@ -786,27 +788,23 @@ is_success OdeFun::operator()(
         std::pair<double, double> _evap = this->evaporation(p, T, conc[par->index_of_water]/M);
         n_net_dot = _evap.first;
         evap_energy = _evap.second;
-        conc_dot[par->index_of_water] += 1.0e-6 * n_net_dot * 3.0 / R;
+        conc_dot[par->index_of_water] += n_net_dot * 3.0 / R;
     }
 
 // d/dt T
-    double Q_r_dot = 0.0;
+    double Q_r_dot = sum_omega_dot * par->R_g * T;
     for (index_t k = 0; k < par->num_species; ++k)
     {
         Q_r_dot -= this->omega_dot[k] * this->H[k];
     }
-    Q_r_dot += sum_omega_dot * par->R_erg * T;
-    const double T_dot = (Q_r_dot + 30.0 / R * (-p * R_dot + Q_th_dot + evap_energy)) / (M * C_v_avg);
-    //const double M_dot = sum_omega_dot - 3.0 * R_dot / R * M + 1.0e-6 * n_net_dot * 3.0 / R;
-    //const double p_dot = 0.1 * (M_dot * par->R_erg * T + M * par->R_erg * T_dot);
+    const double T_dot = (Q_r_dot + 3.0 / R * (-p * R_dot + Q_th_dot + evap_energy)) / (M * C_v_avg);
+    //const double M_dot = sum_omega_dot - 3.0 * R_dot / R * M + n_net_dot * 3.0 / R;
+    //const double p_dot = 0.1 * (M_dot * par->R_g * T + M * par->R_g * T_dot);
     const double p_dot = p * (sum_omega_dot / M + T_dot / T - 3.0 * R_dot / R);
     dxdt[2] = T_dot;
 
 // d/dt R_dot
-    std::pair<double, double> _pres = this->pressures(t, R, R_dot, p, p_dot);
-    const double delta     = _pres.first;
-    const double delta_dot = _pres.second;
-
+    const auto [delta, delta_dot] = this->pressures(t, R, R_dot, p, p_dot);
     const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
     const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
 
