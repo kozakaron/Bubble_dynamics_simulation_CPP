@@ -571,6 +571,7 @@ def _get_nu(reactions, species, W):
     for x, reaction in enumerate(reactions):
         if '>' in reaction:
             IrreversibleIndexes.append(x)
+        extra_order = 1 if '+M' in reaction and '(+M)' not in reaction else 0
         reaction = reaction.replace('+M', '')
         reaction = reaction.replace('(+M)', '')
         reaction = reaction.replace('()', '')
@@ -593,7 +594,7 @@ def _get_nu(reactions, species, W):
                     print(colored(f'Warning, photon (HV) in reaction {x} (\'{reactions[x]}\') is ignored', 'yellow'))
                 else:
                     print(colored(f'Warning, \'{f}\' in reaction {x} (\'{reactions[x]}\') is not in species, it is ignored', 'yellow'))
-        reaction_order[x] = int(np.sum(nu_forward[x]))
+        reaction_order[x] = int(np.sum(nu_forward[x])) + extra_order
 
         for b in backward:
             num = 1
@@ -644,6 +645,15 @@ def _get_nu(reactions, species, W):
     return nu_forward, nu_backward, nu, IrreversibleIndexes, max_participants, nu_indexes, nu_forward_small, nu_backward_small, nu_small, reaction_order
 
 """________________________________Printing to file________________________________"""
+
+def change_CGS_to_SI(A_i, reac_order):
+    """ Changes pre-exponential factor A from CGS to SI units."""
+
+    # n = reaction order
+    # old: mol^(n-1) / cm^(3n-3) / s
+    # new: mol^(n-1) /  m^(3n-3) / s
+    return A_i * (1.0e-6)**(reac_order - 1)
+
 
 def extract(path, name=''):
     """Extracts data from .inp file and creates parameters.py in the current working directory. Arguments:
@@ -701,8 +711,8 @@ def extract(path, name=''):
     text += f'static constexpr std::pair<const char*, index_t> species[{len(species)}] = ' + '{' + ''.join(['{'+f'"{specie}", {i}'+'}, ' for i, specie in enumerate(species)])[:-2] + '};\n'
     text += f'static constexpr const char *species_names[] = ' + '{' + ''.join(['"'+f'{specie}'+'", ' for specie in species])[:-2] + '};\n'
     text += f'    //                                           ' + (print_array([species[i] for i in range(len(species))], 12)[1:-1]).replace('",', ' ').replace('"', '  ') + '\n'
-    text += f'static constexpr double W[num_species] =        {print_array(W, 12, max_len=0)};\n'
-    text += f'static constexpr double lambdas[num_species] =  {print_array(lambdas, 12, max_len=0)};\n\n'
+    text += f'static constexpr double W[num_species] =        {print_array([round(1e-3*w, 12) for w in W], 12, max_len=0)};    // [kg/mol]\n'
+    text += f'static constexpr double lambdas[num_species] =  {print_array(lambdas, 12, max_len=0)};    // [W/m/K]\n\n'
     
     # NASA polynomials
     text += line_start + 'NASA POLYNOMIALS' + line_end
@@ -718,18 +728,21 @@ def extract(path, name=''):
     #   E  -> E_over_R    (activation energy divided by R_cal = 1.987204 [cal/mol/K])
     #   Fall-off (reac_const)  {A_0, b_0, E_0} -> {ln_A0, b_0, E0_over_R}
     #   PLOG entries {P, A, b, E} -> {P, ln_A, b, E_over_R}
-    #   Units of ln_A are the natural log of the original A units: ln(1/s) or ln(cm^3/mol/s), etc.
+    #   Units of ln_A are the natural log of the original A units: ln(1/s) or ln(c^3/mol/s), etc.
     #   E_over_R has units of Kelvin.
     R_CAL = 1.987204
     # warning for negative A
     for i in range(len(A)):
         if A[i] <= 0.0:
             print(colored(f'Error, pre-exponential factor (A={A[i]}) in reaction {i} (\'{reactions[i]}\') is negative or zero, ln(A) is undefined', 'red'))
+        # change unit from cm^3/mol/s to m^3/mol/s
+        A[i] = change_CGS_to_SI(A[i], reaction_order[i])
+
     ln_A = np.log(np.array(A, dtype=np.float64))
     E_over_R = np.array(E, dtype=np.float64) / R_CAL
     text += line_start + 'REACTION CONSTANTS (TRANSFORMED)' + line_end
     text += f'static constexpr index_t num_reactions = {len(reactions)};\n\n'
-    text += f'/* Logarithm of pre-exponential factors [ln(cm^3/mol/s) v ln(1/s)] */\n'
+    text += f'/* Logarithm of pre-exponential factors [ln(m^3/mol/s) v ln(1/s)] */\n'
     text += f'static constexpr double ln_A[num_reactions] = ' + print_array(ln_A, 20, max_len=5) + ';\n\n'
     text += f'/* Temperature exponents [-] */\n'
     text += f'static constexpr double b[num_reactions] = ' + print_array(B, 20, max_len=5) + ';\n\n'
@@ -806,10 +819,13 @@ def extract(path, name=''):
             for i in range(len(ReacConst_transformed)):
                 if ReacConst_transformed[i][0] <= 0.0:
                     print(colored(f"Warning: Fall-off A_0 <= 0 encountered (A_0={ReacConst_transformed[i][0]}) for reaction index {PressureDependentIndexes[i]}. Skipping log transform (will set ln_A0 to -inf).", 'red'))
-            # Column 0: A_0 -> ln_A0
-            ReacConst_transformed[:,0] = np.log(ReacConst_transformed[:,0])
-            # Column 2: E_0 -> E0_over_R
-            ReacConst_transformed[:,2] = ReacConst_transformed[:,2] / R_CAL
+            # Column 0: Modify units of A_0 from cm^3/mol/s to m^3/mol/s
+            for i in range(len(ReacConst_transformed)):
+                ReacConst_transformed[i][0] = change_CGS_to_SI(ReacConst_transformed[i][0], reaction_order[PressureDependentIndexes[i]])
+                # Column 0: A_0 -> ln_A0
+                ReacConst_transformed[i][0] = np.log(ReacConst_transformed[i][0])
+                # Column 2: E_0 -> E0_over_R
+                ReacConst_transformed[i][2] = ReacConst_transformed[i][2] / R_CAL
         else:
             ReacConst_transformed = ReacConst_arr
         text += f'static constexpr index_t is_third_body_indexes[num_pressure_dependent] = {print_array(isThirdBodyIndexes, 6)};\n\n'
@@ -839,6 +855,8 @@ def extract(path, name=''):
                 E_val = PlogLine[3]
                 if A_val <= 0.0:
                     print(colored(f"Warning: PLOG A <= 0 encountered (A={A_val}) for reaction index {PlogIndexes[i]} at pressure {P_val}. Skipping log transform (will set ln_A to -inf).", 'red'))
+                # change unit from cm^3/mol/s to m^3/mol/s
+                A_val = change_CGS_to_SI(A_val, reaction_order[PlogIndexes[i]])
                 PlogFlattened.append([P_val, np.log(A_val), b_val, E_val / R_CAL])
             else:
                 if len(PlogLine) != 0:

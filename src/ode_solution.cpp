@@ -290,9 +290,9 @@ void SimulationData::postprocess()
     }
     else
     {
-        const double R_last = 100.0 * sol.x.back()[0];  // [cm]
-        const double V_last = 4.0 / 3.0 * std::numbers::pi * std::pow(R_last, 3); // [cm^3]
-        const double c_target = sol.x.back()[3+cpar.target_specie];  // [mol/cm^3]
+        const double R_last = sol.x.back()[0];  // [m]
+        const double V_last = 4.0 / 3.0 * std::numbers::pi * std::pow(R_last, 3); // [m^3]
+        const double c_target = sol.x.back()[3+cpar.target_specie];  // [mol/m^3]
 
         n_target_specie = c_target * V_last;  // [mol]
     }
@@ -301,7 +301,7 @@ void SimulationData::postprocess()
         LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Target specie concentration is negative: " + std::to_string(n_target_specie), cpar.ID);
 
 // energy demand [MJ/kg]
-    const double m_target = 1.0e-3 * n_target_specie * par->W[cpar.target_specie];  // [kg]
+    const double m_target = n_target_specie * par->W[cpar.target_specie];  // [kg]
     energy_demand = 1.0e-6 * (dissipated_energy + expansion_work) / m_target;  // [MJ/kg]
 
     if (
