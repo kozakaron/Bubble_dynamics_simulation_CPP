@@ -23,12 +23,14 @@ public:
 #else
 private:
 #endif
+    // dimensionless form
+    double* conc;                       // molar concentration in SI units (length: Parameters::num_species) [mol/m^3]
     // evaporation
-    double C_v_inf;                     // molar heat capacity at constant volume of ambient temperature [erg/mol/K]
+    double C_v_inf;                     // molar heat capacity of water at constant volume of ambient temperature [J/mol/K]
     // thermodynamic
-    double* C_p;                        // molar heat capacities at constant pressure (length: Parameters::num_species)
-    double* H;                          // enthalpies (length: Parameters::num_species)
-    double* S;                          // entropies (length: Parameters::num_species)
+    double* C_p;                        // molar heat capacities at constant pressure (length: Parameters::num_species) [J/mol/K]
+    double* H;                          // enthalpies (length: Parameters::num_species) [J/mol]
+    double* S;                          // entropies (length: Parameters::num_species) [J/mol/K]
     // production rates
     double* M_eff;                      // effective molar masses of third bodies (length: Parameters::num_third_bodies)
     double* ln_k_forward;               // logarithm of forward reaction rates (length: Parameters::num_reactions)
