@@ -651,8 +651,8 @@ def change_CGS_to_SI(A_i, reac_order):
 
     # n = reaction order
     # old: cm^(3n-3) / mol^(n-1) / s
-    # new: m^(3n-3) / kmol^(n-1) / s
-    return A_i * (1.0e-3)**(reac_order - 1)
+    # new: m^(3n-3) / mol^(n-1) / s
+    return A_i * (1.0e-6)**(reac_order - 1)
 
 
 def extract(path, name=''):
@@ -711,7 +711,7 @@ def extract(path, name=''):
     text += f'static constexpr std::pair<const char*, index_t> species[{len(species)}] = ' + '{' + ''.join(['{'+f'"{specie}", {i}'+'}, ' for i, specie in enumerate(species)])[:-2] + '};\n'
     text += f'static constexpr const char *species_names[] = ' + '{' + ''.join(['"'+f'{specie}'+'", ' for specie in species])[:-2] + '};\n'
     text += f'    //                                           ' + (print_array([species[i] for i in range(len(species))], 12)[1:-1]).replace('",', ' ').replace('"', '  ') + '\n'
-    text += f'static constexpr double W[num_species] =        {print_array([round(1.0*w, 12) for w in W], 12, max_len=0)};    // [kg/kmol]\n'
+    text += f'static constexpr double W[num_species] =        {print_array([round(1.0e-3*w, 12) for w in W], 12, max_len=0)};    // [kg/mol]\n'
     text += f'static constexpr double lambdas[num_species] =  {print_array(lambdas, 12, max_len=0)};    // [W/m/K]\n\n'
     
     # NASA polynomials

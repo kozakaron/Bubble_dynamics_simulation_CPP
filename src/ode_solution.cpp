@@ -261,10 +261,10 @@ void SimulationData::postprocess()
 
         const double p_E = cpar.P_amb + 2.0 * cpar.surfactant * par->sigma / cpar.R_E;   // [Pa]
         const double p_gas = cpar.enable_evaporation ? p_E - cpar.P_v : p_E;   // [Pa]
-        const double n_gas = p_gas * V_E / (par->R_kmol * cpar.T_inf);    // [kmol]
+        const double n_gas = p_gas * V_E / (par->R_g * cpar.T_inf);    // [mol]
 
-        const double W_gas0 = cpar.enable_evaporation ? -(cpar.P_v * V_0 + n_gas * par->R_kmol * cpar.T_inf * std::log(V_0)) : -(n_gas * par->R_kmol * cpar.T_inf * std::log(V_0)); // [J]
-        const double W_gasE = cpar.enable_evaporation ? -(cpar.P_v * V_E + n_gas * par->R_kmol * cpar.T_inf * std::log(V_E)) : -(n_gas * par->R_kmol * cpar.T_inf * std::log(V_E)); // [J]
+        const double W_gas0 = cpar.enable_evaporation ? -(cpar.P_v * V_0 + n_gas * par->R_g * cpar.T_inf * std::log(V_0)) : -(n_gas * par->R_g * cpar.T_inf * std::log(V_0)); // [J]
+        const double W_gasE = cpar.enable_evaporation ? -(cpar.P_v * V_E + n_gas * par->R_g * cpar.T_inf * std::log(V_E)) : -(n_gas * par->R_g * cpar.T_inf * std::log(V_E)); // [J]
         const double W_gas = W_gas0 - W_gasE; // [J]
 
         const double W_surface_tension = par->sigma * cpar.surfactant *  4.0 * std::numbers::pi * (R_0*R_0 - cpar.R_E*cpar.R_E); // [J]
