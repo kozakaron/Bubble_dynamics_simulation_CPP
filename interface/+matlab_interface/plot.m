@@ -41,7 +41,7 @@ function plot(data, n, show_cpar)
 
     % Compute molar amounts
     V = 4.0 / 3.0 * R.^3 * pi; % Volume [m^3]
-    n_mol = c .* V; % Molar amounts [mol]
+    n_mol = 1e6 * c.* V; % Molar amounts [mol]
 
     % Plot R and T
     figure;

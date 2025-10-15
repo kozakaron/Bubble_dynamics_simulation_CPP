@@ -25,6 +25,7 @@ OdeFun::OdeFun():
     par(nullptr),
     cpar(),
     num_species(0),
+    conc(nullptr),
     C_p(nullptr),
     H(nullptr),
     S(nullptr),
@@ -44,6 +45,7 @@ OdeFun::~OdeFun()
 
 void OdeFun::delete_memory()
 {
+    if (this->conc != nullptr)           delete[] this->conc;
     if (this->C_p != nullptr)            delete[] this->C_p;
     if (this->H != nullptr)              delete[] this->H;
     if (this->S != nullptr)              delete[] this->S;
@@ -53,6 +55,7 @@ void OdeFun::delete_memory()
     if (this->net_rates != nullptr)      delete[] this->net_rates;
     if (this->omega_dot != nullptr)      delete[] this->omega_dot;
 
+    this->conc = nullptr;
     this->C_p = nullptr;
     this->H = nullptr;
     this->S = nullptr;
@@ -157,6 +160,7 @@ is_success OdeFun::init(const ControlParameters& cpar)
     if (old_par != this->par || this->omega_dot == nullptr)
     {
         this->delete_memory();
+        this->conc          = new double[par->num_species];
         this->C_p           = new double[par->num_species];
         this->H             = new double[par->num_species];
         this->S             = new double[par->num_species];
@@ -247,17 +251,17 @@ is_success OdeFun::initial_conditions(
     x[2] = cpar.T_inf; // T_0 [K]
     for (index_t k = 0; k < par->num_species; ++k)
     {
-        x[3+k] = 0.0;  // c_k_0 [mol/m^3]
+        x[3+k] = 0.0;  // c_k_0 [mol/cm^3]
     }
     x[3+par->num_species] = 0.0;   // dissipated energy [J]
     if (cpar.enable_evaporation && par->index_of_water != par->invalid_index)
     {
-        x[3+par->index_of_water] = c_H2O; // c_H2O_0 [mol/m^3]
+        x[3+par->index_of_water] = 1e-6 * c_H2O; // c_H2O_0 [mol/m^3]
     }
     for (index_t k = 0; k < cpar.num_initial_species; ++k)
     {
         index_t index = cpar.species[k];
-        x[3+index] = cpar.fractions[k] * c_gas;   // c_k_0 [mol/m^3]
+        x[3+index] = 1e-6 * cpar.fractions[k] * c_gas;   // c_k_0 [mol/cm^3]
     }
 
 // Errors
@@ -724,35 +728,32 @@ is_success OdeFun::operator()(
     const double R = x[0];                          // bubble radius [m]
     const double R_dot = x[1];                      // bubble radius derivative [m/s]
     const double T = x[2];                          // temperature [K]
-    const double* conc = x + 3;                     // molar concentrations [mol/m^3]
+    const double* conc_mol_cm3 = x + 3;             // molar concentrations [mol/cm^3]
     double* conc_dot = dxdt + 3;                    // molar concentrations derivative [mol/m^3/s]
     double M = 0.0;                                 // sum of molar concentrations [mol/m^3]
-    double W_avg = 0.0;                             // average molecular weight [g/mol]
     double C_p_avg = 0.0;                           // average molar heat capacity at constant pressure [J/mol/K]
     double lambda_avg = 0.0;                        // average thermal conductivity [W/m/K]
     double sum_omega_dot = 0.0;                     // sum of production rates [mol/m^3/s]
 
     for (index_t k = 0; k < par->num_species; ++k)
     {
-        M += conc[k];
+        this->conc[k] = conc_mol_cm3[k] * 1e6;      // convert from [mol/cm^3] to [mol/m^3]
+        M += this->conc[k];
     }
     for (index_t k = 0; k < par->num_species; ++k)
     {
-        const double X_k = conc[k] / M;
-        W_avg += par->W[k] * X_k;
+        const double X_k = this->conc[k] / M;
         C_p_avg += C_p[k] * X_k;
         lambda_avg += par->lambdas[k] * X_k;
     }
-    const double p = M * par->R_g * T;      // partial pressure of the gases [Pa]
-    const double C_v_avg = C_p_avg - par->R_g;    // average molar heat capacity at constant volume [J/mol/K]
+    const double p = M * par->R_g * T;             // partial pressure of the gases [Pa]
+    const double C_v_avg = C_p_avg - par->R_g;     // average molar heat capacity at constant volume [J/mol/K]
 
 // Heat transfer
     double Q_th_dot = 0.0;
     if (cpar.enable_heat_transfer)
     {
-        //const double rho_avg = W_avg * M;
         const double chi_avg = lambda_avg / (C_p_avg * M);
-        //const double chi_avg = lambda_avg * W_avg / (C_p_avg * rho_avg);
         double l_th = std::numeric_limits<double>::max();
         if (R_dot != 0.0)
         {
@@ -768,7 +769,7 @@ is_success OdeFun::operator()(
 // d/dt conc
     if (cpar.enable_reactions)
     {
-        this->production_rate(T, M, p, conc);   // set omega_dot
+        this->production_rate(T, M, p, this->conc);   // set omega_dot
     }
     else
     {
@@ -776,7 +777,7 @@ is_success OdeFun::operator()(
     }
     for (index_t k = 0; k < par->num_species; ++k)
     {
-        conc_dot[k] = this->omega_dot[k] - conc[k] * 3.0 * R_dot / R;
+        conc_dot[k] = this->omega_dot[k] - this->conc[k] * 3.0 * R_dot / R;
         sum_omega_dot += this->omega_dot[k];
     }
 
@@ -821,6 +822,12 @@ is_success OdeFun::operator()(
         dxdt[par->num_species+3] = integrand_th + integrand_v + integrand_r;
     } else {
         dxdt[par->num_species+3] = 0.0;
+    }
+
+// Convert units
+    for (index_t k = 0; k < par->num_species; ++k)
+    {
+        conc_dot[k] *= 1e-6; // convert from [mol/m^3/s] to [mol/cm^3/s]
     }
 
     if (!this->check_after_call(t, x, dxdt))
