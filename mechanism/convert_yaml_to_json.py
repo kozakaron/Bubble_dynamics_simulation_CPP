@@ -22,6 +22,38 @@ white =     '\033[97m'
 bold =      '\033[1m'
 italic =    '\033[3m'
 
+# thermal conductivity [W/m/K]
+lambdas_dict = dict(
+    HE=0.151,
+    NE=0.0491,
+    AR=0.0177,
+    KR=0.00943,
+    H2=0.1805,
+    O2=0.02658,
+    H2O=0.016,
+    H2O2=0.5863,
+    O3=0.019854,
+    CO=0.024,
+    CO2=0.01663,
+    CH3=0.0156,
+    CH4=0.03281,
+    C2H4=0.020,
+    C2H5=0.019,
+    C2H6=0.018,
+    C3H4=0.015,
+    C3H5=0.018,
+    C3H6=0.017,
+    C3H7=0.016,
+    C3H8=0.01674,
+    CH2O=0.0165,
+    C2OH=0.015,
+    C3OH=0.01407,
+    CH3OH=0.018,
+    N2=0.02583,
+    NH3=0.00244,
+    NO2=0.00988,
+)
+
 def log(message: str, level: str = 'error'):
     """
     Log messages to terminal with color coding based on severity level.
@@ -57,9 +89,9 @@ def print_element(element, width=0):
      * width: number of characters per element (for alignment)
     """
 
-    if element == None: element = 'null'
-    if type(element) == str: element = f'"{element}"'
-    if type(element) == bool: element = 'true' if element else 'false'
+    if element is None: element = 'null'
+    if isinstance(element, str): element = f'"{element}"'
+    if isinstance(element, bool): element = 'true' if element else 'false'
     element = str(element)
     return f'{element: >{width}}'
 
@@ -77,7 +109,7 @@ def print_1D_array(array, width=0, remark='', max_len=0, comma=False):
     max_len = max_len if max_len > 0 else max(len(array), 1)
     multi_line = True if max_len < len(array) else False
     array = [
-        print_element(element, width) if type(element) is not list else print_1D_array(element, width)
+        print_element(element, width) if not isinstance(element, list) else print_1D_array(element, width)
         for element in array
     ]
     lines = [', '.join(array[i:i+max_len]) for i in range(0, len(array), max_len)]
@@ -189,19 +221,23 @@ if __name__ == '__main__':
 
 # SPECIES
 
+        lambdas = [lambdas_dict.get(species, 0.0) for species in mechanism.species_names]
+
         species_text = f'''"num_elements": {mechanism.n_elements},
 "num_species": {mechanism.n_species},
 "index_of_water": {mechanism.species_index('H2O') if 'H2O' in mechanism.species_names else invalid_index},
 "invalid_index": {invalid_index},
 "element_names": {print_1D_array(mechanism.element_names, width=5, max_len=10, comma=True)}
-              {remark(print_1D_array(list(range(mechanism.n_species)), width=10))}
-"species_names": {print_1D_array(mechanism.species_names, width=10, comma=True)}
-"molar_weights": {print_1D_array([round(1e-3*sp.molecular_weight, 8) for sp in mechanism.species()], width=10, remark='[kg/mol]', comma=False)}
+                       {remark(print_1D_array(list(range(mechanism.n_species)), width=10))}
+"species_names":          {print_1D_array(mechanism.species_names, width=10, comma=True)}
+"molar_weights":          {print_1D_array([round(1e-3*sp.molecular_weight, 8) for sp in mechanism.species()], width=10, remark='[kg/mol]', comma=True)}
+"thermal_conductivities": {print_1D_array(lambdas, width=10, remark='[W/m/K]', comma=False)}
 '''
 
 
 # NASA7 POLYNOMIALS
 
+        species_comments = [f'{idx: >3}. {species}' for idx, species in enumerate(mechanism.species_names)]
         thermo_list = [species.thermo for species in mechanism.species()]
         for species, th in zip(mechanism.species(), thermo_list):
             if th.n_coeffs != 15:
@@ -209,15 +245,15 @@ if __name__ == '__main__':
 
         nasa7_text = f'''"temp_ranges": {print_2D_array(
     [[th.min_temp, th.coeffs[0], th.max_temp] for th in thermo_list],
-    width=8, lines=mechanism.species_names, columns1=["T_low", "T_mid", "T_high"], columns2=["[K]", "[K]", "[K]"]
+    width=8, lines=species_comments, columns1=["T_low", "T_mid", "T_high"], columns2=["[K]", "[K]", "[K]"]
 )},
 "a_low": {print_2D_array(
     [th.coeffs[8:15] for th in thermo_list],
-    width=16, lines=mechanism.species_names, columns1=[f"a_{i}" for i in range(7)]
+    width=16, lines=species_comments, columns1=[f"a_{i}" for i in range(7)]
 )},
 "a_high": {print_2D_array(
     [th.coeffs[1:8] for th in thermo_list],
-    width=16, lines=mechanism.species_names, columns1=[f"a_{i}" for i in range(7)]
+    width=16, lines=species_comments, columns1=[f"a_{i}" for i in range(7)]
 )}'''
 
 
@@ -417,5 +453,7 @@ if __name__ == '__main__':
 }}
 }}'''
 
+        if not os.path.exists(json_dir):
+            os.makedirs(json_dir)
         with open(json_path, 'w') as json_file:
             json_file.write(json_text)
