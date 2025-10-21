@@ -19,7 +19,7 @@ public:
     static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alfa_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,target_specie,excitation_params,excitation_type";
 // Members
     size_t ID;                          // ID of control parameter
-    Parameters::mechanism mechanism;    // rection mechanism
+    std::string mechanism;              // reaction mechanism
     size_t error_ID;                    // ID of error in ErrorHandler (ErrorHandler::no_error if no error occured)
     // Initial conditions:
     double R_E;                         // bubble equilibrium radius [m]
@@ -50,14 +50,14 @@ public:
 // Builder struct, defaults
     /* Usage in initialization: ControlParameters cpar{ControlParameters::Builder{
         .ID = 1,
-        .mechanism = Parameters::mechanism::chemkin_ar_he,
+        .mechanism = "chemkin_ar_he",
         ...
     }};
     */
     struct Builder {
         size_t ID                               = 0;
         size_t error_ID                         = ErrorHandler::no_error;
-        Parameters::mechanism mechanism         = Parameters::mechanism::chemkin_ar_he;
+        std::string mechanism                   = "chemkin_ar_he";
         double R_E                              = 10.0e-6;
         double ratio                            = 1.0;
         std::vector<std::string> species        = {"O2"};

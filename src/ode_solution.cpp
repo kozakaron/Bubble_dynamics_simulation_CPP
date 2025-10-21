@@ -301,7 +301,7 @@ void SimulationData::postprocess()
         LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Target specie concentration is negative: " + std::to_string(n_target_specie), cpar.ID);
 
 // energy demand [MJ/kg]
-    const double m_target = n_target_specie * par->W[cpar.target_specie];  // [kg]
+    const double m_target = n_target_specie * par->molar_weights[cpar.target_specie];  // [kg]
     energy_demand = 1.0e-6 * (dissipated_energy + expansion_work) / m_target;  // [MJ/kg]
 
     if (
@@ -494,7 +494,7 @@ nlohmann::ordered_json SimulationData::to_json() const
     const Parameters* par = Parameters::get_parameters(this->cpar.mechanism);
     if (par == nullptr)
     {
-        LOG_ERROR("Mechanism " + std::to_string(this->cpar.mechanism) + " is not found.");
+        LOG_ERROR("Mechanism " + this->cpar.mechanism + " is not found.");
         return j;
     }
     j["mechanism"] = nlohmann::ordered_json::object({

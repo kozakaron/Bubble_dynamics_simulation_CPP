@@ -265,17 +265,17 @@ if __name__ == '__main__':
             [get_arrhenius_parameters(reaction, order), order] for reaction, order in zip(mechanism.reactions(), reaction_orders)
         ]
         reaction_participants = [set(reaction.products.keys()).union(set(reaction.reactants.keys())) for reaction in mechanism.reactions()]
-        num_max_specie_per_reaction = max(len(participants) for participants in reaction_participants)
+        num_max_species_per_reaction = max(len(participants) for participants in reaction_participants)
 
         reaction_participant_indexes = [
             [mechanism.species_index(species) for species in participants] +        # indexes of species participating in the reaction
-            [invalid_index] * (num_max_specie_per_reaction - len(participants))     # padding with invalid_index
+            [invalid_index] * (num_max_species_per_reaction - len(participants))     # padding with invalid_index
             for participants in reaction_participants
         ]
         for participants in reaction_participant_indexes: participants.sort()
 
-        nu_forward = [[0]*num_max_specie_per_reaction for _ in range(len(mechanism.reactions()))]
-        nu_backward = [[0]*num_max_specie_per_reaction for _ in range(len(mechanism.reactions()))]
+        nu_forward = [[0]*num_max_species_per_reaction for _ in range(len(mechanism.reactions()))]
+        nu_backward = [[0]*num_max_species_per_reaction for _ in range(len(mechanism.reactions()))]
         for idx, reaction in enumerate(mechanism.reactions()):
             for species, coeff in reaction.reactants.items():
                 species_index = mechanism.species_index(species)
@@ -285,10 +285,11 @@ if __name__ == '__main__':
                 species_index = mechanism.species_index(species)
                 compression_index = reaction_participant_indexes[idx].index(species_index)
                 nu_backward[idx][compression_index] += int(coeff)
-        nu = [[nu_backward[i][j] - nu_forward[i][j] for j in range(num_max_specie_per_reaction)] for i in range(len(mechanism.reactions()))]
-        nu_comment_padding = [''] * (num_max_specie_per_reaction - 2)
+        nu = [[nu_backward[i][j] - nu_forward[i][j] for j in range(num_max_species_per_reaction)] for i in range(len(mechanism.reactions()))]
+        nu_comment_padding = [''] * (num_max_species_per_reaction - 2)
 
         arrhenius_text = f'''"num_reactions": {mechanism.n_reactions},
+"num_max_species_per_reaction": {num_max_species_per_reaction},
 "arrhenius_params_with_orders": {print_2D_array(
     arrhenius_params_with_orders, width=22, lines=reaction_comments, columns1=["ln(A)", "b", "E/R", "order (n)"], columns2=["[m^(3n-3)/mol^(n-1)/s]", "[-]", "[K]", "[-]"]
 )},
