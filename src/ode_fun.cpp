@@ -148,7 +148,7 @@ is_success OdeFun::init(const ControlParameters& cpar)
     this->par = Parameters::get_parameters(cpar.mechanism);
     if (this->par == nullptr)
     {
-        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Invalid mechanism: " + std::to_string(cpar.mechanism), this->cpar.ID);
+        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Invalid mechanism: " + cpar.mechanism, this->cpar.ID);
         return false;
     }
     this->num_species = this->par->num_species;
@@ -164,7 +164,7 @@ is_success OdeFun::init(const ControlParameters& cpar)
         this->C_p           = new double[par->num_species];
         this->H             = new double[par->num_species];
         this->S             = new double[par->num_species];
-        this->M_eff         = new double[par->num_third_bodies];
+        this->M_eff         = new double[par->num_third_body_reactions];
         this->ln_k_forward  = new double[par->num_reactions];
         this->ln_k_backward = new double[par->num_reactions];
         this->net_rates     = new double[par->num_reactions];
@@ -187,9 +187,9 @@ is_success OdeFun::init(const ControlParameters& cpar)
     }
 
     // calculate C_v_inf for water
-    const double& T_high = par->temp_range[3*par->index_of_water+1];
-    const double& T_mid = par->temp_range[3*par->index_of_water+2];
-
+    const double& T_mid = par->temp_ranges[3*par->index_of_water+1];
+    const double& T_high = par->temp_ranges[3*par->index_of_water+2];
+    
     if (this->cpar.T_inf < T_high)
     {
     // get NASA coefficients: a={a1, a2, a3, a4, a5, a6, a7}
@@ -368,9 +368,9 @@ void OdeFun::thermodynamic(
 {
     for (index_t k = 0; k < par->num_species; ++k)
     {
-        const double& T_low = par->temp_range[3*k];
-        const double& T_high = par->temp_range[3*k+1];
-        const double& T_mid = par->temp_range[3*k+2];
+        const double& T_low = par->temp_ranges[3*k];
+        const double& T_mid = par->temp_ranges[3*k+1];
+        const double& T_high = par->temp_ranges[3*k+2];
         (void)T_low;
 
         if (T < T_high)
@@ -421,8 +421,8 @@ std::pair<double, double> OdeFun::evaporation(
 {
 // condensation and evaporation
     const double p_H2O = p * X_H2O;
-    const double n_eva_dot = cpar.alfa_M * cpar.P_v / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * cpar.T_inf));
-    const double n_con_dot = cpar.alfa_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
+    const double n_eva_dot = cpar.alfa_M * cpar.P_v / (par->molar_weights[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * cpar.T_inf));
+    const double n_con_dot = cpar.alfa_M * p_H2O    / (par->molar_weights[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
     const double n_net_dot = n_eva_dot - n_con_dot;
 // Evaporation energy [J/mol]
     const double& C_v = this->C_p[par->index_of_water] - par->R_g; // Molar heat capacity of water at constant volume (isochoric) [J/mol/K]
@@ -450,7 +450,7 @@ void OdeFun::forward_rate(
 
 // Pressure dependent reactions
     index_t troe_index=0, sri_index=0;
-    for(index_t j = 0; j < par->num_pressure_dependent; ++j)
+    for(index_t j = 0; j < par->num_falloff_reactions; ++j)
     {
     // Third body reactions
         double M_eff_loc = M;
@@ -461,11 +461,11 @@ void OdeFun::forward_rate(
         }
         
     // Pressure dependent formalisms
-        index_t index = par->pressure_dependent_indexes[j];
-        const double *reac_const = &(par->reac_const[j*3]);
-        const double &ln_A0 = reac_const[0];
-        const double &b_0 = reac_const[1];
-        const double &E0_over_R = reac_const[2];
+        index_t index = par->falloff_reaction_indexes[j];
+        const double *falloff_parameters = &(par->falloff_parameters[j*3]);
+        const double &ln_A0     = falloff_parameters[0];
+        const double &b_0       = falloff_parameters[1];
+        const double &E0_over_R = falloff_parameters[2];
 
         const double ln_k_inf = this->ln_k_forward[index];
         const double ln_k_0 = ln_A0 + b_0 * logT - E0_over_R / T;
@@ -483,11 +483,11 @@ void OdeFun::forward_rate(
             }
         case Parameters::reac_type::troe_reac:
             {
-                const double *troe = &(par->troe[troe_index*4]);
-                const double &alfa  = troe[0];
-                const double &T_xxx = troe[1];  // T***
-                const double &T_x   = troe[2];  // T*
-                const double &T_xx  = troe[3];  // T**
+                const double *troe_parameters = &(par->troe_parameters[troe_index*4]);
+                const double &alfa  = troe_parameters[0];
+                const double &T_xxx = troe_parameters[1];  // T***
+                const double &T_x   = troe_parameters[2];  // T*
+                const double &T_xx  = troe_parameters[3];  // T**
 
                 constexpr double small_num = 1.0e-30;
                 constexpr double large_num = 1.0e30;
@@ -509,12 +509,12 @@ void OdeFun::forward_rate(
             }
         case Parameters::reac_type::sri_reac:   // TODO: We don't have any SRI reactions in the current mechanisms
             {
-                const double *sri = &(par->sri[sri_index*5]);
-                const double &a = sri[0];
-                const double &b = sri[1];
-                const double &c = sri[2];
-                const double &d = sri[3];
-                const double &e = sri[4];
+                const double *sri_parameters = &(par->sri_parameters[sri_index*5]);
+                const double &a = sri_parameters[0];
+                const double &b = sri_parameters[1];
+                const double &c = sri_parameters[2];
+                const double &d = sri_parameters[3];
+                const double &e = sri_parameters[4];
 
                 const double X = 1.0 / (1.0 + log10_Pr * log10_Pr);
                 const double F = d * std::pow(a * std::exp(-b / T) + std::exp(-T / c), X) * std::pow(T, e);
@@ -530,39 +530,39 @@ void OdeFun::forward_rate(
     } // pressure dependent reactions end
 
 // PLOG reactions
-    for(index_t j = 0; j < par->num_plog; ++j)
+    for(index_t j = 0; j < par->num_plog_reactions; ++j)
     {
-        index_t index = par->plog_indexes[j];
+        index_t index = par->plog_reaction_indexes[j];
         // determne indexes of the lower and upper pressures
         index_t lower = par->plog_seperators[j];
         for (index_t k = par->plog_seperators[j] + 1; k < par->plog_seperators[j+1] - 1; ++k)
         {
-            const double &P_j = par->plog[k*4+0];
+            const double &P_j = par->plog_parameters[k*4+0];
             if (P_j < p)
                 lower = k;
             else
                 break;
         }
         index_t upper = lower + 1;
-        const double &P_lower        = par->plog[lower*4+0];
-        const double &P_upper        = par->plog[upper*4+0];
-        const double &ln_A_lower     = par->plog[lower*4+1];
-        const double &ln_A_upper     = par->plog[upper*4+1];
-        const double &b_lower        = par->plog[lower*4+2];
-        const double &b_upper        = par->plog[upper*4+2];
-        const double &E_lower_over_R = par->plog[lower*4+3];
-        const double &E_upper_over_R = par->plog[upper*4+3];
+        const double &P_lower        = par->plog_parameters[lower*4+0];
+        const double &P_upper        = par->plog_parameters[upper*4+0];
+        const double &ln_A_lower     = par->plog_parameters[lower*4+1];
+        const double &ln_A_upper     = par->plog_parameters[upper*4+1];
+        const double &b_lower        = par->plog_parameters[lower*4+2];
+        const double &b_upper        = par->plog_parameters[upper*4+2];
+        const double &E_lower_over_R = par->plog_parameters[lower*4+3];
+        const double &E_upper_over_R = par->plog_parameters[upper*4+3];
 
         // reaction rates at the lower and upper pressures
         const double ln_k_lower = ln_A_lower + b_lower * logT - E_lower_over_R / T;
         const double ln_k_upper = ln_A_upper + b_upper * logT - E_upper_over_R / T;
 
         // interpolation
-        if (p < par->plog[par->plog_seperators[j]*4+0])    // p < smallest pressure level
+        if (p < par->plog_parameters[par->plog_seperators[j]*4+0])    // p < smallest pressure level
         {
             this->ln_k_forward[index] = ln_k_lower;
         }
-        else if (par->plog[(par->plog_seperators[j+1]-1)*4+0] < p)    // p > largest pressure level
+        else if (par->plog_parameters[(par->plog_seperators[j+1]-1)*4+0] < p)    // p > largest pressure level
         {
             this->ln_k_forward[index] = ln_k_upper;
         }
@@ -593,7 +593,7 @@ void OdeFun::backward_rate(
     {
         // Equilibrium constants (K_c)
         double Delta_S = 0.0, Delta_H = 0.0;
-        for (index_t k = index * par->num_max_specie_per_reaction; k < (index + 1) * par->num_max_specie_per_reaction; ++k)
+        for (index_t k = index * par->num_max_species_per_reaction; k < (index + 1) * par->num_max_species_per_reaction; ++k)
         {
             index_t nu_index = par->nu_indexes[k];
             if (nu_index == par->invalid_index) break;
@@ -618,9 +618,9 @@ void OdeFun::backward_rate(
     }
 
     // Irreversible reactions
-    for(index_t j = 0; j < par->num_irreversible; ++j)
+    for(index_t j = 0; j < par->num_irreversible_reactions; ++j)
     {
-        index_t index = par->irreversible_indexes[j];
+        index_t index = par->irreversible_reaction_indexes[j];
         this->ln_k_backward[index] = -1e300;
     }
 }
@@ -654,12 +654,12 @@ void OdeFun::production_rate(
 ) //noexcept
 {
 // Third body correction factors
-    for (index_t j = 0; j < par->num_third_bodies; ++j)
+    for (index_t j = 0; j < par->num_third_body_reactions; ++j)
     {
         double M_eff_j = 0.0;
         for (index_t k = 0; k < par->num_species; ++k)
         {
-            M_eff_j += par->alfa[j*par->num_species+k] * conc[k];
+            M_eff_j += par->third_body_efficiencies[j*par->num_species+k] * conc[k];
         }
         this->M_eff[j] = M_eff_j;
     }
@@ -673,7 +673,7 @@ void OdeFun::production_rate(
     {
         double forward = 1.0;
         double backward = 1.0;
-        for (index_t k = index * par->num_max_specie_per_reaction; k < (index + 1) * par->num_max_specie_per_reaction; ++k)
+        for (index_t k = index * par->num_max_species_per_reaction; k < (index + 1) * par->num_max_species_per_reaction; ++k)
         {
             index_t nu_index = par->nu_indexes[k];
             if (nu_index == par->invalid_index) break;
@@ -686,11 +686,11 @@ void OdeFun::production_rate(
         this->net_rates[index] = k_forward * forward - k_backward * backward;
     }
 // Third body reaction rates
-    for (index_t j = 0; j < par->num_third_bodies; ++j)
+    for (index_t j = 0; j < par->num_third_body_reactions; ++j)
     {
-        if (!par->is_pressure_dependent[j])
+        if (!par->is_falloff_reaction[j])
         {
-            index_t index = par->third_body_indexes[j];
+            index_t index = par->third_body_reaction_indexes[j];
             this->net_rates[index] *= this->M_eff[j];
         }
     }
@@ -702,7 +702,7 @@ void OdeFun::production_rate(
 
    for (index_t index = 0; index < par->num_reactions; ++index)
    {
-        for (index_t k = index * par->num_max_specie_per_reaction; k < (index + 1) * par->num_max_specie_per_reaction; ++k)
+        for (index_t k = index * par->num_max_species_per_reaction; k < (index + 1) * par->num_max_species_per_reaction; ++k)
         {
             index_t nu_index = par->nu_indexes[k];
             if (nu_index == par->invalid_index) break;
@@ -744,7 +744,7 @@ is_success OdeFun::operator()(
     {
         const double X_k = this->conc[k] / M;
         C_p_avg += C_p[k] * X_k;
-        lambda_avg += par->lambdas[k] * X_k;
+        lambda_avg += par->thermal_conductivities[k] * X_k;
     }
     const double p = M * par->R_g * T;             // partial pressure of the gases [Pa]
     const double C_v_avg = C_p_avg - par->R_g;     // average molar heat capacity at constant volume [J/mol/K]

@@ -3,6 +3,7 @@
 #include <fstream>
 #include <numeric>
 #include <iomanip>
+#include <stdint.h>
 
 #include "nlohmann/json.hpp"
 #include "common.h"
@@ -28,30 +29,91 @@ ControlParameters::ControlParameters(const Builder& builder)
 template<typename T>
 T get_value(const ordered_json& j, const std::string& key, const T& default_value)
 {
-    if constexpr (std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<std::string>>)
+    constexpr bool is_floating_point = std::is_same_v<T, double> || std::is_same_v<T, float>;
+    constexpr bool is_integer = std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
+                                std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t>;
+    constexpr bool is_string = std::is_same_v<T, std::string>;
+    constexpr bool is_bool = std::is_same_v<T, bool>;
+    constexpr bool is_float_vector = std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<float>>;
+    constexpr bool is_string_vector = std::is_same_v<T, std::vector<std::string>>;
+
+    // check existence
+    if (!j.contains(key))
     {
-        if (j.contains(key) && !j.at(key).is_array())
+        LOG_ERROR(
+            Error::severity::warning, Error::type::preprocess,
+            "Key \"" + key + "\" not found in JSON object. Using default value. ");
+        return default_value;
+    }
+
+    // check type
+    if (is_floating_point && !j.at(key).is_number_float())
+    {
+        LOG_ERROR(
+            Error::severity::warning, Error::type::preprocess,
+            "Expected floating point number for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+        );
+        return default_value;
+    }
+    else if (is_integer && !j.at(key).is_number_integer())
+    {
+        LOG_ERROR(
+            Error::severity::warning, Error::type::preprocess,
+            "Expected integer number for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+        );
+        return default_value;
+    }
+    else if (is_string && !j.at(key).is_string())
+    {
+        LOG_ERROR(
+            Error::severity::warning, Error::type::preprocess,
+            "Expected string for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+        );
+        return default_value;
+    }
+    else if (is_bool && !j.at(key).is_boolean())
+    {
+        LOG_ERROR(
+            Error::severity::warning, Error::type::preprocess,
+            "Expected boolean for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+        );
+        return default_value;
+    }
+    else if ((is_float_vector || is_string_vector) && !j.at(key).is_array())
+    {
+        LOG_ERROR(
+            Error::severity::warning, Error::type::preprocess,
+            "Expected JSON array for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+        );
+        return default_value;
+    }
+
+    // check element types for vectors
+    if (is_float_vector || is_string_vector)
+    {
+        for (const auto& element : j.at(key))
         {
-            LOG_ERROR(
-                Error::severity::warning,
-                Error::type::preprocess,
-                "Expected JSON array for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
-            );
-            return default_value;
+            if (is_float_vector && !element.is_number_float())
+            {
+                LOG_ERROR(
+                    Error::severity::warning, Error::type::preprocess,
+                    "Expected floating point number in array for key \"" + key + "\", instead found " + element.dump() + ". Using default value."
+                );
+                return default_value;
+            }
+            else if (is_string_vector && !element.is_string())
+            {
+                LOG_ERROR(
+                    Error::severity::warning, Error::type::preprocess,
+                    "Expected string in array for key \"" + key + "\", instead found " + element.dump() + ". Using default value."
+                );
+                return default_value;
+            }
         }
     }
 
-    if (j.contains(key))
-    {
-        return j.at(key).get<T>();
-    }
-
-    LOG_ERROR(
-        Error::severity::warning,
-        Error::type::preprocess,
-        "Key \"" + key + "\" not found in JSON object. Using default value. "
-    );
-    return default_value;
+    // get element
+    return j.at(key).get<T>();
 }
 
 
@@ -61,9 +123,7 @@ ControlParameters::ControlParameters(const ordered_json& j)
     try
     {
         builder.ID =                        get_value<size_t>                   (j, "ID",                       builder.ID);
-        builder.mechanism = Parameters::string_to_mechanism(
-                                            get_value<std::string>              (j, "mechanism",                Parameters::mechanism_names.at(builder.mechanism))
-        );
+        builder.mechanism =                 get_value<std::string>              (j, "mechanism",                builder.mechanism);
         builder.R_E =                       get_value<double>                   (j, "R_E",                      builder.R_E);
         builder.ratio =                     get_value<double>                   (j, "ratio",                    builder.ratio);
         builder.species =                   get_value<std::vector<std::string>> (j, "species",                  builder.species);
@@ -153,7 +213,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     const Parameters* par = Parameters::get_parameters(builder.mechanism);
     if (par == nullptr)
     {
-        std::string message = "Invalid mechanism: " + std::to_string(builder.mechanism);
+        std::string message = "Invalid mechanism: " + builder.mechanism;
         this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, builder.ID);
         return;
     }
@@ -197,7 +257,7 @@ void ControlParameters::set_species(const std::vector<std::string> species_list,
     const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
     {
-        std::string message = "Invalid mechanism: " + std::to_string(this->mechanism);
+        std::string message = "Invalid mechanism: " + this->mechanism;
         this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
         return;
     }
@@ -230,7 +290,7 @@ void ControlParameters::set_species(const std::vector<index_t>& species_list, co
     const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
     {
-        std::string message = "Invalid mechanism: " + std::to_string(this->mechanism);
+        std::string message = "Invalid mechanism: " + this->mechanism;
         this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
         return;
     }
@@ -355,7 +415,7 @@ std::string ControlParameters::to_string(const bool with_code) const
     const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
     {
-        LOG_ERROR(Error::severity::error, Error::type::preprocess, "Invalid mechanism: " + std::to_string((int)this->mechanism), this->ID);
+        LOG_ERROR(Error::severity::error, Error::type::preprocess, "Invalid mechanism: " + this->mechanism, this->ID);
         return "";
     }
 
@@ -379,7 +439,7 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << std::left;
     
     ss << format_string << ".ID"                         << " = " << this->ID << ",\n";
-    ss << format_string << ".mechanism"                  << " = " << (with_code ? "Parameters::mechanism::" : "") << par->model << ",\n";
+    ss << format_string << ".mechanism"                  << " = " << "\"" << this->mechanism << "\",\n";
     ss << format_string << ".R_E"                        << " = " << format_double << this->R_E                       << ",    // bubble equilibrium radius [m]\n";
     ss << format_string << ".ratio"                      << " = " << format_double << this->ratio                     << ",    // R_0/R_E for unforced oscillations [-]\n";
     ss << format_string << ".species"                    << " = " << ::to_string((std::string*)species_names.data(), this->num_initial_species)   << ",\n";
@@ -412,7 +472,7 @@ ordered_json ControlParameters::to_json() const
     const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
     {
-        LOG_ERROR("Invalid mechanism: " + std::to_string((int)this->mechanism), this->ID);
+        LOG_ERROR("Invalid mechanism: " + this->mechanism, this->ID);
         return j;
     }
     std::vector<std::string> species_names;
@@ -427,7 +487,7 @@ ordered_json ControlParameters::to_json() const
     }
 
     j["ID"] = this->ID;
-    j["mechanism"] = Parameters::mechanism_names.at(this->mechanism);
+    j["mechanism"] = this->mechanism;
     j["R_E"] = this->R_E;
     j["ratio"] = this->ratio;
     j["species"] = species_names;

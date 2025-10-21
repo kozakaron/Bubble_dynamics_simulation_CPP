@@ -480,9 +480,7 @@ void ParameterCombinator::init(const ordered_json& j)
     auto builder = ParameterCombinator::Builder{};
     try
     {
-        builder.mechanism = Parameters::string_to_mechanism(
-                                            get_value<std::string>              (j, "mechanism",                Parameters::mechanism_names.at(builder.mechanism))
-        );
+        builder.mechanism =                 get_value<std::string>              (j, "mechanism",                builder.mechanism);
         builder.R_E =                       get_range                           (j, "R_E",                      builder.R_E);
         builder.ratio =                     get_range                           (j, "ratio",                    builder.ratio);
         builder.species =                   get_value<std::vector<std::string>> (j, "species",                  builder.species);
@@ -676,7 +674,7 @@ ordered_json ParameterCombinator::to_json() const
 {
     ordered_json j;
 
-    j["mechanism"] = Parameters::mechanism_names.at(this->mechanism);
+    j["mechanism"] = this->mechanism;
     j["R_E"] = this->R_E->to_json();
     j["ratio"] = this->ratio->to_json();
     j["species"] = this->species;
@@ -776,7 +774,7 @@ const Parameters* ParameterCombinator::get_mechanism_parameters() const
     const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
     {
-        LOG_ERROR("Mechanism " + std::to_string(this->mechanism) + " is not found.");
+        LOG_ERROR("Mechanism " + this->mechanism + " is not found.");
     }
     return par;
 }

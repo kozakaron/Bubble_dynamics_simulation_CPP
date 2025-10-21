@@ -32,7 +32,7 @@ private:
     double* H;                          // enthalpies (length: Parameters::num_species) [J/mol]
     double* S;                          // entropies (length: Parameters::num_species) [J/mol/K]
     // production rates
-    double* M_eff;                      // effective molar masses of third bodies (length: Parameters::num_third_bodies)
+    double* M_eff;                      // effective molar masses of third bodies (length: Parameters::num_third_body_reactions)
     double* ln_k_forward;               // logarithm of forward reaction rates (length: Parameters::num_reactions)
     double* ln_k_backward;              // logarithm of backward reaction rates (length: Parameters::num_reactions)
     double* net_rates;                  // net reaction rates (length: Parameters::num_reactions)

@@ -105,7 +105,7 @@ ParameterStudy::ParameterStudy(
             {"t_max", t_max},
             {"timeout", timeout},
             {"max_threads", std::thread::hardware_concurrency()},
-            {"mechanism", Parameters::mechanism_names.at(parameter_combinator.mechanism)},
+            {"mechanism", parameter_combinator.mechanism},
             {"number_of_species", parameter_combinator.get_mechanism_parameters()->num_species},
             {"number_of_reactions", parameter_combinator.get_mechanism_parameters()->num_reactions},
             {"species", ::to_string((std::string*)parameter_combinator.get_mechanism_parameters()->species_names.data(), parameter_combinator.get_mechanism_parameters()->num_species)}

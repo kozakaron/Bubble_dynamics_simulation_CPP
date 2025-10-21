@@ -173,6 +173,7 @@
 },
 "arrhenius_parameters": {
     "num_reactions": 251,
+    "num_max_species_per_reaction": 5,
     "arrhenius_params_with_orders": [
         //                 ln(A)                       b                     E/R               order (n)
         //[m^(3n-3)/mol^(n-1)/s]                     [-]                     [K]                     [-]

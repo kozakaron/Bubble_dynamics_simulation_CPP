@@ -95,7 +95,7 @@ private:
     std::atomic<size_t> combination_ID;
     size_t total_combination_count;
 
-    Parameters::mechanism mechanism;
+    std::string mechanism;
     std::unique_ptr<Range> R_E;
     std::unique_ptr<Range> ratio;
     std::vector<std::string> species;
@@ -118,7 +118,7 @@ private:
 public:
     typedef std::variant<Const, LinearRange, LogRange, GeomRange> AnyRange;
     struct Builder {
-        Parameters::mechanism mechanism         = Parameters::mechanism::chemkin_ar_he;
+        std::string mechanism                   = "chemkin_ar_he";
         AnyRange R_E                            = Const(10.0e-6);
         AnyRange ratio                          = Const(1.0);
         std::vector<std::string> species        = {"O2"};
