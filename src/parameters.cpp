@@ -47,6 +47,82 @@ void compute_interval_values_and_derivatives(
 }
 
 
+// Helper function to check if key and subkey exist in JSON
+bool check_key_exists(
+    const nlohmann::ordered_json& j,
+    const std::string& main_key,
+    const std::string& sub_key=""
+)
+{
+    if (!j.contains(main_key))
+    {
+        LOG_ERROR(
+            Error::severity::warning, Error::type::preprocess,
+            "Key \"" + main_key + "\" not found in JSON object. ");
+        return false;
+    }
+
+    if (!sub_key.empty() && !j.at(main_key).contains(sub_key))
+    {
+        LOG_ERROR(
+            Error::severity::warning, Error::type::preprocess,
+            "Subkey \"" + sub_key + "\" under key \"" + main_key + "\" not found in JSON object. ");
+        return false;
+    }
+
+    return true;
+}
+
+
+// Helper function to check if key type matches expected type (for scalars and 1D vectors)
+template<typename T>
+bool check_key_type(const nlohmann::ordered_json& target)
+{
+    constexpr bool is_floating_point = std::is_same_v<T, double> || std::is_same_v<T, float>;
+    constexpr bool is_integer = std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
+                                std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t>;
+    constexpr bool is_string = std::is_same_v<T, std::string>;
+    constexpr bool is_bool = std::is_same_v<T, bool>;
+    constexpr bool is_int_vector = std::is_same_v<T, std::vector<int8_t>> || std::is_same_v<T, std::vector<int16_t>> || std::is_same_v<T, std::vector<int32_t>> || std::is_same_v<T, std::vector<int64_t>> ||
+                                   std::is_same_v<T, std::vector<uint8_t>> || std::is_same_v<T, std::vector<uint16_t>> || std::is_same_v<T, std::vector<uint32_t>> || std::is_same_v<T, std::vector<uint64_t>>;
+    constexpr bool is_float_vector = std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<float>>;
+    constexpr bool is_string_vector = std::is_same_v<T, std::vector<std::string>>;
+    constexpr bool is_bool_vector = std::is_same_v<T, std::vector<bool>>;
+    constexpr bool is_vector = is_int_vector || is_float_vector || is_string_vector || is_bool_vector;
+
+    std::string message = "";
+    if (is_floating_point && !target.is_number_float())
+    {
+        message = "Expected floating point number for key, instead found " + target.dump() + ". Using default value.";
+    }
+    else if (is_integer && !target.is_number_integer())
+    {
+        message = "Expected integer number for key, instead found " + target.dump() + ". Using default value.";
+    }
+    else if (is_string && !target.is_string())
+    {
+        message = "Expected string for key, instead found " + target.dump() + ". Using default value.";
+    }
+    else if (is_bool && !target.is_boolean())
+    {
+        message = "Expected boolean for key, instead found " + target.dump() + ". Using default value.";
+    }
+    else if (is_vector && !target.is_array())
+    {
+        message = "Expected JSON array for key, instead found " + target.dump() + ". Using default value.";
+    }
+
+    if (!message.empty())
+    {
+        LOG_ERROR(Error::severity::warning, Error::type::preprocess, message);
+        return false;
+    }
+    
+    return true;
+}
+
+
+// Helper function to get value from JSON with type checking (for scalars and 1D vectors)
 template<typename T>
 T get_value(const nlohmann::ordered_json& j, const std::string& main_key, const std::string& sub_key="")
 {
@@ -55,88 +131,46 @@ T get_value(const nlohmann::ordered_json& j, const std::string& main_key, const 
                                 std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t>;
     constexpr bool is_string = std::is_same_v<T, std::string>;
     constexpr bool is_bool = std::is_same_v<T, bool>;
+    constexpr bool is_int_vector = std::is_same_v<T, std::vector<int8_t>> || std::is_same_v<T, std::vector<int16_t>> || std::is_same_v<T, std::vector<int32_t>> || std::is_same_v<T, std::vector<int64_t>> ||
+                                   std::is_same_v<T, std::vector<uint8_t>> || std::is_same_v<T, std::vector<uint16_t>> || std::is_same_v<T, std::vector<uint32_t>> || std::is_same_v<T, std::vector<uint64_t>>;
     constexpr bool is_float_vector = std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<float>>;
     constexpr bool is_string_vector = std::is_same_v<T, std::vector<std::string>>;
+    constexpr bool is_bool_vector = std::is_same_v<T, std::vector<bool>>;
+    constexpr bool is_vector = is_int_vector || is_float_vector || is_string_vector || is_bool_vector;
 
     // check existence
-    if (!j.contains(main_key))
-    {
-        LOG_ERROR(
-            Error::severity::warning, Error::type::preprocess,
-            "Key \"" + main_key + "\" not found in JSON object. Using default value. ");
-        return T{};
-    }
-
-    if (!sub_key.empty() && !j.at(main_key).contains(sub_key))
-    {
-        LOG_ERROR(
-            Error::severity::warning, Error::type::preprocess,
-            "Key \"" + sub_key + "\" not found in JSON object. Using default value. ");
-        return T{};
-    }
+    if (!check_key_exists(j, main_key, sub_key)) return T{};
     const nlohmann::ordered_json& target = sub_key.empty() ? j.at(main_key) : j.at(main_key).at(sub_key);
 
     // check type
-    if (is_floating_point && !target.is_number_float())
-    {
-        LOG_ERROR(
-            Error::severity::warning, Error::type::preprocess,
-            "Expected floating point number for key \"" + sub_key + "\", instead found " + target.dump() + ". Using default value."
-        );
-        return T{};
-    }
-    else if (is_integer && !target.is_number_integer())
-    {
-        LOG_ERROR(
-            Error::severity::warning, Error::type::preprocess,
-            "Expected integer number for key \"" + sub_key + "\", instead found " + target.dump() + ". Using default value."
-        );
-        return T{};
-    }
-    else if (is_string && !target.is_string())
-    {
-        LOG_ERROR(
-            Error::severity::warning, Error::type::preprocess,
-            "Expected string for key \"" + sub_key + "\", instead found " + target.dump() + ". Using default value."
-        );
-        return T{};
-    }
-    else if (is_bool && !target.is_boolean())
-    {
-        LOG_ERROR(
-            Error::severity::warning, Error::type::preprocess,
-            "Expected boolean for key \"" + sub_key + "\", instead found " + target.dump() + ". Using default value."
-        );
-        return T{};
-    }
-    else if ((is_float_vector || is_string_vector) && !target.is_array())
-    {
-        LOG_ERROR(
-            Error::severity::warning, Error::type::preprocess,
-            "Expected JSON array for key \"" + sub_key + "\", instead found " + target.dump() + ". Using default value."
-        );
-        return T{};
-    }
+    if (!check_key_type<T>(target)) return T{};
 
     // check element types for vectors
-    if (is_float_vector || is_string_vector)
+    if (is_vector)
     {
         for (const auto& element : target)
         {
-            if (is_float_vector && !element.is_number_float())
+            std::string message = "";
+            if (is_int_vector && !element.is_number_integer())
             {
-                LOG_ERROR(
-                    Error::severity::warning, Error::type::preprocess,
-                    "Expected floating point number in array for key \"" + sub_key + "\", instead found " + element.dump() + ". Using default value."
-                );
-                return T{};
+                message = "Expected integer number in array for key \"" + sub_key + "\", instead found " + element.dump() + ". Using default value.";
+            }
+            else if (is_float_vector && !element.is_number_float())
+            {
+                message = "Expected floating point number in array for key \"" + sub_key + "\", instead found " + element.dump() + ". Using default value.";
             }
             else if (is_string_vector && !element.is_string())
             {
-                LOG_ERROR(
-                    Error::severity::warning, Error::type::preprocess,
-                    "Expected string in array for key \"" + sub_key + "\", instead found " + element.dump() + ". Using default value."
-                );
+                message = "Expected string in array for key \"" + sub_key + "\", instead found " + element.dump() + ". Using default value.";
+            }
+            else if (is_bool_vector && !element.is_boolean())
+            {
+                message = "Expected boolean in array for key \"" + sub_key + "\", instead found " + element.dump() + ". Using default value.";
+            }
+
+            if (!message.empty())
+            {
+                LOG_ERROR(Error::severity::warning, Error::type::preprocess, message);
                 return T{};
             }
         }
@@ -147,6 +181,7 @@ T get_value(const nlohmann::ordered_json& j, const std::string& main_key, const 
 }
 
 
+// Helper function to copy 1D arrays from JSON to dynamically allocated C-style arrays
 template<typename T>
 void copy_array_1d(const nlohmann::ordered_json& j, const std::string& main_key, const std::string& sub_key, const T*& array, const index_t size)
 {
@@ -165,6 +200,8 @@ void copy_array_1d(const nlohmann::ordered_json& j, const std::string& main_key,
 }
 
 
+// Helper function to copy 2D arrays from JSON to dynamically allocated C-style arrays
+// NOTE: Element types in 2D arrays are not checked
 template<typename T>
 void copy_array_2d(const nlohmann::ordered_json& j, const std::string& main_key, const std::string& sub_key, const T*& array, const index_t rows, const index_t cols)
 {
@@ -192,6 +229,7 @@ void copy_array_2d(const nlohmann::ordered_json& j, const std::string& main_key,
     }
     array = (const T*)temp_array;
 }
+
 
 Parameters::Parameters(const nlohmann::ordered_json& j):
     _species(),
@@ -240,28 +278,6 @@ Parameters::Parameters(const nlohmann::ordered_json& j):
     plog_seperators(nullptr),
     plog_parameters(nullptr)
 {
-    std::vector<std::string> main_keys = {
-        "model",
-        "species",
-        "thermodynamics",
-        "arrhenius_parameters",
-        "third_body_reactions",
-        "irreversible_reactions",
-        "falloff_reactions",
-        "plog_reactions"
-    };
-    for (const auto& key: main_keys)
-    {
-        if (!j.contains(key))
-        {
-            LOG_ERROR(
-                Error::severity::error, Error::type::preprocess,
-                "JSON file does not contain '" + key + "' key. It might be the wrong json: " + j.dump()
-            );
-            return;
-        }
-    }
-
     // Fill simple arrays
     copy_array_1d<double> (j, "species", "molar_weights", molar_weights, num_species);
     copy_array_1d<double> (j, "species", "thermal_conductivities", thermal_conductivities, num_species);
@@ -286,6 +302,17 @@ Parameters::Parameters(const nlohmann::ordered_json& j):
     for (index_t i = 0; i < species_names.size(); i++)
     {
         _species[species_names.at(i)] = i;
+    }
+
+    // Compute NASA interval values and derivatives
+    for(index_t i = 0; i < num_species; i++)
+    {
+        /*compute_interval_values_and_derivatives(
+            temp_ranges[3*i + 2],    // T_high
+            &(a_high[i][0]),
+            &(interval_values_temp[i*3]),
+            &(interval_derivatives_temp[i*3])
+        );*/
     }
 
     // Arrhenius parameters and reaction order

@@ -181,7 +181,7 @@ OdeSolver::OdeSolver(const size_t num_dim):
     NV_Ith_S(constraints, num_dim-1) = 0.0;  // E_diss no constraint
 
     // Setup CVODE
-    HANDLE_RETURN_PTR(cvode_mem, CVodeCreate(CV_BDF, sun_context));
+    HANDLE_RETURN_PTR(cvode_mem, CVodeCreate(CV_BDF, sun_context));     // TODO: try CV_ADAMS
     HANDLE_ERROR_CODE(CVodeInit(cvode_mem, right_hand_side, 0.0, x));
     HANDLE_ERROR_CODE(CVodeSetMaxNumSteps(cvode_mem, 2000000000));
     HANDLE_ERROR_CODE(CVodeSetMaxHnilWarns(cvode_mem, 10));    // maximum number of warnings for t+h=t

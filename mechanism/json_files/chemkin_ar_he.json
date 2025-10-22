@@ -158,7 +158,7 @@
     "num_sri_reactions": 0,
     "falloff_reaction_indexes": [         8,         15],
     "falloff_reaction_types":   [    "troe",     "troe"],
-    "is_third_body_reaction":   [         4,          5],
+    "is_third_body_indexes":    [         4,          5],
     "falloff_parameters": [
         //                 ln(A)                       b                     E/R
         //[m^(3n-3)/mol^(n-1)/s]                     [-]                     [K]
@@ -183,7 +183,7 @@
     "num_plog_levels": 0,
     "plog_reaction_indexes": [],
     "plog_seperators": [         0],
-    "plog_levels": [
+    "plog_parameters": [
         //                     P                   ln(A)                       b                     E/R
         //                  [Pa]  [m^(3n-3)/mol^(n-1)/s]                     [-]                     [K]
         
