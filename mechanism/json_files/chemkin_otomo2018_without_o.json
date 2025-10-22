@@ -165,7 +165,7 @@
     "num_sri_reactions": 0,
     "falloff_reaction_indexes": [        17],
     "falloff_reaction_types":   [    "troe"],
-    "is_third_body_reaction":   [         2],
+    "is_third_body_indexes":    [         2],
     "falloff_parameters": [
         //                 ln(A)                       b                     E/R
         //[m^(3n-3)/mol^(n-1)/s]                     [-]                     [K]
@@ -188,7 +188,7 @@
     "num_plog_levels": 12,
     "plog_reaction_indexes": [        20,         25,         29,         30],
     "plog_seperators": [         0,          3,          6,          9,         12],
-    "plog_levels": [
+    "plog_parameters": [
         //                     P                   ln(A)                       b                     E/R
         //                  [Pa]  [m^(3n-3)/mol^(n-1)/s]                     [-]                     [K]
         [               10132.5,      99.84406812167907,                  -9.55,      32441.55688559843],    //  20. N2H3<=>H+N2H2

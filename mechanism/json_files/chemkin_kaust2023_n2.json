@@ -668,7 +668,7 @@
     "num_sri_reactions": 0,
     "falloff_reaction_indexes": [        15,         27,         87,         99,        142,        196,        197,        201,        235],
     "falloff_reaction_types":   [    "troe",     "troe",     "troe",     "troe",     "troe",     "troe",     "troe", "lindemann",     "troe"],
-    "is_third_body_reaction":   [         9,         13,         18,         19,         22,         25,         26,         27,         29],
+    "is_third_body_indexes":    [         9,         13,         18,         19,         22,         25,         26,         27,         29],
     "falloff_parameters": [
         //                 ln(A)                       b                     E/R
         //[m^(3n-3)/mol^(n-1)/s]                     [-]                     [K]
@@ -685,8 +685,8 @@
     "troe_parameters": [
         //                 alpha                    T***                      T*                     T**
         //                   [-]                     [K]                     [K]                     [K]
-        [                   0.5,                  1e-30, 1.0000000000000002e+30,                    0.0],    //  15. H+O2(+M)<=>HO2(+M)
-        [                  0.43,                  1e-30, 1.0000000000000002e+30,                    0.0],    //  27. H2O2(+M)<=>2OH(+M)
+        [                   0.5,                  1e-30, 1.0000000000000002e+30,                  1e+30],    //  15. H+O2(+M)<=>HO2(+M)
+        [                  0.43,                  1e-30, 1.0000000000000002e+30,                  1e+30],    //  27. H2O2(+M)<=>2OH(+M)
         [                  0.31,                  1e-30, 1.0000000000000002e+30,                  1e+30],    //  87. 2NH2(+M)<=>N2H4(+M)
         [                 0.842,                80000.0,                   28.0,                 7300.0],    //  99. N2H3(+M)<=>H+N2H2(+M)
         [                  0.35,                  1e-30, 1.0000000000000002e+30,                  1e+30],    // 142. NH2OH(+M)<=>NH2+OH(+M)
@@ -706,7 +706,7 @@
     "num_plog_levels": 35,
     "plog_reaction_indexes": [       173,        190,        225,        226],
     "plog_seperators": [         0,          5,         15,         25,         35],
-    "plog_levels": [
+    "plog_parameters": [
         //                     P                   ln(A)                       b                     E/R
         //                  [Pa]  [m^(3n-3)/mol^(n-1)/s]                     [-]                     [K]
         [               10132.5,      44.44829571967853,                 -3.021,             24049.8699],    // 173. HNO<=>H+NO

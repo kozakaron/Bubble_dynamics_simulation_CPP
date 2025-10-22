@@ -26,6 +26,7 @@ ControlParameters::ControlParameters(const Builder& builder)
 }
 
 
+// Helper function to get value from JSON with type checking
 template<typename T>
 T get_value(const ordered_json& j, const std::string& key, const T& default_value)
 {
@@ -47,44 +48,31 @@ T get_value(const ordered_json& j, const std::string& key, const T& default_valu
     }
 
     // check type
+    std::string message = "";
     if (is_floating_point && !j.at(key).is_number_float())
     {
-        LOG_ERROR(
-            Error::severity::warning, Error::type::preprocess,
-            "Expected floating point number for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
-        );
-        return default_value;
+        message = "Expected floating point number for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value.";
     }
     else if (is_integer && !j.at(key).is_number_integer())
     {
-        LOG_ERROR(
-            Error::severity::warning, Error::type::preprocess,
-            "Expected integer number for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
-        );
-        return default_value;
+        message = "Expected integer number for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value.";
     }
     else if (is_string && !j.at(key).is_string())
     {
-        LOG_ERROR(
-            Error::severity::warning, Error::type::preprocess,
-            "Expected string for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
-        );
-        return default_value;
+        message = "Expected string for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value.";
     }
     else if (is_bool && !j.at(key).is_boolean())
     {
-        LOG_ERROR(
-            Error::severity::warning, Error::type::preprocess,
-            "Expected boolean for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
-        );
-        return default_value;
+        message = "Expected boolean for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value.";
     }
     else if ((is_float_vector || is_string_vector) && !j.at(key).is_array())
     {
-        LOG_ERROR(
-            Error::severity::warning, Error::type::preprocess,
-            "Expected JSON array for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
-        );
+        message = "Expected JSON array for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value.";
+    }
+
+    if (!message.empty())
+    {
+        LOG_ERROR(Error::severity::warning, Error::type::preprocess,message);
         return default_value;
     }
 

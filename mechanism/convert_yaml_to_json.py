@@ -359,9 +359,9 @@ if __name__ == '__main__':
         troe_parameters = [
             [
                 reaction.input_data['Troe']['A'],
-                reaction.input_data['Troe']['T3'],
-                reaction.input_data['Troe']['T1'],
-                reaction.input_data['Troe'].get('T2', 0.0)
+                reaction.input_data['Troe'].get('T3', 1.0e-30),
+                reaction.input_data['Troe'].get('T1', 1.0e30),
+                reaction.input_data['Troe'].get('T2', 1.0e30)
             ]
             for idx, reaction in zip(troe_indexes, troe_reactions)
         ]
@@ -382,7 +382,7 @@ if __name__ == '__main__':
 "num_sri_reactions": {len(sri_indexes)},
 "falloff_reaction_indexes": {print_1D_array(falloff_indexes, width=10, comma=True)}
 "falloff_reaction_types":   {print_1D_array(falloff_reaction_types, width=10, comma=True)}
-"is_third_body_reaction":   {print_1D_array(is_third_body_indexes, width=10, comma=True)}
+"is_third_body_indexes":    {print_1D_array(is_third_body_indexes, width=10, comma=True)}
 "falloff_parameters": {print_2D_array(
     falloff_parameters, width=22, lines=[reaction_comments[idx] for idx in falloff_indexes],
     columns1=["ln(A)", "b", "E/R"], columns2=["[m^(3n-3)/mol^(n-1)/s]", "[-]", "[K]"]
@@ -421,7 +421,7 @@ if __name__ == '__main__':
 "num_plog_levels": {len(plog_levels)},
 "plog_reaction_indexes": {print_1D_array(plog_indexes, width=10, comma=True)}
 "plog_seperators": {print_1D_array(plog_seperators, width=10, comma=True)}
-"plog_levels": {print_2D_array(
+"plog_parameters": {print_2D_array(
     plog_levels, width=22, lines=plog_comments,
     columns1=["P", "ln(A)", "b", "E/R"], columns2=["[Pa]", "[m^(3n-3)/mol^(n-1)/s]", "[-]", "[K]"]
 )}'''

@@ -316,6 +316,7 @@ ParameterCombinator::ParameterCombinator(const ParameterCombinator::Builder &bui
 }
 
 
+// Helper function to parse AnyRange from JSON
 ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinator::AnyRange default_range)
 {
     if (!j.is_object())
@@ -426,6 +427,7 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinat
 }
 
 
+// Helper function to parse AnyRange from JSON with key
 ParameterCombinator::AnyRange get_range(const ordered_json& j, const std::string &key, ParameterCombinator::AnyRange default_range)
 {
     if (!j.contains(key))
@@ -433,8 +435,7 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, const std::string
         LOG_ERROR(
             Error::severity::warning,
             Error::type::preprocess,
-            "Key \"" + key + "\" not found in JSON object. " + \
-            "Using default value. "
+            "Key \"" + key + "\" not found in JSON object. Using default value."
         );
         return default_range;
     }
@@ -445,33 +446,76 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, const std::string
 }
 
 
+// Helper function to get value from JSON with type checking
 template<typename T>
 T get_value(const ordered_json& j, const std::string& key, const T& default_value)
 {
-    if constexpr (std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<std::string>>)
+    constexpr bool is_string = std::is_same_v<T, std::string>;
+    constexpr bool is_bool = std::is_same_v<T, bool>;
+    constexpr bool is_float_vector = std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<float>>;
+    constexpr bool is_string_vector = std::is_same_v<T, std::vector<std::string>>;
+
+    // Check if key exists
+    if (!j.contains(key))
     {
-        if (j.contains(key) && !j.at(key).is_array())
+        LOG_ERROR(
+            Error::severity::warning,
+            Error::type::preprocess,
+            "Key \"" + key + "\" not found in JSON object. Using default value. "
+        );
+        return default_value;
+    }
+
+    // Array type checks
+    if ((is_float_vector || is_string_vector) && !j.at(key).is_array())
+    {
+        LOG_ERROR(
+            Error::severity::warning,
+            Error::type::preprocess,
+            "Expected JSON array for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+        );
+        return default_value;
+    }
+
+    for (const auto& element : j.at(key))
+    {
+        std::string message = "";
+        if (is_float_vector && !element.is_number_float())
         {
-            LOG_ERROR(
-                Error::severity::warning,
-                Error::type::preprocess,
-                "Expected JSON array for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
-            );
+            message = "Expected floating point number in array for key \"" + key + "\", instead found " + element.dump() + ". Using default value.";
+        }
+        else if (is_string_vector && !element.is_string())
+        {
+            message = "Expected string in array for key \"" + key + "\", instead found " + element.dump() + ". Using default value.";
+        }
+
+        if (!message.empty())
+        {
+            LOG_ERROR(Error::severity::warning, Error::type::preprocess,message);
             return default_value;
         }
     }
-    
-    if (j.contains(key))
+
+    // Type checks
+    if (is_string && !j.at(key).is_string())
     {
-        return j.at(key).get<T>();
+        LOG_ERROR(
+            Error::severity::warning, Error::type::preprocess,
+            "Expected string for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+        );
+        return default_value;
+    }
+    else if (is_bool && !j.at(key).is_boolean())
+    {
+        LOG_ERROR(
+            Error::severity::warning, Error::type::preprocess,
+            "Expected boolean for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+        );
+        return default_value;
     }
 
-    LOG_ERROR(
-        Error::severity::warning,
-        Error::type::preprocess,
-        "Key \"" + key + "\" not found in JSON object. Using default value. "
-    );
-    return default_value;
+
+    return j.at(key).get<T>();
 }
 
 
