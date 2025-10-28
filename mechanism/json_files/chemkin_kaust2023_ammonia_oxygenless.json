@@ -1,5 +1,5 @@
 {
-"model": "chemkin_kaust2023_n2_without_o",
+"model": "chemkin_kaust2023_ammonia_oxygenless",
 "species": {
     "num_elements": 6,
     "num_species": 14,
