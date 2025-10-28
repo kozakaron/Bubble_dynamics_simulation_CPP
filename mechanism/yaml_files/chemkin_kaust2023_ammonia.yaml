@@ -1,7 +1,7 @@
 generator: ck2yaml
-input-files: [chemkin_kaust2023_n2.inp]
+input-files: [chemkin_kaust2023_ammonia.inp]
 cantera-version: 3.1.0
-date: Fri, 17 Oct 2025 22:54:40 +0200
+date: Tue, 28 Oct 2025 10:57:17 +0100
 
 units: {length: cm, time: s, quantity: mol, activation-energy: K}
 

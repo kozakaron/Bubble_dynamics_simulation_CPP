@@ -4,39 +4,52 @@ description: |-
                   This CHEMKIN mechanism file is part of the                    !
                           Supplemental Material for                             !
                                                                                 !
-         Development of a joint hydrogen and syngas combustion mechanism        !
-                        based on an optimization approach                       !
+         The importance of chemical mechanisms in sonochemical modelling        !
                                                                                 !
-      T. Varga 1,2, C. Olm 1,2, T. Nagy 1,3, I.Gy. Zs�ly 1, �. Valk� 1,2,       !
-                   R. P�lv�lgyi 1, H. Curran 4, T. Tur�nyi 1                    !
+      C. Kalmár 1, T. Turányi 2, I. G. Zsély 2, M. Papp 2, F. Hegedűs 1         !
                                                                                 !
-   1 Institute of Chemistry, E�tv�s University (ELTE), Budapest, Hungary        !
-   2 MTA-ELTE Research Group on Complex Chemical Systems, Budapest, Hungary     !
-   3 MTA Research Centre for Natural Sciences, Budapest, Hungary                !
-   4 Combustion Chemistry Centre, NIU Galway, Ireland                           !
+   1 Department of Hydrodynamic Systems, University of Technology and Economics,!
+                                Budapest, Hungary                               !
+   2 Institute of Chemistry, Eötvös University (ELTE), Budapest, Hungary        !
                                                                                 !
-                        Int. J. Chem. Kinet., 2016                              !
-                                                                                !
-   all non H/O species and singlet O2 were removed by I. Gy. Zs�ly 05/20/2021   !
+                            Ultrason. Sonochem., 2021                           !
                                                                                 !
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 generator: ck2yaml
-input-files: [chemkin_ar_he.inp]
+input-files: [chemkin_uson2022_hydrogen.inp]
 cantera-version: 3.1.0
-date: Fri, 17 Oct 2025 22:54:38 +0200
+date: Tue, 28 Oct 2025 10:57:18 +0100
 
 units: {length: cm, time: s, quantity: mol, activation-energy: K}
 
 phases:
 - name: gas
   thermo: ideal-gas
-  elements: [C, H, N, O, Ar, He]
-  species: [H, H2, O, O2, OH, H2O, N2, HO2, H2O2, AR, HE, OHEX]
+  elements: [H, O]
+  species: [O, H, H2, OH, O2, H2O, HO2, H2O2, O3, OHEX]
   kinetics: gas
   state: {T: 300.0, P: 1 atm}
 
 species:
+- name: O
+  composition: {O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 1000.0, 6000.0]
+    data:
+    - [3.11201699, -2.80464778e-03, 5.23974549e-06, -4.42444222e-09, 
+        1.39393321e-12, 2.91273034e+04, 2.27964278]
+    - [2.54363697, -2.73162486e-05, -4.1902952e-09, 4.95481845e-12, 
+        -4.79553694e-16, 2.92265295e+04, 4.92264671]
+    note: |-
+      L 1/90
+       Refitting species O:
+         max difference Cp/R = 4.9696e-03 at T =   200.0000 K
+         max difference H/RT = 9.0429e-04 at T =   200.0000 K
+         max difference S/R  = 8.0172e-04 at T =   200.0000 K
+         T_match =  1000.000000 jump
+         Delta(Cp/R, H/RT, S/R) = (-4.441e-16, 3.553e-15,-3.553e-15)
 - name: H
   composition: {H: 1}
   thermo:
@@ -72,42 +85,6 @@ species:
          max difference S/R  = 4.8930e-03 at T =   200.0000 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = ( 2.220e-15, 0.000e+00, 0.000e+00)
-- name: O
-  composition: {O: 1}
-  thermo:
-    model: NASA7
-    temperature-ranges: [200.0, 1000.0, 6000.0]
-    data:
-    - [3.11201699, -2.80464778e-03, 5.23974549e-06, -4.42444222e-09, 
-        1.39393321e-12, 2.91273034e+04, 2.27964278]
-    - [2.54363697, -2.73162486e-05, -4.1902952e-09, 4.95481845e-12, 
-        -4.79553694e-16, 2.92265295e+04, 4.92264671]
-    note: |-
-      L 1/90
-       Refitting species O:
-         max difference Cp/R = 4.9696e-03 at T =   200.0000 K
-         max difference H/RT = 9.0429e-04 at T =   200.0000 K
-         max difference S/R  = 8.0172e-04 at T =   200.0000 K
-         T_match =  1000.000000 jump
-         Delta(Cp/R, H/RT, S/R) = (-4.441e-16, 3.553e-15,-3.553e-15)
-- name: O2
-  composition: {O: 2}
-  thermo:
-    model: NASA7
-    temperature-ranges: [200.0, 1000.0, 6000.0]
-    data:
-    - [3.66627111, -2.01629566e-03, 6.94873168e-06, -6.16244023e-09, 
-        1.7591906e-12, -1053.52472, 4.12801194]
-    - [3.66096065, 6.56365811e-04, -1.41149627e-07, 2.05797935e-11, 
-        -1.29913436e-15, -1214.90829, 3.41609021]
-    note: |-
-      RUS 89
-       Refitting species O2:
-         max difference Cp/R = 1.0265e-02 at T =   200.0000 K
-         max difference H/RT = 1.8678e-03 at T =   200.0000 K
-         max difference S/R  = 1.6560e-03 at T =   200.0000 K
-         T_match =  1000.000000 jump
-         Delta(Cp/R, H/RT, S/R) = ( 8.882e-16, 4.441e-16, 0.000e+00)
 - name: OH
   composition: {O: 1, H: 1}
   thermo:
@@ -126,6 +103,24 @@ species:
          max difference S/R  = 9.6662e-05 at T =   200.0000 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = (-4.441e-16, 0.000e+00, 0.000e+00)
+- name: O2
+  composition: {O: 2}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 1000.0, 6000.0]
+    data:
+    - [3.66627111, -2.01629566e-03, 6.94873168e-06, -6.16244023e-09, 
+        1.7591906e-12, -1053.52472, 4.12801194]
+    - [3.66096065, 6.56365811e-04, -1.41149627e-07, 2.05797935e-11, 
+        -1.29913436e-15, -1214.90829, 3.41609021]
+    note: |-
+      RUS 89
+       Refitting species O2:
+         max difference Cp/R = 1.0265e-02 at T =   200.0000 K
+         max difference H/RT = 1.8678e-03 at T =   200.0000 K
+         max difference S/R  = 1.6560e-03 at T =   200.0000 K
+         T_match =  1000.000000 jump
+         Delta(Cp/R, H/RT, S/R) = ( 8.882e-16, 4.441e-16, 0.000e+00)
 - name: H2O
   composition: {H: 2, O: 1}
   thermo:
@@ -144,24 +139,6 @@ species:
          max difference S/R  = 5.3027e-04 at T =   200.0000 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = ( 0.000e+00, 0.000e+00, 0.000e+00)
-- name: N2
-  composition: {N: 2}
-  thermo:
-    model: NASA7
-    temperature-ranges: [200.0, 1000.0, 6000.0]
-    data:
-    - [3.58256851, -5.58781407e-04, 7.83391479e-07, 8.73631719e-10, 
-        -7.49971666e-13, -1051.60018, 2.75873431]
-    - [2.95257637, 1.3969004e-03, -4.92631603e-07, 7.86010195e-11, 
-        -4.60755204e-15, -924.423063, 5.87156477]
-    note: |-
-      G 8/02
-       Refitting species N2:
-         max difference Cp/R = 4.5555e-03 at T =   200.0000 K
-         max difference H/RT = 8.2895e-04 at T =   200.0000 K
-         max difference S/R  = 7.3491e-04 at T =   200.0000 K
-         T_match =  1000.000000 jump
-         Delta(Cp/R, H/RT, S/R) = ( 8.882e-16, 0.000e+00, 0.000e+00)
 - name: HO2
   composition: {H: 1, O: 2}
   thermo:
@@ -198,40 +175,24 @@ species:
          max difference S/R  = 6.3234e-03 at T =   200.0000 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = ( 0.000e+00, 0.000e+00, 0.000e+00)
-- name: AR
-  composition: {Ar: 1}
+- name: O3
+  composition: {O: 3}
   thermo:
     model: NASA7
     temperature-ranges: [200.0, 1000.0, 6000.0]
     data:
-    - [2.5, -1.21434192e-16, 3.14642268e-19, -3.308722e-22, 
-        1.21191563e-25, -745.375, 4.37967491]
-    - [2.5, 0.0, 0.0, 0.0, 0.0, -745.375, 4.37967491]
+    - [1.90171935, 0.0147594463, -2.37144203e-05, 2.3270235e-08, 
+        -9.4776242e-12, 1.59995172e+04, 14.3776362]
+    - [12.3302914, -0.0119324783, 7.98741278e-06, -1.77194552e-09, 
+        1.26075824e-13, 1.26894349e+04, -40.8729108]
     note: |-
-      G 5/97
-       Refitting species AR:
-         max difference Cp/R = 1.7764e-15 at T =   200.0000 K
-         max difference H/RT = 8.8818e-16 at T =   208.7044 K
-         max difference S/R  = 7.1054e-15 at T =   249.3247 K
+      l 5/90
+       Refitting species O3:
+         max difference Cp/R = 1.3302e-01 at T =   200.0000 K
+         max difference H/RT = 2.4206e-02 at T =   200.0000 K
+         max difference S/R  = 2.1460e-02 at T =   200.0000 K
          T_match =  1000.000000 jump
-         Delta(Cp/R, H/RT, S/R) = ( 4.441e-16, 0.000e+00, 0.000e+00)
-- name: HE
-  composition: {He: 1}
-  thermo:
-    model: NASA7
-    temperature-ranges: [200.0, 1000.0, 6000.0]
-    data:
-    - [2.5, -1.21434192e-16, 3.14642268e-19, -3.308722e-22, 
-        1.21191563e-25, -745.375, 0.928723974]
-    - [2.5, 0.0, 0.0, 0.0, 0.0, -745.375, 0.928723974]
-    note: |-
-      G 5/97
-       Refitting species HE:
-         max difference Cp/R = 1.7764e-15 at T =   200.0000 K
-         max difference H/RT = 8.8818e-16 at T =   208.7044 K
-         max difference S/R  = 3.5527e-15 at T =   437.9190 K
-         T_match =  1000.000000 jump
-         Delta(Cp/R, H/RT, S/R) = ( 4.441e-16, 0.000e+00, 0.000e+00)
+         Delta(Cp/R, H/RT, S/R) = ( 3.553e-15, 3.553e-15, 0.000e+00)
 - name: OHEX
   composition: {H: 1, O: 1}
   thermo:
@@ -273,26 +234,26 @@ reactions:
 - equation: 2 H + M <=> H2 + M  # Reaction 5
   type: three-body
   rate-constant: {A: 4.9806e+18, b: -1.21273, Ea: 308.02}
-  efficiencies: {H2: 2.5, O2: 1.0, H2O: 12.0, HE: 0.83, AR: 1.0}
+  efficiencies: {H2: 2.5, O2: 1.0, H2O: 12.0}
   note: |
     5
 - equation: 2 O + M <=> O2 + M  # Reaction 6
   type: three-body
   rate-constant: {A: 6.165e+15, b: -0.5, Ea: 0.0}
-  efficiencies: {H2: 2.5, H2O: 12.0, AR: 0.83, HE: 0.83}
+  efficiencies: {H2: 2.5, H2O: 12.0}
   note: |
     Added O2 and AR as a potential thirdbody
         6
 - equation: O + H + M <=> OH + M  # Reaction 7
   type: three-body
   rate-constant: {A: 4.714e+18, b: -1.0, Ea: 0.0}
-  efficiencies: {H2: 2.5, O2: 1.0, H2O: 12.0, AR: 0.75, HE: 0.75}
+  efficiencies: {H2: 2.5, O2: 1.0, H2O: 12.0}
   note: |
     7
 - equation: H + OH + M <=> H2O + M  # Reaction 8
   type: three-body
   rate-constant: {A: 1.4818e+24, b: -2.53792, Ea: 60.788}
-  efficiencies: {H2: 2.5, O2: 1.0, H2O: 12.0, AR: 0.38, HE: 0.44}
+  efficiencies: {H2: 2.5, O2: 1.0, H2O: 12.0}
   note: |
     Added O2 as a potential thirdbody
         8
@@ -301,7 +262,7 @@ reactions:
   low-P-rate-constant: {A: 5.2669e+19, b: -1.37367, Ea: 0.0}
   high-P-rate-constant: {A: 4.65e+12, b: 0.44, Ea: 0.0}
   Troe: {A: 0.67, T3: 1.0e-30, T1: 1.0e+30, T2: 1.0e+30}
-  efficiencies: {H2: 1.511, O2: 1.0, HE: 0.65, H2O: 11.372, AR: 0.474}
+  efficiencies: {H2: 1.511, O2: 1.0, H2O: 11.372}
   note: |
     Added O2 as a potential thirdbody
         9
@@ -337,8 +298,7 @@ reactions:
   low-P-rate-constant: {A: 1.9928e+18, b: -1.17797, Ea: -2150.31}
   high-P-rate-constant: {A: 2.148e+05, b: 2.3219, Ea: -1712.31}
   Troe: {A: 0.43, T3: 1.0e-30, T1: 1.0e+30, T2: 1.0e+30}
-  efficiencies: {H2O: 5.0, AR: 0.67, O2: 0.8, HE: 0.43, H2O2: 5.13, H2: 
-      2.47}
+  efficiencies: {H2O: 5.0, O2: 0.8, H2O2: 5.13, H2: 2.47}
   note: |
     16
 - equation: H2O2 + H <=> H2O + OH  # Reaction 17
@@ -366,7 +326,7 @@ reactions:
 - equation: H + O + M <=> OHEX + M  # Reaction 22
   type: three-body
   rate-constant: {A: 1.5e+13, b: 0.0, Ea: 3007.05}
-  efficiencies: {H2: 1.0, H2O: 6.5, O2: 0.4, N2: 0.4, AR: 0.35}
+  efficiencies: {H2: 1.0, H2O: 6.5, O2: 0.4}
   note: |
     ################
      OHEX submech  #
@@ -380,32 +340,37 @@ reactions:
   rate-constant: {A: 2.95e+12, b: 0.5, Ea: -223.45}
   note: |
     36
-- equation: OHEX + N2 <=> OH + N2  # Reaction 25
-  rate-constant: {A: 1.08e+11, b: 0.5, Ea: -625.06}
-  note: |
-    37
-- equation: OHEX + OH <=> 2 OH  # Reaction 26
+- equation: OHEX + OH <=> 2 OH  # Reaction 25
   rate-constant: {A: 6.01e+12, b: 0.5, Ea: -384.5}
   note: |
     38
-- equation: OHEX + H <=> OH + H  # Reaction 27
+- equation: OHEX + H <=> OH + H  # Reaction 26
   rate-constant: {A: 1.31e+12, b: 0.5, Ea: -84.05}
   note: |
     39
-- equation: OHEX + AR <=> OH + AR  # Reaction 28
-  rate-constant: {A: 1.69e+12, b: 0.0, Ea: 2081.03}
-  note: |
-    40
-- equation: OHEX => OH  # Reaction 29
-  rate-constant: {A: 1.45e+06, b: 0.0, Ea: 0.0}
-  note: |
-    41
-- equation: OHEX + O2 <=> OH + O2  # Reaction 30
+- equation: OHEX + O2 <=> OH + O2  # Reaction 27
   rate-constant: {A: 2.1e+12, b: 0.5, Ea: -240.56}
-  note: |2
-        42
-
-        43
-    OHEX+CO2<=>OH+CO2              2.750E+12        0.5     -487.17
-        44
-    OHEX+CO<=>OH+CO                3.230E+12        0.5     -396.07
+  note: |
+    42
+- equation: O3 (+M) <=> O2 + O (+M)  # Reaction 28
+  type: falloff
+  low-P-rate-constant: {A: 2.275e+28, b: -4.37, Ea: 1.120565e+04}
+  high-P-rate-constant: {A: 1.37e+15, b: -0.67, Ea: 1.066912e+04}
+  Troe: {A: 0.6417, T3: 3.91e-04, T1: 8680.74, T2: 6060.75}
+  efficiencies: {H2: 3.0, O2: 1.5, O3: 3.75, O: 6.0}
+  note: |
+    ################
+     O3 submech  #
+    ################
+- equation: O3 + O <=> O2 + O2  # Reaction 29
+  rate-constant: {A: 4.82e+12, b: 0.0, Ea: 1680.623}
+- equation: O3 + H <=> O2 + OH  # Reaction 30
+  rate-constant: {A: 8.43e+13, b: 0.0, Ea: 383.4151}
+- equation: O3 + H <=> O + HO2  # Reaction 31
+  rate-constant: {A: 4.52e+11, b: 0.0, Ea: 0.0}
+- equation: O3 + OH <=> O2 + HO2  # Reaction 32
+  rate-constant: {A: 1.85e+11, b: 0.0, Ea: 341.1327}
+- equation: O3 + H2O <=> O2 + H2O2  # Reaction 33
+  rate-constant: {A: 66.2, b: 0.0, Ea: 0.0}
+- equation: O3 + HO2 <=> OH + O2 + O2  # Reaction 34
+  rate-constant: {A: 6.62e+09, b: 0.0, Ea: 408.0456}

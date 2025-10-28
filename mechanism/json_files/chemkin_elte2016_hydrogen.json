@@ -1,5 +1,5 @@
 {
-"model": "chemkin_ar_he",
+"model": "chemkin_elte2016_hydrogen",
 "species": {
     "num_elements": 6,
     "num_species": 12,

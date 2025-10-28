@@ -1,5 +1,5 @@
 {
-"model": "chemkin_otomo2018_without_o",
+"model": "chemkin_otomo2018_ammonia_oxygenless",
 "species": {
     "num_elements": 5,
     "num_species": 12,
