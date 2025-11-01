@@ -421,8 +421,8 @@ std::pair<double, double> OdeFun::evaporation(
 {
 // condensation and evaporation
     const double p_H2O = p * X_H2O;
-    const double n_eva_dot = cpar.alfa_M * cpar.P_v / (par->molar_weights[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * cpar.T_inf));
-    const double n_con_dot = cpar.alfa_M * p_H2O    / (par->molar_weights[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
+    const double n_eva_dot = cpar.alpha_M * cpar.P_v / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * cpar.T_inf));
+    const double n_con_dot = cpar.alpha_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
     const double n_net_dot = n_eva_dot - n_con_dot;
 // Evaporation energy [J/mol]
     const double& C_v = this->C_p[par->index_of_water] - par->R_g; // Molar heat capacity of water at constant volume (isochoric) [J/mol/K]
@@ -445,7 +445,11 @@ void OdeFun::forward_rate(
     const double logT = std::log(T);
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
-        this->ln_k_forward[index] = par->ln_A[index] + par->b[index] * logT - par->E_over_R[index] / T;
+        const double& ln_A     = par->arrhenius_parameters[index * 3 + 0];    // Logarithm of pre-exponential factors [ln(m^3n/mol^n/s)], where n is reaction_order-1 [-]
+        const double& b        = par->arrhenius_parameters[index * 3 + 1];    // Temperature exponents [-]
+        const double& E_over_R = par->arrhenius_parameters[index * 3 + 2];    // Activation energies / universal gas constant [K]
+
+        this->ln_k_forward[index] = ln_A + b * logT - E_over_R / T;
     }
 
 // Pressure dependent reactions
@@ -474,17 +478,17 @@ void OdeFun::forward_rate(
 
         double ln_F = 0.0;  // F = 1.0
 
-        switch (par->pressure_dependent_reac_types[j])
+        switch (par->falloff_reaction_types[j])
         {
-        case Parameters::reac_type::lindemann_reac:
+        case Parameters::reac_type::lindemann:
             {
                 // F = 1.0;
                 break;
             }
-        case Parameters::reac_type::troe_reac:
+        case Parameters::reac_type::troe:
             {
                 const double *troe_parameters = &(par->troe_parameters[troe_index*4]);
-                const double &alfa  = troe_parameters[0];
+                const double &alpha  = troe_parameters[0];
                 const double &T_xxx = troe_parameters[1];  // T***
                 const double &T_x   = troe_parameters[2];  // T*
                 const double &T_xx  = troe_parameters[3];  // T**
@@ -494,7 +498,7 @@ void OdeFun::forward_rate(
                 const double exp_negT_over_Txxx = (T_xxx <= small_num) ? 0.0 : std::exp(-T / T_xxx);
                 const double exp_negT_over_Tx   = (T_x   >= large_num) ? 1.0 : std::exp(-T / T_x);
                 const double exp_negTxx_over_T  = (T_xx  >= large_num) ? 0.0 : std::exp(-T_xx / T);
-                const double F_cent = (1.0 - alfa) * exp_negT_over_Txxx + alfa * exp_negT_over_Tx + exp_negTxx_over_T;
+                const double F_cent = (1.0 - alpha) * exp_negT_over_Txxx + alpha * exp_negT_over_Tx + exp_negTxx_over_T;
                 const double log10_F_cent = std::log10(F_cent);
                 
                 const double c = -0.4 - 0.67 * log10_F_cent;
@@ -507,7 +511,7 @@ void OdeFun::forward_rate(
                 ++troe_index;
                 break;
             }
-        case Parameters::reac_type::sri_reac:   // TODO: We don't have any SRI reactions in the current mechanisms
+        case Parameters::reac_type::sri:   // TODO: We don't have any SRI reactions in the current mechanisms
             {
                 const double *sri_parameters = &(par->sri_parameters[sri_index*5]);
                 const double &a = sri_parameters[0];
@@ -659,7 +663,7 @@ void OdeFun::production_rate(
         double M_eff_j = 0.0;
         for (index_t k = 0; k < par->num_species; ++k)
         {
-            M_eff_j += par->third_body_efficiencies[j*par->num_species+k] * conc[k];
+            M_eff_j += par->alpha[j*par->num_species+k] * conc[k];
         }
         this->M_eff[j] = M_eff_j;
     }

@@ -16,7 +16,7 @@ public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
     static constexpr size_t max_species = 5;
-    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alfa_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,target_specie,excitation_params,excitation_type";
+    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,target_specie,excitation_params,excitation_type";
 // Members
     size_t ID;                          // ID of control parameter
     std::string mechanism;              // reaction mechanism
@@ -31,7 +31,7 @@ public:
     double P_amb;                       // ambient pressure [Pa]
     double T_inf;                       // ambient temperature [K]
     // Liquid parameters:
-    double alfa_M;                      // water accommodation coefficient [-]
+    double alpha_M;                     // water accommodation coefficient [-]
     double P_v;                         // vapour pressure [Pa]
     double mu_L;                        // dynamic viscosity [Pa*s]
     double rho_L;                       // liquid density [kg/m^3]
@@ -50,21 +50,21 @@ public:
 // Builder struct, defaults
     /* Usage in initialization: ControlParameters cpar{ControlParameters::Builder{
         .ID = 1,
-        .mechanism = "chemkin_ar_he",
+        .mechanism = "chemkin_elte2016_hydrogen",
         ...
     }};
     */
     struct Builder {
         size_t ID                               = 0;
         size_t error_ID                         = ErrorHandler::no_error;
-        std::string mechanism                   = "chemkin_ar_he";
+        std::string mechanism                   = "chemkin_elte2016_hydrogen";
         double R_E                              = 10.0e-6;
         double ratio                            = 1.0;
         std::vector<std::string> species        = {"O2"};
         std::vector<double> fractions           = {1.0};
         double P_amb                            = 101325.0;
         double T_inf                            = 293.15;
-        double alfa_M                           = 0.35;
+        double alpha_M                          = 0.35;
         double P_v                              = 2338.1;
         double mu_L                             = 0.001;
         double rho_L                            = 998.2;
@@ -84,7 +84,7 @@ public:
     // Constructor with Builder. See Builder struct for more details.
     ControlParameters(const Builder& builder);
     // Constructor from JSON (ordered_json). Input should contains that same keys as in Builder struct, but mechanism and excitation_type are strings.
-    // Example: {"ID": 1, "mechanism": "chemkin_ar_he", "species": ["O2"], "fractions": [1.0], ...}
+    // Example: {"ID": 1, "mechanism": "chemkin_elte2016_hydrogen", "species": ["O2"], "fractions": [1.0], ...}
     ControlParameters(const nlohmann::ordered_json& j);
     // Constructor from JSON file (using 'cpar' key)
     ControlParameters(const std::string& json_path);

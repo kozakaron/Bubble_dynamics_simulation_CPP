@@ -118,7 +118,7 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
         builder.P_amb =                     get_value<double>                   (j, "P_amb",                    builder.P_amb);
         builder.T_inf =                     get_value<double>                   (j, "T_inf",                    builder.T_inf);
-        builder.alfa_M =                    get_value<double>                   (j, "alfa_M",                   builder.alfa_M);
+        builder.alpha_M =                   get_value<double>                   (j, "alpha_M",                  builder.alpha_M);
         builder.P_v =                       get_value<double>                   (j, "P_v",                      builder.P_v);
         builder.mu_L =                      get_value<double>                   (j, "mu_L",                     builder.mu_L);
         builder.rho_L =                     get_value<double>                   (j, "rho_L",                    builder.rho_L);
@@ -212,7 +212,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->ratio = builder.ratio;
     this->P_amb = builder.P_amb;
     this->T_inf = builder.T_inf;
-    this->alfa_M = builder.alfa_M;
+    this->alpha_M = builder.alpha_M;
     this->P_v = builder.P_v;
     this->mu_L = builder.mu_L;
     this->rho_L = builder.rho_L;
@@ -384,7 +384,7 @@ std::string ControlParameters::to_csv() const
     for (size_t index = 0; index < this->num_initial_species; ++index)
         ss << format_double << this->fractions[index] << ";";
     ss << "," << format_double << this->P_amb << "," << format_double << this->T_inf << ",";
-    ss << format_double << this->alfa_M << "," << format_double << this->P_v << ",";
+    ss << format_double << this->alpha_M << "," << format_double << this->P_v << ",";
     ss << format_double << this->mu_L << "," << format_double << this->rho_L << ",";
     ss << format_double << this->c_L << "," << format_double << this->surfactant << ",";
     ss << std::boolalpha << this->enable_heat_transfer << "," << std::boolalpha << this->enable_evaporation << ",";
@@ -434,7 +434,7 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << format_string << ".fractions"                  << " = " << ::to_string((double*)this->fractions, this->num_initial_species) << ",\n";
     ss << format_string << ".P_amb"                      << " = " << format_double << this->P_amb                     << ",    // ambient pressure [Pa]\n";
     ss << format_string << ".T_inf"                      << " = " << format_double << this->T_inf                     << ",    // ambient temperature [K]\n";
-    ss << format_string << ".alfa_M"                     << " = " << format_double << this->alfa_M                    << ",    // water accommodation coefficient [-]\n";
+    ss << format_string << ".alpha_M"                    << " = " << format_double << this->alpha_M                   << ",    // water accommodation coefficient [-]\n";
     ss << format_string << ".P_v"                        << " = " << format_double << this->P_v                       << ",    // vapour pressure [Pa]\n";
     ss << format_string << ".mu_L"                       << " = " << format_double << this->mu_L                      << ",    // dynamic viscosity [Pa*s]\n";
     ss << format_string << ".rho_L"                      << " = " << format_double << this->rho_L                     << ",    // liquid density [kg/m^3]\n";
@@ -482,7 +482,7 @@ ordered_json ControlParameters::to_json() const
     j["fractions"] = std::vector<double>(this->fractions, this->fractions + this->num_initial_species);
     j["P_amb"] = this->P_amb;
     j["T_inf"] = this->T_inf;
-    j["alfa_M"] = this->alfa_M;
+    j["alpha_M"] = this->alpha_M;
     j["P_v"] = this->P_v;
     j["mu_L"] = this->mu_L;
     j["rho_L"] = this->rho_L;

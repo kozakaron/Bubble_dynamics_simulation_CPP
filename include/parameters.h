@@ -21,7 +21,7 @@ private:
 public:
 // EXCITATION AND REACTION TYPES
 
-    enum reac_type: index_t {lindemann_reac, troe_reac, sri_reac};
+    enum reac_type: index_t {lindemann, troe, sri};
     enum excitation: index_t {no_excitation=0, two_sinusoids=1, sin_impulse=2, sin_impulse_logf=3};
     static constexpr std::array<index_t, 4> excitation_arg_nums = {
         0, // no_excitation
@@ -55,14 +55,14 @@ public:
     static constexpr double sigma         = 0.07197;            // Surface tension [N/m]
     static constexpr double mu_L          = 0.001;              // Dynamic viscosity at 30 °C and 1 atm [Pa*s]
     static constexpr double P_v           = 2338.1;             // Saturated vapour pressure at 30 °C [Pa]
-    static constexpr double alfa_M        = 0.35;               // Water accommodation coefficient [-]
+    static constexpr double alpha_M       = 0.35;               // Water accommodation coefficient [-]
     static constexpr double k_B           = 1.380649e-23;       // Boltzmann constant [J/K]
     static constexpr double R_g           = 8.31446;            // Universal gas constant [J/mol/K]
     static constexpr double R_kmol        = 8314.46;            // Universal gas constant [J/kmol/K]
     static constexpr double R_erg         = 83144600.0;         // Universal gas constant [erg/mol/K]
     static constexpr double R_cal         = 1.987204;           // Universal gas constant [cal/mol/K]
     static constexpr double N_A           = 6.02214e+23;        // Avogadro's number [-]
-    static constexpr double ln_N_A       = 54.754899816742695;  // Natural logarithm of Avogadro's number
+    static constexpr double ln_N_A        = 54.754899816742695;  // Natural logarithm of Avogadro's number
     static constexpr double h             = 6.62607015e-34;     // Planck constant [m^2*kg/s]
     static constexpr double R_v           = 461.521126;         // Specific gas constant of water [J/kg/K]
     static constexpr double erg2J         = 1e-07;              // Conversion factor from erg to J
@@ -82,7 +82,7 @@ public:
     const index_t invalid_index;                    // Invalid index
     std::vector<std::string> species_names;         // Names of species (num_species)
     index_t get_species(std::string name) const;    // Get index of species by name
-    const double *molar_weights;                    // Molar masses [kg/mol] (num_species)
+    const double *W;                                // Molar masses [kg/mol] (num_species)
     const double *thermal_conductivities;           // Thermal conductivities [W/m/K] (num_species)
 // NASA polynomials
     static constexpr index_t NASA_order=5;          // Degree of NASA polynomials
@@ -93,9 +93,7 @@ public:
     const double *interval_derivatives;             // Derivatives at T_low and T_high (num_species, 3): {dC_p_high/dT, dH_high/dT, dS_high/dT}
 // Reactions constants
     const index_t num_reactions;                    // Number of reactions
-    const double *b;                                // Temperature exponents [-] (num_reactions)
-    const double *ln_A;                             // Logarithm of pre-exponential factors [ln(m^3/mol/s) v ln(1/s)] (num_reactions)
-    const double *E_over_R;                         // Activation energies / universal gas constant [K] (num_reactions)
+    const double *arrhenius_parameters;             // Arrhenius parameters (num_reactions, 3): {ln_A, b, E_over_R}
     const index_t *reaction_order;                  // reaction_order (num_reactions)
 // Reaction matrixes
     const index_t num_max_species_per_reaction;     // Maximum number of species participating in a reaction
@@ -108,22 +106,22 @@ public:
     const index_t num_third_body_reactions;         // Number of third body reactions
     const index_t *third_body_reaction_indexes;     // Indexes of third body species (num_third_body_reactions)
     const bool *is_falloff_reaction;                // Pressure dependent flag (num_third_body_reactions)
-    const double *third_body_efficiencies;          // Third body efficiency factors (num_third_body_reactions, num_species)
+    const double *alpha;                            // Third body efficiency factors (num_third_body_reactions, num_species)
 // Irreversible reactions
     const index_t num_irreversible_reactions;       // Number of irreversible reactions
     const index_t *irreversible_reaction_indexes;   // Indexes of irreversible reactions (num_irreversible_reactions)
-// Pressure dependent fall-off reactions
+// Pressure-dependent fall-off reactions
     const index_t num_falloff_reactions;            // Number of pressure dependent reactions
     const index_t num_lindemann_reactions;          // Number of Lindemann reactions
     const index_t num_troe_reactions;               // Number of Troe reactions
     const index_t num_sri_reactions;                // Number of SRI reactions
     const index_t *falloff_reaction_indexes;        // Indexes of pressure dependent reactions (num_falloff_reactions)
-    const reac_type *pressure_dependent_reac_types; // Types of pressure dependent reactions (num_falloff_reactions)
+    const reac_type *falloff_reaction_types;        // Types of pressure dependent reactions (num_falloff_reactions)
     const index_t *is_third_body_indexes;           // Indexes of third body species for pressure dependent reactions (num_falloff_reactions)
     const double *falloff_parameters;               // Fall-off parameters (num_pressure_dependent, 3): {ln_A0, b_0, E0_over_R}
-    const double *troe_parameters;                  // Troe parameters (num_troe_reactions, 4): {alfa, T***, T**, T*}
+    const double *troe_parameters;                  // Troe parameters (num_troe_reactions, 4): {alpha, T***, T**, T*}
     const double *sri_parameters;                   // SRI parameters (num_sri_reactions, 5): {a, b, c, d, e}
-// PLOG reactions
+// Pressure-dependent PLOG reactions
     const index_t num_plog_reactions;               // Number of PLOG reactions
     const index_t num_plog_levels;                  // Number of PLOG levels
     const index_t *plog_reaction_indexes;           // Indexes of PLOG reactions (num_plog_reactions)
@@ -131,7 +129,7 @@ public:
     const double *plog_parameters;                  // PLOG parameters (num_plog_levels, 4): {P_j, ln_Aj, b_j, Ej_over_R}
 
 // CONSTRUCTORS
-    Parameters(const nlohmann::ordered_json& j);
+    Parameters(const nlohmann::json& j);
     Parameters(const std::string& json_path);
     ~Parameters();
 

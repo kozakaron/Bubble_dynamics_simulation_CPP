@@ -36,7 +36,7 @@ public:
 };
 
 // Represents a constant value. f(x) = c
-// E.g.: .alfa =  Const(0.35);   // alfa = {0.35}
+// E.g.: .alpha =  Const(0.35);   // alpha = {0.35}
 class Const: public Range
 {
 public:
@@ -102,7 +102,7 @@ private:
     std::vector<double> fractions;
     std::unique_ptr<Range> P_amb;
     std::unique_ptr<Range> T_inf;
-    std::unique_ptr<Range> alfa_M;
+    std::unique_ptr<Range> alpha_M;
     std::unique_ptr<Range> P_v;
     std::unique_ptr<Range> mu_L;
     std::unique_ptr<Range> rho_L;
@@ -118,14 +118,14 @@ private:
 public:
     typedef std::variant<Const, LinearRange, LogRange, GeomRange> AnyRange;
     struct Builder {
-        std::string mechanism                   = "chemkin_ar_he";
+        std::string mechanism                   = "chemkin_elte2016_hydrogen";
         AnyRange R_E                            = Const(10.0e-6);
         AnyRange ratio                          = Const(1.0);
         std::vector<std::string> species        = {"O2"};
         std::vector<double> fractions           = {1.0};
         AnyRange P_amb                          = Const(101325.0);
         AnyRange T_inf                          = Const(293.15);
-        AnyRange alfa_M                         = Const(0.35);
+        AnyRange alpha_M                        = Const(0.35);
         AnyRange P_v                            = Const(2338.1);
         AnyRange mu_L                           = Const(0.001);
         AnyRange rho_L                          = Const(998.2);

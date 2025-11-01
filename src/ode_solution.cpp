@@ -301,7 +301,7 @@ void SimulationData::postprocess()
         LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Target specie concentration is negative: " + std::to_string(n_target_specie), cpar.ID);
 
 // energy demand [MJ/kg]
-    const double m_target = n_target_specie * par->molar_weights[cpar.target_specie];  // [kg]
+    const double m_target = n_target_specie * par->W[cpar.target_specie];  // [kg]
     energy_demand = 1.0e-6 * (dissipated_energy + expansion_work) / m_target;  // [MJ/kg]
 
     if (
@@ -407,8 +407,8 @@ std::string SimulationData::to_small_string(const ParameterCombinator &ps, const
         ss << "P_amb=" << format_double << this->cpar.P_amb << " Pa; ";
     if (ps.T_inf->get_num_steps() > 1)
         ss << "T_inf=" << format_double << this->cpar.T_inf << " K; ";
-    if (ps.alfa_M->get_num_steps() > 1)
-        ss << "alfa_M=" << format_double << this->cpar.alfa_M << "; ";
+    if (ps.alpha_M->get_num_steps() > 1)
+        ss << "alpha_M=" << format_double << this->cpar.alpha_M << "; ";
     if (ps.P_v->get_num_steps() > 1)
         ss << "P_v=" << format_double << this->cpar.P_v << " Pa; ";
     if (ps.mu_L->get_num_steps() > 1)

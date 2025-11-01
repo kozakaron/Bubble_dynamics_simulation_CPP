@@ -274,7 +274,7 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
     this->fractions =                   builder.fractions;
     this->P_amb =                       get_unique_ptr(builder.P_amb);
     this->T_inf =                       get_unique_ptr(builder.T_inf);
-    this->alfa_M =                      get_unique_ptr(builder.alfa_M);
+    this->alpha_M =                     get_unique_ptr(builder.alpha_M);
     this->P_v =                         get_unique_ptr(builder.P_v);
     this->mu_L =                        get_unique_ptr(builder.mu_L);
     this->rho_L =                       get_unique_ptr(builder.rho_L);
@@ -297,7 +297,7 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
     this->total_combination_count *= this->ratio->get_num_steps();
     this->total_combination_count *= this->P_amb->get_num_steps();
     this->total_combination_count *= this->T_inf->get_num_steps();
-    this->total_combination_count *= this->alfa_M->get_num_steps();
+    this->total_combination_count *= this->alpha_M->get_num_steps();
     this->total_combination_count *= this->P_v->get_num_steps();
     this->total_combination_count *= this->mu_L->get_num_steps();
     this->total_combination_count *= this->rho_L->get_num_steps();
@@ -531,7 +531,7 @@ void ParameterCombinator::init(const ordered_json& j)
         builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
         builder.P_amb =                     get_range                           (j, "P_amb",                    builder.P_amb);
         builder.T_inf =                     get_range                           (j, "T_inf",                    builder.T_inf);
-        builder.alfa_M =                    get_range                           (j, "alfa_M",                   builder.alfa_M);
+        builder.alpha_M =                   get_range                           (j, "alpha_M",                   builder.alpha_M);
         builder.P_v =                       get_range                           (j, "P_v",                      builder.P_v);
         builder.mu_L =                      get_range                           (j, "mu_L",                     builder.mu_L);
         builder.rho_L =                     get_range                           (j, "rho_L",                    builder.rho_L);
@@ -685,7 +685,7 @@ std::string ParameterCombinator::to_string(const bool with_code) const
     ss << format_field_name << ".fractions" << " = " << ::to_string((double*)this->fractions.data(), this->fractions.size()) << ",\n";
     ss << format_field_name << ".P_amb" << " = " << format_range(this->P_amb.get()) << "\n";
     ss << format_field_name << ".T_inf" << " = " << format_range(this->T_inf.get()) << "\n";
-    ss << format_field_name << ".alfa_M" << " = " << format_range(this->alfa_M.get()) << "\n";
+    ss << format_field_name << ".alpha_M" << " = " << format_range(this->alpha_M.get()) << "\n";
     ss << format_field_name << ".P_v" << " = " << format_range(this->P_v.get()) << "\n";
     ss << format_field_name << ".mu_L" << " = " << format_range(this->mu_L.get()) << "\n";
     ss << format_field_name << ".rho_L" << " = " << format_range(this->rho_L.get()) << "\n";
@@ -725,7 +725,7 @@ ordered_json ParameterCombinator::to_json() const
     j["fractions"] = this->fractions;
     j["P_amb"] = this->P_amb->to_json();
     j["T_inf"] = this->T_inf->to_json();
-    j["alfa_M"] = this->alfa_M->to_json();
+    j["alpha_M"] = this->alpha_M->to_json();
     j["P_v"] = this->P_v->to_json();
     j["mu_L"] = this->mu_L->to_json();
     j["rho_L"] = this->rho_L->to_json();
@@ -792,7 +792,7 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         .fractions = this->fractions,
         .P_amb = get_value(this->P_amb),
         .T_inf = get_value(this->T_inf),
-        .alfa_M = get_value(this->alfa_M),
+        .alpha_M = get_value(this->alpha_M),
         .P_v = get_value(this->P_v),
         .mu_L = get_value(this->mu_L),
         .rho_L = get_value(this->rho_L),
