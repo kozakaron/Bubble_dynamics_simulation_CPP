@@ -338,7 +338,7 @@ def _print_data(data, print_it=True):
     text += f"  Fractions: {cpar.get('fractions', [])}\n"
     text += f"  P_amb: {cpar.get('P_amb', 'N/A')} [Pa]\n"
     text += f"  T_inf: {cpar.get('T_inf', 'N/A')} [K]\n"
-    text += f"  alfa_M: {cpar.get('alfa_M', 'N/A')} [-]\n"
+    text += f"  alpha_M: {cpar.get('alpha_M', 'N/A')} [-]\n"
     text += f"  P_v: {cpar.get('P_v', 'N/A')} [Pa]\n"
     text += f"  mu_L: {cpar.get('mu_L', 'N/A')} [Pa·s]\n"
     text += f"  rho_L: {cpar.get('rho_L', 'N/A')} [kg/m³]\n"
@@ -629,7 +629,7 @@ def line_to_dict(line):
         fractions = fractions,
         P_amb = float(line['P_amb']),
         T_inf = float(line['T_inf']),
-        alfa_M = float(line['alfa_M']),
+        alpha_M = float(line['alpha_M']),
         P_v = float(line['P_v']),
         mu_L = float(line['mu_L']),
         rho_L = float(line['rho_L']),

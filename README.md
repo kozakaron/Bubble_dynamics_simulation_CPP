@@ -133,7 +133,7 @@ cpar = {
     'fractions': [0.25, 0.75],
     'P_amb': 101325.0,
     'T_inf': 293.15,
-    'alfa_M': 0.35,
+    'alpha_M': 0.35,
     'P_v': 2338.1,
     'mu_L': 0.001,
     'rho_L': 998.2,
@@ -205,7 +205,7 @@ Just like the case of the control parameters, you need to provide the mechanism 
  A sample of such a control dict may look like this:
  ```Python
  parameter_studies = {
-    'mechanism': 'chemkin_ar_he',
+    'mechanism': 'chemkin_elte2016_hydrogen',
     'R_E': {
         'type': 'LinearRange',
         'start': 5e-06,
@@ -348,7 +348,7 @@ Errors are logged with the `LOG_ERROR(...)` macro, e.g.: `size_t error_ID = LOG_
 
 ### Chemical mechanisms
 
-Chemical mechanisms are generated from chemkin *.inp* files. (Not included, see [list of .inp files](./dev/inp_file_list.py)) They are turned into usable format via the (quite messy) [./dev/inp_data_extractor.py](./dev/inp_data_extractor.py). The generated structs in [./mechanism](./mechanism) have static constexpr members only. In order to swithc between mechanisms in runtime, and make migrating to CUDA easier, these structs are turned into const static members of the `Parameters` class in [./include/parameters.h](./include/parameters.h). This class stores all arrays in a flattened form as raw pointers. Usage: `const Parameters *par = Parameters::get_parameters(Parameters::mechanism::chemkin_ar_he);` and get any members like `par->nu`.
+Chemical mechanisms are generated from chemkin *.inp* files. (Not included, see [list of .inp files](./dev/inp_file_list.py)) They are turned into usable format via the (quite messy) [./dev/inp_data_extractor.py](./dev/inp_data_extractor.py). The generated structs in [./mechanism](./mechanism) have static constexpr members only. In order to swithc between mechanisms in runtime, and make migrating to CUDA easier, these structs are turned into const static members of the `Parameters` class in [./include/parameters.h](./include/parameters.h). This class stores all arrays in a flattened form as raw pointers. Usage: `const Parameters *par = Parameters::get_parameters(Parameters::mechanism::chemkin_elte2016_hydrogen);` and get any members like `par->nu`.
 
 ### Control parameters, and ODE function
 
@@ -357,14 +357,14 @@ The `ControlParameters` class, declared in [./include/control_parameters.h](./in
 ```cpp
 ControlParameters cpar = ControlParameters{ControlParameters::Builder{
     .ID                          = 0,
-    .mechanism                   = Parameters::mechanism::chemkin_ar_he,
+    .mechanism                   = Parameters::mechanism::chemkin_elte2016_hydrogen,
     .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
     .ratio                       = 1.00000000000000000e+00,    // 
     .species                     = {"O2"},
     .fractions                   = {1.00000000000000000e+00},
     .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]
     .T_inf                       = 2.93149999999999977e+02,    // ambient temperature [K]
-    .alfa_M                      = 3.49999999999999978e-01,    // water accommodation coefficient [-]
+    .alpha_M                     = 3.49999999999999978e-01,    // water accommodation coefficient [-]
     .P_v                         = 2.33809999999999991e+03,    // vapour pressure [Pa]
     .mu_L                        = 1.00000000000000002e-03,    // dynamic viscosity [Pa*s]
     .rho_L                       = 9.98200000000000045e+02,    // liquid density [kg/m^3]
@@ -427,7 +427,7 @@ A bruteforce parameter study can be defined by the `ParameterCombinator` class d
 
 ```cpp
 ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinator::Builder{
-    .mechanism                   = Parameters::mechanism::chemkin_ar_he,
+    .mechanism                   = Parameters::mechanism::chemkin_elte2016_hydrogen,
     .R_E                         = LinearRange(0.000005, 0.000125, 5),                 // {5e-06, 3.5e-05, 6.5e-05, 9.5e-05, 0.000125}
     .P_amb                       = Const(101325.000000),                               // {101325}
      /* ... */

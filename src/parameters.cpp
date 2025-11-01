@@ -7,7 +7,7 @@
 #include "common.h"
 #include "parameters.h"
 
-using ordered_json = nlohmann::ordered_json;
+using json = nlohmann::json;
 
 
 /*#define COPY_ARRAY(type, name, size) { \
@@ -49,7 +49,7 @@ void compute_interval_values_and_derivatives(
 
 // Helper function to check if key and subkey exist in JSON
 bool check_key_exists(
-    const nlohmann::ordered_json& j,
+    const nlohmann::json& j,
     const std::string& main_key,
     const std::string& sub_key=""
 )
@@ -76,7 +76,7 @@ bool check_key_exists(
 
 // Helper function to check if key type matches expected type (for scalars and 1D vectors)
 template<typename T>
-bool check_key_type(const nlohmann::ordered_json& target)
+bool check_key_type(const nlohmann::json& target)
 {
     constexpr bool is_floating_point = std::is_same_v<T, double> || std::is_same_v<T, float>;
     constexpr bool is_integer = std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
@@ -124,7 +124,7 @@ bool check_key_type(const nlohmann::ordered_json& target)
 
 // Helper function to get value from JSON with type checking (for scalars and 1D vectors)
 template<typename T>
-T get_value(const nlohmann::ordered_json& j, const std::string& main_key, const std::string& sub_key="")
+T get_value(const nlohmann::json& j, const std::string& main_key, const std::string& sub_key="")
 {
     constexpr bool is_floating_point = std::is_same_v<T, double> || std::is_same_v<T, float>;
     constexpr bool is_integer = std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
@@ -140,7 +140,7 @@ T get_value(const nlohmann::ordered_json& j, const std::string& main_key, const 
 
     // check existence
     if (!check_key_exists(j, main_key, sub_key)) return T{};
-    const nlohmann::ordered_json& target = sub_key.empty() ? j.at(main_key) : j.at(main_key).at(sub_key);
+    const nlohmann::json& target = sub_key.empty() ? j.at(main_key) : j.at(main_key).at(sub_key);
 
     // check type
     if (!check_key_type<T>(target)) return T{};
@@ -183,7 +183,7 @@ T get_value(const nlohmann::ordered_json& j, const std::string& main_key, const 
 
 // Helper function to copy 1D arrays from JSON to dynamically allocated C-style arrays
 template<typename T>
-void copy_array_1d(const nlohmann::ordered_json& j, const std::string& main_key, const std::string& sub_key, const T*& array, const index_t size)
+void copy_array_1d(const nlohmann::json& j, const std::string& main_key, const std::string& sub_key, const T*& array, const index_t size)
 {
     std::vector<T> input = get_value<std::vector<T>>(j, main_key, sub_key);
     if (size == 0 || input.size() != size)
@@ -203,7 +203,7 @@ void copy_array_1d(const nlohmann::ordered_json& j, const std::string& main_key,
 // Helper function to copy 2D arrays from JSON to dynamically allocated C-style arrays
 // NOTE: Element types in 2D arrays are not checked
 template<typename T>
-void copy_array_2d(const nlohmann::ordered_json& j, const std::string& main_key, const std::string& sub_key, const T*& array, const index_t rows, const index_t cols)
+void copy_array_2d(const nlohmann::json& j, const std::string& main_key, const std::string& sub_key, const T*& array, const index_t rows, const index_t cols)
 {
     std::vector<std::vector<T>> input = get_value<std::vector<std::vector<T>>>(j, main_key, sub_key);
     if (rows == 0 || cols == 0 || input.size() != rows || input[0].size() != cols)
@@ -231,7 +231,7 @@ void copy_array_2d(const nlohmann::ordered_json& j, const std::string& main_key,
 }
 
 
-Parameters::Parameters(const nlohmann::ordered_json& j):
+Parameters::Parameters(const nlohmann::json& j):
     _species(),
     model(                          get_value<std::string>(j, "model")),
     num_elements(                   get_value<index_t>(j, "species", "num_elements")),
@@ -248,16 +248,14 @@ Parameters::Parameters(const nlohmann::ordered_json& j):
     num_sri_reactions(              get_value<index_t>(j, "falloff_reactions", "num_sri_reactions")),
     num_plog_reactions(             get_value<index_t>(j, "plog_reactions", "num_plog_reactions")),
     num_plog_levels(                get_value<index_t>(j, "plog_reactions", "num_plog_levels")),
-    molar_weights(nullptr),
+    W(nullptr),
     thermal_conductivities(nullptr),
     temp_ranges(nullptr),
     a_low(nullptr),
     a_high(nullptr),
     interval_values(nullptr),
     interval_derivatives(nullptr),
-    b(nullptr),
-    ln_A(nullptr),
-    E_over_R(nullptr),
+    arrhenius_parameters(nullptr),
     reaction_order(nullptr),
     nu_indexes(nullptr),
     nu_forward(nullptr),
@@ -266,10 +264,10 @@ Parameters::Parameters(const nlohmann::ordered_json& j):
     sum_nu(nullptr),
     third_body_reaction_indexes(nullptr),
     is_falloff_reaction(nullptr),
-    third_body_efficiencies(nullptr),
+    alpha(nullptr),
     irreversible_reaction_indexes(nullptr),
     falloff_reaction_indexes(nullptr),
-    pressure_dependent_reac_types(nullptr),
+    falloff_reaction_types(nullptr),
     is_third_body_indexes(nullptr),
     falloff_parameters(nullptr),
     troe_parameters(nullptr),
@@ -279,14 +277,14 @@ Parameters::Parameters(const nlohmann::ordered_json& j):
     plog_parameters(nullptr)
 {
     // Fill simple arrays
-    copy_array_1d<double> (j, "species", "molar_weights", molar_weights, num_species);
+    copy_array_1d<double> (j, "species", "molar_weights", W, num_species);
     copy_array_1d<double> (j, "species", "thermal_conductivities", thermal_conductivities, num_species);
     copy_array_2d<double> (j, "thermodynamics", "temp_ranges", temp_ranges, num_species, 3);
     copy_array_2d<double> (j, "thermodynamics", "a_low", a_low, num_species, NASA_order + 2);
     copy_array_2d<double> (j, "thermodynamics", "a_high", a_high, num_species, NASA_order + 2);
     copy_array_1d<index_t>(j, "third_body_reactions", "third_body_reaction_indexes", third_body_reaction_indexes, num_third_body_reactions);
     copy_array_1d<bool>   (j, "third_body_reactions", "is_falloff_reaction", is_falloff_reaction, num_third_body_reactions);
-    copy_array_2d<double> (j, "third_body_reactions", "third_body_efficiencies", third_body_efficiencies, num_third_body_reactions, num_species);
+    copy_array_2d<double> (j, "third_body_reactions", "third_body_efficiencies", alpha, num_third_body_reactions, num_species);
     copy_array_1d<index_t>(j, "irreversible_reactions", "irreversible_reaction_indexes", irreversible_reaction_indexes, num_irreversible_reactions);
     copy_array_1d<index_t>(j, "falloff_reactions", "falloff_reaction_indexes", falloff_reaction_indexes, num_falloff_reactions);
     copy_array_1d<index_t>(j, "falloff_reactions", "is_third_body_indexes", is_third_body_indexes, num_falloff_reactions);
@@ -297,44 +295,162 @@ Parameters::Parameters(const nlohmann::ordered_json& j):
     copy_array_1d<index_t>(j, "plog_reactions", "plog_seperators", plog_seperators, num_plog_levels + 1);
     copy_array_2d<double> (j, "plog_reactions", "plog_parameters", plog_parameters, num_plog_levels, 4);
     
-    // Species map and vector
-    species_names = get_value<std::vector<std::string>>(j, "species", "species_names");
-    for (index_t i = 0; i < species_names.size(); i++)
+    try
     {
-        _species[species_names.at(i)] = i;
-    }
+    // Species map and vector
+        species_names = get_value<std::vector<std::string>>(j, "species", "species_names");
+        for (index_t i = 0; i < species_names.size(); i++)
+        {
+            _species[species_names.at(i)] = i;
+        }
+
 
     // Compute NASA interval values and derivatives
-    for(index_t i = 0; i < num_species; i++)
-    {
-        /*compute_interval_values_and_derivatives(
-            temp_ranges[3*i + 2],    // T_high
-            &(a_high[i][0]),
-            &(interval_values_temp[i*3]),
-            &(interval_derivatives_temp[i*3])
-        );*/
-    }
+        double* interval_values_temp      = new double[num_species * 3];
+        double* interval_derivatives_temp = new double[num_species * 3];
+        for(index_t i = 0; i < num_species; i++)
+        {
+            compute_interval_values_and_derivatives(
+                temp_ranges[3*i + 2],    // T_high
+                &(a_high[i*3]),
+                &(interval_values_temp[i*3]),
+                &(interval_derivatives_temp[i*3])
+            );
+        }
+        interval_values      = (const double*)interval_values_temp;
+        interval_derivatives = (const double*)interval_derivatives_temp;
+
 
     // Arrhenius parameters and reaction order
-    // TODO
+        if (!check_key_exists(j, "arrhenius_parameters", "arrhenius_params_with_orders")) return;
+        const nlohmann::json& arrhenius = j.at("arrhenius_parameters").at("arrhenius_params_with_orders");
+        if (arrhenius.size() != num_reactions) return;
+
+        double* arrhenius_parameters_temp = new double[num_reactions * 3];
+        index_t* reaction_order_temp      = new index_t[num_reactions];
+        for (size_t i = 0; i < arrhenius.size(); i++)
+        {
+            const auto& reaction = arrhenius.at(i);
+            arrhenius_parameters_temp[i * 3 + 0] = reaction.at(0).at(0).get<double>();
+            arrhenius_parameters_temp[i * 3 + 1] = reaction.at(0).at(1).get<double>();
+            arrhenius_parameters_temp[i * 3 + 2] = reaction.at(0).at(2).get<double>();
+            reaction_order_temp[i] = reaction.at(1).get<index_t>();
+        }
+        arrhenius_parameters = (const double*)arrhenius_parameters_temp;
+        reaction_order = (const index_t*)reaction_order_temp;
+
 
     // Stoichiometric coefficients
-    // TODO
+        if (!check_key_exists(j, "arrhenius_parameters", "stochiometric_coeffs")) return;
+        const nlohmann::json& stoichiometric = j.at("arrhenius_parameters").at("stochiometric_coeffs");
+        if (stoichiometric.size() != num_reactions) return;
 
-    // Falloff reaction types
-    // TODO
+        index_t* nu_indexes_temp   = new index_t[num_reactions * num_max_species_per_reaction];
+        stoich_t* nu_forward_temp  = new stoich_t[num_reactions * num_max_species_per_reaction];
+        stoich_t* nu_backward_temp = new stoich_t[num_reactions * num_max_species_per_reaction];
+        stoich_t* nu_temp          = new stoich_t[num_reactions * num_max_species_per_reaction];
+        stoich_t* sum_nu_temp      = new stoich_t[num_reactions];
+        for (size_t i = 0; i < stoichiometric.size(); i++)
+        {
+            const auto& reaction = stoichiometric.at(i);
+            const auto& indexes = reaction.at(0);
+            const auto& nu_fwd = reaction.at(1);
+            const auto& nu_bwd = reaction.at(2);
+            const auto& nu_vals = reaction.at(3);
 
+            stoich_t sum_nu_reaction = 0;
+            for (size_t j = 0; j < num_max_species_per_reaction; j++)
+            {
+                index_t index = indexes.at(j).get<index_t>();
+                stoich_t nu_f = nu_fwd.at(j).get<stoich_t>();
+                stoich_t nu_b = nu_bwd.at(j).get<stoich_t>();
+                stoich_t nu_val = nu_vals.at(j).get<stoich_t>();
+
+                nu_indexes_temp[i * num_max_species_per_reaction + j]   = index;
+                nu_forward_temp[i * num_max_species_per_reaction + j]  = nu_f;
+                nu_backward_temp[i * num_max_species_per_reaction + j] = nu_b;
+                nu_temp[i * num_max_species_per_reaction + j]          = nu_val;
+
+                sum_nu_reaction += nu_val;
+            }
+            sum_nu_temp[i] = sum_nu_reaction;
+        }
+        nu_indexes   = (const index_t*)nu_indexes_temp;
+        nu_forward  = (const stoich_t*)nu_forward_temp;
+        nu_backward = (const stoich_t*)nu_backward_temp;
+        nu          = (const stoich_t*)nu_temp;
+        sum_nu      = (const stoich_t*)sum_nu_temp;
+
+
+        // Falloff reaction types
+        if (!check_key_exists(j, "falloff_reactions", "falloff_reaction_types")) return;
+        const nlohmann::json& falloff_types = j.at("falloff_reactions").at("falloff_reaction_types");
+        if (falloff_types.size() != num_falloff_reactions) return;
+        
+        reac_type* falloff_reac_types_temp = new reac_type[num_falloff_reactions];
+        for (size_t i = 0; i < falloff_types.size(); i++)
+        {
+            const auto& reaction = falloff_types.at(i);
+            std::string type_str = reaction.get<std::string>();
+            if (type_str == "lindemann")
+                falloff_reac_types_temp[i] = reac_type::lindemann;
+            else if (type_str == "troe")
+                falloff_reac_types_temp[i] = reac_type::troe;
+            else if (type_str == "sri")
+                falloff_reac_types_temp[i] = reac_type::sri;
+            else
+            {
+                LOG_ERROR(
+                    Error::severity::warning, Error::type::preprocess,
+                    "Unknown falloff reaction type \"" + type_str + "\" for reaction index " + std::to_string(i) + ". Using Lindemann value.");
+                falloff_reac_types_temp[i] = reac_type::lindemann;
+            }
+        }
+        falloff_reaction_types = (const reac_type*)falloff_reac_types_temp;
+
+    }
+    catch(const std::exception& e)
+    {
+        LOG_ERROR(
+            Error::severity::error,
+            Error::type::preprocess,
+            "Exception occurred while parsing JSON data: " + std::string(e.what())
+        );
+    }
 }
 
-// Removes "//" comments from a line
-// Does not support the placement of "//" in strings
-std::string strip_comments(const std::string& line) {
-    size_t pos = line.find("//");
-    return (pos != std::string::npos) ? line.substr(0, pos) : line;
+
+// Removes "//" comments from a multiline string
+// Does not support the placement of "//" within the JSON itself
+std::string strip_comments(const std::string& s) {
+    std::string out;
+    out.reserve(s.size());  // pre-allocate to avoid reallocations
+    
+    const size_t n = s.size();
+    for (size_t i = 0; i < n; ++i) {
+        char c = s[i];
+        
+        // Check for "//" comment
+        if (c == '/' && i + 1 < n && s[i + 1] == '/') {
+            // Skip until end of line
+            i += 2;
+            while (i < n && s[i] != '\n' && s[i] != '\r') {
+                ++i;
+            }
+            // Keep the newline character (preserves line numbers for error messages)
+            if (i < n) {
+                out.push_back('\n');
+            }
+        } else {
+            out.push_back(c);
+        }
+    }
+
+    return out;
 }
 
 
-ordered_json get_json(const std::string& json_path)
+json get_json(const std::string& json_path)
 {
     // Open JSON file
     std::ifstream input_file(json_path);
@@ -348,16 +464,19 @@ ordered_json get_json(const std::string& json_path)
         return {};
     }
 
+    // Read text from file, strip comments
+    std::string raw_content(
+        (std::istreambuf_iterator<char>(input_file)),
+        std::istreambuf_iterator<char>()
+    );
+    input_file.close();
+    std::string cleaned = strip_comments(raw_content);
+
     // Read JSON data
-    std::ostringstream cleaned;
-    std::string line;
-    ordered_json j;
-    while (std::getline(input_file, line)) {
-        cleaned << strip_comments(line) << '\n';
-    }
+    nlohmann::json j;
     try
     {
-        j = ordered_json::parse(cleaned.str());
+        j = json::parse(cleaned);
     }
     catch (const std::exception& e)
     {
@@ -368,9 +487,8 @@ ordered_json get_json(const std::string& json_path)
         );
         return {};
     }
-    input_file.close();
 
-    // Parse JSON data
+    // Validate JSON content
     if (!j.contains("model"))
     {
         LOG_ERROR(
@@ -390,140 +508,16 @@ Parameters::Parameters(const std::string& json_path):
 { }
 
 
-/*
-template <typename T>
-Parameters::Parameters(T dummy):
-    _elements(),
-    _species(),
-    model(T::model),
-    input_file(T::input_file),
-    num_elements(T::num_elements),
-    num_species(T::num_species),
-    index_of_water(T::index_of_water),
-    invalid_index(T::invalid_index),
-    species_names(),
-    NASA_order(T::NASA_order),
-    num_reactions(T::num_reactions),
-    num_max_species_per_reaction(T::num_max_species_per_reaction),
-    num_third_body_reactions(T::num_third_body_reactions),
-    num_irreversible_reactions(T::num_irreversible_reactions),
-    num_falloff_reactions(T::num_falloff_reactions),
-    num_lindemann_reactions(T::num_lindemann_reactions),
-    num_troe_reactions(T::num_troe_reactions),
-    num_sri_reactions(T::num_sri_reactions),
-    num_plog_reactions(T::num_plog_reactions),
-    num_plog_levels(T::num_plog_levels)
-{
-    (void)dummy;
-    
-    // Physical constants
-    COPY_ARRAY(double, molar_weights, T::num_species);
-    COPY_ARRAY(double, thermal_conductivities, T::num_species);
-
-    // NASA polynomials
-    COPY_ARRAY(double, temp_ranges, T::num_species*3);
-    COPY_ARRAY(double, a_low, T::num_species*(T::NASA_order+2));
-    COPY_ARRAY(double, a_high, T::num_species*(T::NASA_order+2));
-    double* interval_values_temp = new double[T::num_species*3];
-    double* interval_derivatives_temp = new double[T::num_species*3];
-    this->interval_values = (const double*)interval_values_temp;
-    this->interval_derivatives = (const double*)interval_derivatives_temp;
-    for(index_t i = 0; i < T::num_species; i++)
-    {
-        compute_interval_values_and_derivatives(
-            T::temp_ranges[i][1],    // T_high
-            &(T::a_high[i][0]),
-            &(interval_values_temp[i*3]),
-            &(interval_derivatives_temp[i*3])
-        );
-    }
-
-    // Arrhenius parameters
-    COPY_ARRAY(double, b, T::num_reactions);
-    COPY_ARRAY(double, ln_A, T::num_reactions);
-    COPY_ARRAY(double, E_over_R, T::num_reactions);
-
-    // Reaction order and stoichiometric coefficients
-    COPY_ARRAY(index_t, reaction_order, T::num_reactions);
-    COPY_ARRAY(index_t, nu_indexes, T::num_reactions*T::num_max_species_per_reaction);
-    for(index_t i = 0; i < T::num_elements; i++)
-    {
-        _elements[T::elements[i].first] = T::elements[i].second;
-        elements_names.push_back(T::elements[i].first);
-    }
-    for(index_t i = 0; i < T::num_species; i++)
-    {
-        _species[T::species[i].first] = T::species[i].second;
-        species_names.push_back(T::species[i].first);
-    }
-    stoich_t *temp_nu_forward = new stoich_t[T::num_reactions*T::num_max_species_per_reaction];
-    stoich_t *temp_nu_backward = new stoich_t[T::num_reactions*T::num_max_species_per_reaction];
-    stoich_t *temp_nu = new stoich_t[T::num_reactions*T::num_max_species_per_reaction];
-    stoich_t *temp_sum_nu = new stoich_t[T::num_reactions];
-    for(index_t i = 0; i < T::num_reactions; i++)
-    {
-        std::copy(
-            (stoich_t*)T::nu[i][0],
-            (stoich_t*)T::nu[i][0] + T::num_max_species_per_reaction,
-            temp_nu_forward + i*T::num_max_species_per_reaction
-        );
-        std::copy(
-            (stoich_t*)T::nu[i][1],
-            (stoich_t*)T::nu[i][1] + T::num_max_species_per_reaction,
-            temp_nu_backward + i*T::num_max_species_per_reaction
-        );
-        std::copy(
-            (stoich_t*)T::nu[i][2],
-            (stoich_t*)T::nu[i][2] + T::num_max_species_per_reaction,
-            temp_nu + i*T::num_max_species_per_reaction
-        );
-        temp_sum_nu[i] = 0;
-        for(index_t j = 0; j < T::num_max_species_per_reaction; j++)
-        {
-            temp_sum_nu[i] += T::nu[i][2][j];
-        }
-    }
-    this->nu_forward = (const stoich_t*)temp_nu_forward;
-    this->nu_backward = (const stoich_t*)temp_nu_backward;
-    this->nu = (const stoich_t*)temp_nu;
-    this->sum_nu = (const stoich_t*)temp_sum_nu;
-
-    // Third body and fallof  pressure-dependent reactions
-    COPY_ARRAY(index_t, third_body_reaction_indexes, T::num_third_body_reactions);
-    COPY_ARRAY(bool, is_falloff_reaction, T::num_third_body_reactions);
-    COPY_ARRAY(double, third_body_efficiencies, T::num_third_body_reactions*T::num_species);
-    COPY_ARRAY(index_t, irreversible_reaction_indexes, T::num_irreversible_reactions);
-    COPY_ARRAY(index_t, falloff_reaction_indexes, T::num_falloff_reactions);
-    COPY_ARRAY(Parameters::reac_type, pressure_dependent_reac_types, T::num_falloff_reactions);
-    COPY_ARRAY(index_t, is_third_body_indexes, T::num_falloff_reactions);
-    COPY_ARRAY(double, falloff_parameters, T::num_falloff_reactions*3);
-    COPY_ARRAY(double, troe_parameters, T::num_troe_reactions*4);
-    COPY_ARRAY(double, sri_parameters, T::num_sri_reactions*5);
-
-    // PLOG reactions
-    COPY_ARRAY(index_t, plog_reaction_indexes, T::num_plog_reactions);
-    if (T::num_plog_reactions > 0)
-    {
-        COPY_ARRAY(index_t, plog_seperators, T::num_plog_reactions+1);
-    } else {
-        COPY_ARRAY(index_t, plog_seperators, 2);
-    }
-   COPY_ARRAY(double, plog_parameters, T::num_plog_levels*4);
-}*/
-
-
 Parameters::~Parameters()
 {
-    if (molar_weights != nullptr) delete[] molar_weights;
+    if (W != nullptr) delete[] W;
     if (thermal_conductivities != nullptr) delete[] thermal_conductivities;
     if (temp_ranges != nullptr) delete[] temp_ranges;
     if (a_low != nullptr) delete[] a_low;
     if (a_high != nullptr) delete[] a_high;
     if (interval_values != nullptr) delete[] interval_values;
     if (interval_derivatives != nullptr) delete[] interval_derivatives;
-    if (b != nullptr) delete[] b;
-    if (ln_A != nullptr) delete[] ln_A;
-    if (E_over_R != nullptr) delete[] E_over_R;
+    if (arrhenius_parameters != nullptr) delete[] arrhenius_parameters;
     if (nu_indexes != nullptr) delete[] nu_indexes;
     if (nu_forward != nullptr) delete[] nu_forward;
     if (nu_backward != nullptr) delete[] nu_backward;
@@ -532,10 +526,10 @@ Parameters::~Parameters()
     if (sum_nu != nullptr) delete[] sum_nu;
     if (third_body_reaction_indexes != nullptr) delete[] third_body_reaction_indexes;
     if (is_falloff_reaction != nullptr) delete[] is_falloff_reaction;
-    if (third_body_efficiencies != nullptr) delete[] third_body_efficiencies;
+    if (alpha != nullptr) delete[] alpha;
     if (irreversible_reaction_indexes != nullptr) delete[] irreversible_reaction_indexes;
     if (falloff_reaction_indexes != nullptr) delete[] falloff_reaction_indexes;
-    if (pressure_dependent_reac_types != nullptr) delete[] pressure_dependent_reac_types;
+    if (falloff_reaction_types != nullptr) delete[] falloff_reaction_types;
     if (is_third_body_indexes != nullptr) delete[] is_third_body_indexes;
     if (falloff_parameters != nullptr) delete[] falloff_parameters;
     if (troe_parameters != nullptr) delete[] troe_parameters;
@@ -549,8 +543,8 @@ const Parameters *Parameters::get_parameters(const std::string& mech)
 {
     /*switch (mech)
     {
-        case mechanism::chemkin_ar_he:
-            return &Parameters::chemkin_ar_he_params;
+        case mechanism::chemkin_elte2016_hydrogen:
+            return &Parameters::chemkin_elte2016_hydrogen_params;
         case mechanism::chemkin_kaust2023_n2:
             return &Parameters::chemkin_kaust2023_n2_params;
         case mechanism::chemkin_kaust2023_n2_without_o:
@@ -601,7 +595,7 @@ index_t Parameters::get_species(std::string name) const
     ss << "Invalid mechanism: " << mechanism_str << ". Valid options are: ";
     ss << ::to_string((char**)Parameters::mechanism_names.data(), Parameters::mechanism_names.size());
     LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
-    return Parameters::mechanism::chemkin_ar_he; // Default to a known mechanism
+    return Parameters::mechanism::chemkin_elte2016_hydrogen; // Default to a known mechanism
 }*/
 
 

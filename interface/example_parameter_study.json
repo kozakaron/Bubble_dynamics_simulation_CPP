@@ -1,6 +1,6 @@
 {
     "parameter_study": {
-        "mechanism": "chemkin_ar_he",
+        "mechanism": "chemkin_elte2016_hydrogen",
         "R_E": {
             "type": "LinearRange",
             "start": 5e-06,
@@ -25,7 +25,7 @@
             "type": "Const",
             "value": 293.15
         },
-        "alfa_M": {
+        "alpha_M": {
             "type": "Const",
             "value": 0.35
         },
