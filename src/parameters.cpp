@@ -2,6 +2,7 @@
 #include <sstream>
 #include <fstream>
 #include <cmath>
+#include <filesystem>
 
 #include "nlohmann/json.hpp"
 #include "common.h"
@@ -10,11 +11,7 @@
 using json = nlohmann::json;
 
 
-/*#define COPY_ARRAY(type, name, size) { \
-    type* temp = size ? new type[size] : nullptr; \
-    this->name = (const type*)temp; \
-    std::copy((type*)(T::name), (type*)(T::name) + size, temp); \
-}*/
+std::vector<std::unique_ptr<Parameters>>  Parameters::_mechanisms{};
 
 
 void compute_interval_values_and_derivatives(
@@ -126,11 +123,6 @@ bool check_key_type(const nlohmann::json& target)
 template<typename T>
 T get_value(const nlohmann::json& j, const std::string& main_key, const std::string& sub_key="")
 {
-    constexpr bool is_floating_point = std::is_same_v<T, double> || std::is_same_v<T, float>;
-    constexpr bool is_integer = std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
-                                std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t>;
-    constexpr bool is_string = std::is_same_v<T, std::string>;
-    constexpr bool is_bool = std::is_same_v<T, bool>;
     constexpr bool is_int_vector = std::is_same_v<T, std::vector<int8_t>> || std::is_same_v<T, std::vector<int16_t>> || std::is_same_v<T, std::vector<int32_t>> || std::is_same_v<T, std::vector<int64_t>> ||
                                    std::is_same_v<T, std::vector<uint8_t>> || std::is_same_v<T, std::vector<uint16_t>> || std::is_same_v<T, std::vector<uint32_t>> || std::is_same_v<T, std::vector<uint64_t>>;
     constexpr bool is_float_vector = std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<float>>;
@@ -233,48 +225,48 @@ void copy_array_2d(const nlohmann::json& j, const std::string& main_key, const s
 
 Parameters::Parameters(const nlohmann::json& j):
     _species(),
-    model(                          get_value<std::string>(j, "model")),
+    mechanism_name(                 get_value<std::string>(j, "model")),
     num_elements(                   get_value<index_t>(j, "species", "num_elements")),
     num_species(                    get_value<index_t>(j, "species", "num_species")),
     index_of_water(                 get_value<index_t>(j, "species", "index_of_water")),
     invalid_index(                  get_value<index_t>(j, "species", "invalid_index")),
+    W(                              nullptr),
+    thermal_conductivities(         nullptr),
+    temp_ranges(                    nullptr),
+    a_low(                          nullptr),
+    a_high(                         nullptr),
+    interval_values(                nullptr),
+    interval_derivatives(           nullptr),
     num_reactions(                  get_value<index_t>(j, "arrhenius_parameters", "num_reactions")),
+    arrhenius_parameters(           nullptr),
+    reaction_order(                 nullptr),
     num_max_species_per_reaction(   get_value<index_t>(j, "arrhenius_parameters", "num_max_species_per_reaction")),
+    nu_indexes(                     nullptr),
+    nu_forward(                     nullptr),
+    nu_backward(                    nullptr),
+    nu(                             nullptr),
+    sum_nu(                         nullptr),
     num_third_body_reactions(       get_value<index_t>(j, "third_body_reactions", "num_third_body_reactions")),
+    third_body_reaction_indexes(    nullptr),
+    is_falloff_reaction(            nullptr),
+    alpha(                          nullptr),
     num_irreversible_reactions(     get_value<index_t>(j, "irreversible_reactions", "num_irreversible_reactions")),
+    irreversible_reaction_indexes(  nullptr),
     num_falloff_reactions(          get_value<index_t>(j, "falloff_reactions", "num_falloff_reactions")),
     num_lindemann_reactions(        get_value<index_t>(j, "falloff_reactions", "num_lindemann_reactions")),
     num_troe_reactions(             get_value<index_t>(j, "falloff_reactions", "num_troe_reactions")),
     num_sri_reactions(              get_value<index_t>(j, "falloff_reactions", "num_sri_reactions")),
+    falloff_reaction_indexes(       nullptr),
+    falloff_reaction_types(         nullptr),
+    is_third_body_indexes(          nullptr),
+    falloff_parameters(             nullptr),
+    troe_parameters(                nullptr),
+    sri_parameters(                 nullptr),
     num_plog_reactions(             get_value<index_t>(j, "plog_reactions", "num_plog_reactions")),
     num_plog_levels(                get_value<index_t>(j, "plog_reactions", "num_plog_levels")),
-    W(nullptr),
-    thermal_conductivities(nullptr),
-    temp_ranges(nullptr),
-    a_low(nullptr),
-    a_high(nullptr),
-    interval_values(nullptr),
-    interval_derivatives(nullptr),
-    arrhenius_parameters(nullptr),
-    reaction_order(nullptr),
-    nu_indexes(nullptr),
-    nu_forward(nullptr),
-    nu_backward(nullptr),
-    nu(nullptr),
-    sum_nu(nullptr),
-    third_body_reaction_indexes(nullptr),
-    is_falloff_reaction(nullptr),
-    alpha(nullptr),
-    irreversible_reaction_indexes(nullptr),
-    falloff_reaction_indexes(nullptr),
-    falloff_reaction_types(nullptr),
-    is_third_body_indexes(nullptr),
-    falloff_parameters(nullptr),
-    troe_parameters(nullptr),
-    sri_parameters(nullptr),
-    plog_reaction_indexes(nullptr),
-    plog_seperators(nullptr),
-    plog_parameters(nullptr)
+    plog_reaction_indexes(          nullptr),
+    plog_seperators(                nullptr),
+    plog_parameters(                nullptr)
 {
     // Fill simple arrays
     copy_array_1d<double> (j, "species", "molar_weights", W, num_species);
@@ -292,7 +284,7 @@ Parameters::Parameters(const nlohmann::json& j):
     copy_array_2d<double> (j, "falloff_reactions", "troe_parameters", troe_parameters, num_troe_reactions, 4);
     copy_array_2d<double> (j, "falloff_reactions", "sri_parameters", sri_parameters, num_sri_reactions, 5);
     copy_array_1d<index_t>(j, "plog_reactions", "plog_reaction_indexes", plog_reaction_indexes, num_plog_reactions);
-    copy_array_1d<index_t>(j, "plog_reactions", "plog_seperators", plog_seperators, num_plog_levels + 1);
+    copy_array_1d<index_t>(j, "plog_reactions", "plog_seperators", plog_seperators, num_plog_reactions + 1);
     copy_array_2d<double> (j, "plog_reactions", "plog_parameters", plog_parameters, num_plog_levels, 4);
     
     try
@@ -312,7 +304,7 @@ Parameters::Parameters(const nlohmann::json& j):
         {
             compute_interval_values_and_derivatives(
                 temp_ranges[3*i + 2],    // T_high
-                &(a_high[i*3]),
+                &(a_high[i*7]),
                 &(interval_values_temp[i*3]),
                 &(interval_derivatives_temp[i*3])
             );
@@ -498,7 +490,7 @@ json get_json(const std::string& json_path)
         );
         return {};
     }
-    
+
     return j;
 }
 
@@ -539,30 +531,69 @@ Parameters::~Parameters()
     if (plog_parameters != nullptr) delete[] plog_parameters;
 }
 
-const Parameters *Parameters::get_parameters(const std::string& mech)
+
+const Parameters *Parameters::get_parameters(const std::string& mech_name)
 {
-    /*switch (mech)
+    // Check if already loaded (by Parameters::mechanism_name)
+    Timer timer; timer.start();
+    auto it = std::find_if(_mechanisms.begin(), _mechanisms.end(),
+        [&](const std::unique_ptr<Parameters>& p) {
+            return p && p->mechanism_name == mech_name;
+        });
+    if (it != _mechanisms.end())
+        return it->get();
+    
+    // Check if JSON directory exists
+    std::filesystem::path mech_dir_path = std::filesystem::path("mechanism") / "json_files";
+    if (!std::filesystem::exists(mech_dir_path))
     {
-        case mechanism::chemkin_elte2016_hydrogen:
-            return &Parameters::chemkin_elte2016_hydrogen_params;
-        case mechanism::chemkin_kaust2023_n2:
-            return &Parameters::chemkin_kaust2023_n2_params;
-        case mechanism::chemkin_kaust2023_n2_without_o:
-            return &Parameters::chemkin_kaust2023_n2_without_o_params;
-        case mechanism::chemkin_otomo2018_without_o:
-            return &Parameters::chemkin_otomo2018_without_o_params;
-        case mechanism::chemkin_otomo2018:
-            return &Parameters::chemkin_otomo2018_params;
-        case mechanism::chemkin_elte2016_ethanol:
-            return &Parameters::chemkin_elte2016_ethanol_params;
-        case mechanism::chemkin_elte2016_syngas:
-            return &Parameters::chemkin_elte2016_syngas_params;
-        case mechanism::chemkin_elte2017_methanol:
-            return &Parameters::chemkin_elte2017_methanol_params;
-        default:
-            LOG_ERROR("Unknown mechanisms: " + std::to_string(mech));
-            return nullptr;
-    }*/ return nullptr;
+        LOG_ERROR(
+            Error::severity::error, Error::type::preprocess,
+            "Directory \"" + mech_dir_path.string() + "\" not found. Make sure, your current working directory is correct."
+        );
+        return nullptr;
+    }
+
+    // Check if corresponding JSON file exists
+    std::filesystem::path json_path = mech_dir_path / (mech_name + ".json");
+    if (!std::filesystem::exists(json_path))
+    {
+        // Collect available mechanisms (JSON files without extension)
+        std::vector<std::string> available;
+        for (const auto& entry : std::filesystem::directory_iterator(mech_dir_path))
+        {
+            if (!entry.is_regular_file()) continue;
+            const auto& p = entry.path();
+            if (p.has_extension() && p.extension() == ".json")
+                available.emplace_back(p.stem().string());
+        }
+
+        LOG_ERROR(
+            Error::severity::error, Error::type::preprocess,
+            "Mechanism JSON file \"" + json_path.string() + "\" not found. Check if the mechanism name is correct. Available: " + ::to_string((std::string*)available.data(), available.size())
+        );
+        return nullptr;
+    }
+    
+    // Load new Parameters instance
+    auto param = std::make_unique<Parameters>(json_path.string());
+    const double runtime = timer.lap();
+    LOG_ERROR(
+        Error::severity::info, Error::type::preprocess,
+        "Loaded mechanism \"" + param->mechanism_name + "\" from \"" + json_path.string() + "\" in " + Timer::format_time(runtime) + "."
+    );
+    const std::string expected_mechanism_name = json_path.stem().string();
+    if (param->mechanism_name != expected_mechanism_name)
+    {
+        LOG_ERROR(
+            Error::severity::error, Error::type::preprocess,
+            "Mechanism name in JSON file \"" + param->mechanism_name + "\" does not match the expected name from the file name \"" + expected_mechanism_name + "\"."
+        );
+        return nullptr;
+    } 
+
+    _mechanisms.push_back(std::move(param));
+    return _mechanisms.back().get();
 }
 
 
@@ -573,30 +604,13 @@ index_t Parameters::get_species(std::string name) const
     if (it == _species.end())
     {
         std::stringstream ss;
-        ss << "Species \"" << name << "\" not found in " << this->model << ". Valid species are: ";
+        ss << "Species \"" << name << "\" not found in " << this->mechanism_name << ". Valid species are: ";
         ss << ::to_string((std::string*)Parameters::species_names.data(), Parameters::species_names.size());
         LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
         return invalid_index;
     }
     return it->second;
 }
-
-
-/*Parameters::mechanism Parameters::string_to_mechanism(std::string& mechanism_str) {
-    std::transform(mechanism_str.begin(), mechanism_str.end(), mechanism_str.begin(), ::tolower);
-    std::replace(mechanism_str.begin(), mechanism_str.end(), ' ', '_');
-    auto it = std::find(Parameters::mechanism_names.begin(), Parameters::mechanism_names.end(), mechanism_str);
-    if (it != Parameters::mechanism_names.end()) {
-        return static_cast<Parameters::mechanism>(std::distance(Parameters::mechanism_names.begin(), it));
-    }
-
-    // Error handling
-    std::stringstream ss;
-    ss << "Invalid mechanism: " << mechanism_str << ". Valid options are: ";
-    ss << ::to_string((char**)Parameters::mechanism_names.data(), Parameters::mechanism_names.size());
-    LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
-    return Parameters::mechanism::chemkin_elte2016_hydrogen; // Default to a known mechanism
-}*/
 
 
 Parameters::excitation Parameters::string_to_excitation(std::string excitation_str) {

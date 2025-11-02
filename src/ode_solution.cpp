@@ -246,7 +246,7 @@ void SimulationData::postprocess()
         LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Dissipated energy is negative: " + std::to_string(dissipated_energy), cpar.ID);
 
 // expansion work [J]
-    const Parameters* par = Parameters::get_parameters(cpar.mechanism);
+    const Parameters* par = cpar.par;
     if (
         par == nullptr ||
         cpar.ratio == 1.0
@@ -491,14 +491,10 @@ nlohmann::ordered_json SimulationData::to_json() const
         }
     });
 
-    const Parameters* par = Parameters::get_parameters(this->cpar.mechanism);
-    if (par == nullptr)
-    {
-        LOG_ERROR("Mechanism " + this->cpar.mechanism + " is not found.");
-        return j;
-    }
+    const Parameters* par = cpar.par;
+    if (par == nullptr) return j;
     j["mechanism"] = nlohmann::ordered_json::object({
-        {"model", par->model},
+        {"model", par->mechanism_name},
         {"num_species", par->num_species},
         {"num_reactions", par->num_reactions},
         {"species_names", par->species_names}

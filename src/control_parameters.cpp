@@ -15,8 +15,8 @@ using ordered_json = nlohmann::ordered_json;
 
 ControlParameters::ControlParameters()
 {
-    ControlParameters::Builder builder; // with default values
-    this->init(builder);
+    this->par = nullptr;
+    this->excitation_type = Parameters::excitation::no_excitation;
 }
 
 
@@ -129,10 +129,10 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
         builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
         builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
-        builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params);
         builder.excitation_type = Parameters::string_to_excitation(
                                             get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
         );
+        builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params);
     }
     catch(const std::exception& e)
     {
@@ -198,16 +198,9 @@ ControlParameters::ControlParameters(const std::string& json_path)
 
 void ControlParameters::init(const ControlParameters::Builder& builder)
 {
-    const Parameters* par = Parameters::get_parameters(builder.mechanism);
-    if (par == nullptr)
-    {
-        std::string message = "Invalid mechanism: " + builder.mechanism;
-        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, builder.ID);
-        return;
-    }
     this->ID = builder.ID;
-    this->mechanism = builder.mechanism;
     this->error_ID = builder.error_ID;
+    this->set_mechanism(builder.mechanism);
     this->R_E = builder.R_E;
     this->ratio = builder.ratio;
     this->P_amb = builder.P_amb;
@@ -227,7 +220,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
 
     if (this->target_specie == par->invalid_index)
     {
-        std::string message = "Invalid target specie (" + builder.target_specie + ") for mechanism " + par->model;
+        std::string message = "Invalid target specie (" + builder.target_specie + ") for mechanism " + par->mechanism_name;
         this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
         return;
     }
@@ -240,29 +233,29 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
 ControlParameters::~ControlParameters() { }
 
 
+void ControlParameters::set_mechanism(const std::string& mechanism_name)
+{
+    const Parameters* par = Parameters::get_parameters(mechanism_name);
+    if (par == nullptr) return;
+    this->par = par;
+}
+
+
 void ControlParameters::set_species(const std::vector<std::string> species_list, const std::vector<double> fractions_list)
 {
-    const Parameters* par = Parameters::get_parameters(this->mechanism);
-    if (par == nullptr)
-    {
-        std::string message = "Invalid mechanism: " + this->mechanism;
-        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
-        return;
-    }
-
     std::vector<index_t> species; species.reserve(species_list.size());
     for (const auto& species_name: species_list)
     {
         index_t index = par->get_species(species_name);
         if (index == par->invalid_index)
         {
-            std::string message = "Invalid species (" + species_name + ") for mechanism " + par->model;
+            std::string message = "Invalid species (" + species_name + ") for mechanism " + par->mechanism_name;
             this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
             return;
         }
         else if (index >= par->num_species)
         {
-            std::string message = "Species index " + std::to_string(index) + " out of bound for mechanism " + par->model;
+            std::string message = "Species index " + std::to_string(index) + " out of bound for mechanism " + par->mechanism_name;
             this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
             return;
         }
@@ -275,23 +268,16 @@ void ControlParameters::set_species(const std::vector<std::string> species_list,
 
 void ControlParameters::set_species(const std::vector<index_t>& species_list, const std::vector<double>& fractions_list)
 {
-    const Parameters* par = Parameters::get_parameters(this->mechanism);
-    if (par == nullptr)
-    {
-        std::string message = "Invalid mechanism: " + this->mechanism;
-        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
-        return;
-    }
     for (const auto& species: species_list)
         if (species == par->invalid_index)
         {
-            std::string message = "Invalid species (" + std::to_string(species) + ") for mechanism " + par->model;
+            std::string message = "Invalid species (" + std::to_string(species) + ") for mechanism " + par->mechanism_name;
             this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
             return;
         }
         else if (species >= par->num_species)
         {
-            std::string message = "Species index " + std::to_string(species) + " out of bound for mechanism " + par->model;
+            std::string message = "Species index " + std::to_string(species) + " out of bound for mechanism " + par->mechanism_name;
             this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
             return;
         }
@@ -371,13 +357,12 @@ std::string ControlParameters::to_csv() const
     auto format_double = [](std::ostream& os) -> std::ostream& {
         return os << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10);
     };
-    const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
     {
         return ",,,,,,,,,,,,,,,,,,,";
     }
 
-    ss << this->ID << "," << par->model << "," << format_double << this->R_E << "," << format_double << this->ratio << ",";
+    ss << this->ID << "," << par->mechanism_name << "," << format_double << this->R_E << "," << format_double << this->ratio << ",";
     for (size_t index = 0; index < this->num_initial_species; ++index)
         ss << par->species_names[this->species[index]] << ";";
     ss << ",";
@@ -390,9 +375,9 @@ std::string ControlParameters::to_csv() const
     ss << std::boolalpha << this->enable_heat_transfer << "," << std::boolalpha << this->enable_evaporation << ",";
     ss << std::boolalpha << this->enable_reactions << "," << std::boolalpha << this->enable_dissipated_energy << ",";
     ss << par->species_names[this->target_specie] << ",";
+    ss << "," << Parameters::excitation_names[this->excitation_type];
     for (size_t index = 0; index < Parameters::excitation_arg_nums[this->excitation_type]; ++index)
         ss << format_double << this->excitation_params[index] << ";";
-    ss << "," << Parameters::excitation_names[this->excitation_type];
 
     return ss.str();
 }
@@ -400,12 +385,7 @@ std::string ControlParameters::to_csv() const
 
 std::string ControlParameters::to_string(const bool with_code) const
 {
-    const Parameters* par = Parameters::get_parameters(this->mechanism);
-    if (par == nullptr)
-    {
-        LOG_ERROR(Error::severity::error, Error::type::preprocess, "Invalid mechanism: " + this->mechanism, this->ID);
-        return "";
-    }
+    if (par == nullptr) return "Invalid mechanism name. ";
 
     std::stringstream ss;
     const size_t strw = 28;
@@ -414,9 +394,15 @@ std::string ControlParameters::to_string(const bool with_code) const
     auto format_double = [](std::ostream& os) -> std::ostream& {
         return os << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10);
     };
-    auto species_to_string = [&par, &with_code](const index_t species) -> std::string {
-        if (with_code) return "\"" + par->species_names[species] + "\"";
-        else return par->species_names[species];
+    auto species_to_string = [this, &with_code](const index_t species) -> std::string {
+        if (species == this->par->invalid_index || species >= this->par->num_species)
+        {
+            if (with_code) return "\"X\"";
+            else return "X";
+        }
+
+        if (with_code) return "\"" + this->par->species_names[species] + "\"";
+        else return this->par->species_names[species];
     };
     std::vector<std::string> species_names;
     species_names.reserve(this->num_initial_species);
@@ -427,7 +413,7 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << std::left;
     
     ss << format_string << ".ID"                         << " = " << this->ID << ",\n";
-    ss << format_string << ".mechanism"                  << " = " << "\"" << this->mechanism << "\",\n";
+    ss << format_string << ".mechanism"                  << " = " << "\"" << par->mechanism_name << "\",\n";
     ss << format_string << ".R_E"                        << " = " << format_double << this->R_E                       << ",    // bubble equilibrium radius [m]\n";
     ss << format_string << ".ratio"                      << " = " << format_double << this->ratio                     << ",    // R_0/R_E for unforced oscillations [-]\n";
     ss << format_string << ".species"                    << " = " << ::to_string((std::string*)species_names.data(), this->num_initial_species)   << ",\n";
@@ -445,8 +431,8 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << format_string << ".enable_reactions"           << " = " << format_bool   << this->enable_reactions          << ",\n";
     ss << format_string << ".enable_dissipated_energy"   << " = " << format_bool   << this->enable_dissipated_energy  << ",\n";
     ss << format_string << ".target_specie"              << " = " << species_to_string(this->target_specie)           << ",\n";
-    ss << format_string << ".excitation_params"          << " = " << ::to_string((double*)this->excitation_params, Parameters::excitation_arg_nums[this->excitation_type]) << ",\n";
     ss << format_string << ".excitation_type"            << " = " << (with_code ? "Parameters::excitation::" : "") << Parameters::excitation_names[this->excitation_type] << "\n";
+    ss << format_string << ".excitation_params"          << " = " << ::to_string((double*)this->excitation_params, Parameters::excitation_arg_nums[this->excitation_type]) << ",\n";
 
     if (with_code) ss << "}";
     ss << std::right;
@@ -457,12 +443,7 @@ std::string ControlParameters::to_string(const bool with_code) const
 ordered_json ControlParameters::to_json() const
 {
     ordered_json j;
-    const Parameters* par = Parameters::get_parameters(this->mechanism);
-    if (par == nullptr)
-    {
-        LOG_ERROR("Invalid mechanism: " + this->mechanism, this->ID);
-        return j;
-    }
+    if (par == nullptr) return j;
     std::vector<std::string> species_names;
     for (size_t index = 0; index < this->num_initial_species; ++index)
     {
@@ -475,7 +456,7 @@ ordered_json ControlParameters::to_json() const
     }
 
     j["ID"] = this->ID;
-    j["mechanism"] = this->mechanism;
+    j["mechanism"] = this->par->mechanism_name;
     j["R_E"] = this->R_E;
     j["ratio"] = this->ratio;
     j["species"] = species_names;
@@ -493,8 +474,8 @@ ordered_json ControlParameters::to_json() const
     j["enable_reactions"] = this->enable_reactions;
     j["enable_dissipated_energy"] = this->enable_dissipated_energy;
     j["target_specie"] = par->species_names.at(this->target_specie);
-    j["excitation_params"] = std::vector<double>(this->excitation_params, this->excitation_params + Parameters::excitation_arg_nums.at(this->excitation_type));
     j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
+    j["excitation_params"] = std::vector<double>(this->excitation_params, this->excitation_params + Parameters::excitation_arg_nums.at(this->excitation_type));
     
     return j;
 }

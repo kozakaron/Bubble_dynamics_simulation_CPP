@@ -678,7 +678,7 @@ std::string ParameterCombinator::to_string(const bool with_code) const
     if (with_code) ss << "ParameterCombinator::Builder{\n";
     ss << std::left;
 
-    ss << format_field_name << ".mechanism" << " = " << ((with_code ? "Parameters::mechanism::" : "") + par->model) << ",\n";
+    ss << format_field_name << ".mechanism" << " = " << ((with_code ? "Parameters::mechanism::" : "") + par->mechanism_name) << ",\n";
     ss << format_field_name << ".R_E" << " = " << format_range(this->R_E.get()) << "\n";
     ss << format_field_name << ".ratio" << " = " << format_range(this->ratio.get()) << "\n";
     ss << format_field_name << ".species" << " = " << ::to_string((std::string*)species_names.data(), species_names.size()) << ",\n";
@@ -736,12 +736,12 @@ ordered_json ParameterCombinator::to_json() const
     j["enable_reactions"] = this->enable_reactions;
     j["enable_dissipated_energy"] = this->enable_dissipated_energy;
     j["target_specie"] = this->target_specie;
+    j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
     j["excitation_params"] = ordered_json::array();
     for (const auto& excitation_param : this->excitation_params)
     {
         j["excitation_params"].push_back(excitation_param->to_json());
     }
-    j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
 
     return {{"parameter_study", j}};
 }
@@ -803,8 +803,8 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         .enable_reactions = this->enable_reactions,
         .enable_dissipated_energy = this->enable_dissipated_energy,
         .target_specie = this->target_specie,
-        .excitation_params = excitation_values,
-        .excitation_type = this->excitation_type
+        .excitation_type = this->excitation_type,
+        .excitation_params = excitation_values
     }};
 
     is_success success = combination_ID < this->total_combination_count;

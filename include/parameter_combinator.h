@@ -113,8 +113,8 @@ private:
     bool enable_reactions;
     bool enable_dissipated_energy;
     std::string target_specie;
-    std::vector<std::unique_ptr<Range>> excitation_params;
     Parameters::excitation excitation_type;
+    std::vector<std::unique_ptr<Range>> excitation_params;
 public:
     typedef std::variant<Const, LinearRange, LogRange, GeomRange> AnyRange;
     struct Builder {
@@ -136,8 +136,8 @@ public:
         bool enable_reactions                   = true;
         bool enable_dissipated_energy           = true;
         std::string target_specie               = "H2";
-        std::vector<AnyRange> excitation_params = {Const(-2.0e5), Const(30000.0), Const(1.0)};
         Parameters::excitation excitation_type  = Parameters::excitation::sin_impulse;
+        std::vector<AnyRange> excitation_params = {Const(-2.0e5), Const(30000.0), Const(1.0)};
     };
 
     ParameterCombinator(const Builder &builder);

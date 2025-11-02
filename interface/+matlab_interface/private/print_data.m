@@ -33,8 +33,8 @@ function text = print_data(data, print_it)
     text = text + sprintf("  Enable Reactions: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_reactions', false)));
     text = text + sprintf("  Enable Dissipated Energy: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_dissipated_energy', false)));
     text = text + sprintf("  Target Specie: %s\n", getfield_or_default(cpar, 'target_specie', 'N/A'));
-    text = text + sprintf("  Excitation Params: %s\n", mat2str(getfield_or_default(cpar, 'excitation_params', [])));
     text = text + sprintf("  Excitation Type: %s\n", getfield_or_default(cpar, 'excitation_type', 'N/A'));
+    text = text + sprintf("  Excitation Params: %s\n", mat2str(getfield_or_default(cpar, 'excitation_params', [])));
 
     % Simulation Info
     text = text + sprintf("\nSimulation Info:\n");

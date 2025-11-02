@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <cstdint>
+#include <memory>
 
 #include "nlohmann/json_fwd.hpp"
 
@@ -14,10 +15,8 @@ typedef int8_t stoich_t;    // Type for stoichiometric coefficients (type of con
 class Parameters
 {
 private:
-    static std::vector<Parameters> _mechanisms;
-    static std::vector<std::string> _mechanism_names;
-
-    std::unordered_map<std::string, index_t> _species;        // Names of species (num_species)
+    static std::vector<std::unique_ptr<Parameters>> _mechanisms;     // Vector for already loaded mechanisms
+    std::unordered_map<std::string, index_t> _species;               // Names of species (num_species)
 public:
 // EXCITATION AND REACTION TYPES
 
@@ -74,7 +73,7 @@ public:
 // MECHANISM DEPENDENT PARAMETERS
 
 // Common mechanism data
-    const std::string model;                        // Name of the mechanism
+    const std::string mechanism_name;               // Name of the mechanism
 // Species
     const index_t num_elements;                     // Number of elements
     const index_t num_species;                      // Number of species
@@ -134,8 +133,7 @@ public:
     ~Parameters();
 
 // GETTERS
-    static const Parameters *get_parameters(const std::string& mech);
-    //static Parameters::mechanism string_to_mechanism(std::string& mechanism_str);
+    static const Parameters *get_parameters(const std::string& mech_name);
     static Parameters::excitation string_to_excitation(std::string excitation_str);
 };
 

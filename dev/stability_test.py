@@ -46,15 +46,15 @@ parameter_studies = dict(
         'enable_reactions': True,
         'enable_dissipated_energy': True,
         'target_specie': 'H2',
+        'excitation_type': 'sin_impulse'
         'excitation_params': [
             {'type': 'LinearRange', 'start': -12e5, 'end': -22e5, 'num_steps': 5},
             {'type': 'LinearRange', 'start': 2500.0, 'end': 12500.0, 'num_steps': 5},
             {'type': 'Const', 'value': 1.0}
         ],
-        'excitation_type': 'sin_impulse'
     },
-    chemkin_otomo2018_simple = {
-        'mechanism': 'chemkin_otomo2018',
+    chemkin_otomo2018_ammonia_simple = {
+        'mechanism': 'chemkin_otomo2018_ammonia',
         'R_E': {'type': 'LinearRange', 'start': 1e-06, 'end': 50e-6, 'num_steps': 20},
         'ratio': {'type': 'Const', 'value': 1.0},
         'species': ['H2', 'N2'],
@@ -72,15 +72,15 @@ parameter_studies = dict(
         'enable_reactions': True,
         'enable_dissipated_energy': True,
         'target_specie': 'NH3',
+        'excitation_type': 'sin_impulse'
         'excitation_params': [
             {'type': 'LinearRange', 'start': -12e5, 'end': -20e5, 'num_steps': 5},
             {'type': 'LinearRange', 'start': 10000.0, 'end': 30000.0, 'num_steps': 5},
             {'type': 'Const', 'value': 1.0}
         ],
-        'excitation_type': 'sin_impulse'
     },
-    chemkin_kaust2023_n2_simple = {
-        'mechanism': 'chemkin_kaust2023_n2',
+    chemkin_kaust2023_ammonia_simple = {
+        'mechanism': 'chemkin_kaust2023_ammonia',
         'R_E': {'type': 'LinearRange', 'start': 1e-06, 'end': 100e-6, 'num_steps': 20},
         'ratio': {'type': 'Const', 'value': 1.0},
         'species': ['H2', 'N2'],
@@ -98,15 +98,15 @@ parameter_studies = dict(
         'enable_reactions': True,
         'enable_dissipated_energy': True,
         'target_specie': 'NH3',
+        'excitation_type': 'sin_impulse'
         'excitation_params': [
             {'type': 'LinearRange', 'start': -15e5, 'end': -25e5, 'num_steps': 5},
             {'type': 'LinearRange', 'start': 10000.0, 'end': 80000.0, 'num_steps': 5},
             {'type': 'Const', 'value': 3.0}
         ],
-        'excitation_type': 'sin_impulse'
     },
-    chemkin_otomo2018_without_O2 = {
-        'mechanism': 'chemkin_otomo2018_without_o',
+    chemkin_otomo2018_ammonia_without_O2 = {
+        'mechanism': 'chemkin_otomo2018_ammonia_oxygenless',
         'R_E': {'type': 'LinearRange', 'start': 0.5e-06, 'end': 10e-6, 'num_steps': 20},
         'ratio': {'type': 'Const', 'value': 1.0},
         'species': ['H2', 'N2'],
@@ -124,15 +124,15 @@ parameter_studies = dict(
         'enable_reactions': True,
         'enable_dissipated_energy': True,
         'target_specie': 'NH3',
+        'excitation_type': 'sin_impulse'
         'excitation_params': [
             {'type': 'LinearRange', 'start': -20e5, 'end': -30e5, 'num_steps': 5},
             {'type': 'LinearRange', 'start': 5000.0, 'end': 10000.0, 'num_steps': 5},
             {'type': 'Const', 'value': 5.0}
         ],
-        'excitation_type': 'sin_impulse'
     },
-    chemkin_kaust2023_n2_high_T = {
-        'mechanism': 'chemkin_kaust2023_n2',
+    chemkin_kaust2023_ammonia_high_T = {
+        'mechanism': 'chemkin_kaust2023_ammonia',
         'R_E': {'type': 'LinearRange', 'start': 10e-06, 'end': 100e-6, 'num_steps': 15},
         'ratio': {'type': 'Const', 'value': 1.0},
         'species': ['H2', 'O2', 'N2', 'AR', 'HE'],
@@ -150,12 +150,12 @@ parameter_studies = dict(
         'enable_reactions': True,
         'enable_dissipated_energy': False,
         'target_specie': 'NH3',
+        'excitation_type': 'sin_impulse'
         'excitation_params': [
             {'type': 'Const', 'value': -20e5},
             {'type': 'Const', 'value': 25000.0},
             {'type': 'Const', 'value': 1.0}
         ],
-        'excitation_type': 'sin_impulse'
     },
 )
 

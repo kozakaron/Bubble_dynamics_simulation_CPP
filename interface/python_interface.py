@@ -349,8 +349,8 @@ def _print_data(data, print_it=True):
     text += f"  Enable Reactions: {cpar.get('enable_reactions', 'N/A')}\n"
     text += f"  Enable Dissipated Energy: {cpar.get('enable_dissipated_energy', 'N/A')}\n"
     text += f"  Target Specie: {cpar.get('target_specie', 'N/A')}\n"
-    text += f"  Excitation Params: {cpar.get('excitation_params', 'N/A')}\n"
     text += f"  Excitation Type: {cpar.get('excitation_type', 'N/A')}\n"
+    text += f"  Excitation Params: {cpar.get('excitation_params', 'N/A')}\n"
 
     # Simulation info
     text += "\nSimulation Info:\n"
@@ -640,6 +640,6 @@ def line_to_dict(line):
         enable_reactions = bool(line['enable_reactions']),
         enable_dissipated_energy = bool(line['enable_dissipated_energy']),
         target_specie = str(line['target_specie']),
-        excitation_params = excitation_params,
         excitation_type = str(line['excitation_type']),
+        excitation_params = excitation_params,
     )

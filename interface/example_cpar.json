@@ -23,11 +23,11 @@
         "enable_reactions": true,
         "enable_dissipated_energy": true,
         "target_specie": "H2",
+        "excitation_type": "sin_impulse",
         "excitation_params": [
             -200000.0,
             30000.0,
             1.0
-        ],
-        "excitation_type": "sin_impulse"
+        ]
     }
 }

@@ -116,7 +116,7 @@ help(api)
 Example codes use the Python interface. However, names are the same and functionalities are similar in Matlab as well. To run and plot an indavidual parameter study, you should first assemble a dictionary containing the control parameters. As a template, you may use `example_cpar()` and modify the returned dictionary:
 ```Python
 cpar = api.example_cpar()
-cpar['mechanism'] = 'chemkin_otomo2018'
+cpar['mechanism'] = 'chemkin_otomo2018_ammonia'
 cpar['species'] = ['H2', 'N2']
 cpar['fractions'] = [0.25, 0.75]
 cpar['enable_evaporation'] = True
@@ -126,7 +126,7 @@ Or you may create a brand new dictionary:
 ```Python
 cpar = {
     'ID': 0,
-    'mechanism': 'chemkin_otomo2018',
+    'mechanism': 'chemkin_otomo2018_ammonia',
     'R_E': 1e-05,
     'ratio': 1.0,
     'species': ['H2', 'N2'],
@@ -144,8 +144,8 @@ cpar = {
     'enable_reactions': True,
     'enable_dissipated_energy': True,
     'target_specie': 'H2',
-    'excitation_params': [-200000.0, 30000.0, 1.0],
-    'excitation_type': 'sin_impulse'
+    'excitation_type': 'sin_impulse',
+    'excitation_params': [-200000.0, 30000.0, 1.0]
  }
 ```
 
@@ -295,10 +295,10 @@ This code is object oriented. Most classes include some of the following methods
               │ControlParameters             │   │Holds constants and coefficients │
 ┌──────────┐  ├──────────────────────────────┤   │describing reaction mechanisms:  │
 │JSON input│  │Holds all settings influencing│   │ ∘ chemkin_ar_he                 │
-├──────────┤--│the simulation: R_E, P_amb,   │---│ ∘ chemkin_kaust2023_n2          │
-└──────────┘  │excitation parameters, ...    │   │ ∘ chemkin_kaust2023_n2_without_o│
-              └──────────────────────────────┘   │ ∘ chemkin_otomo2018_without_o   │
-                              |                  │ ∘ chemkin_otomo2018             │
+├──────────┤--│the simulation: R_E, P_amb,   │---│ ∘ chemkin_kaust2023_ammonia          │
+└──────────┘  │excitation parameters, ...    │   │ ∘ chemkin_kaust2023_ammonia_oxygenless│
+              └──────────────────────────────┘   │ ∘ chemkin_otomo2018_ammonia_oxygenless   │
+                              |                  │ ∘ chemkin_otomo2018_ammonia             │
                               |                  └─────────────────────────────────┘
                               |                                                     
                               |                                                     
@@ -348,7 +348,7 @@ Errors are logged with the `LOG_ERROR(...)` macro, e.g.: `size_t error_ID = LOG_
 
 ### Chemical mechanisms
 
-Chemical mechanisms are generated from chemkin *.inp* files. (Not included, see [list of .inp files](./dev/inp_file_list.py)) They are turned into usable format via the (quite messy) [./dev/inp_data_extractor.py](./dev/inp_data_extractor.py). The generated structs in [./mechanism](./mechanism) have static constexpr members only. In order to swithc between mechanisms in runtime, and make migrating to CUDA easier, these structs are turned into const static members of the `Parameters` class in [./include/parameters.h](./include/parameters.h). This class stores all arrays in a flattened form as raw pointers. Usage: `const Parameters *par = Parameters::get_parameters(Parameters::mechanism::chemkin_elte2016_hydrogen);` and get any members like `par->nu`.
+Chemical mechanisms are generated from chemkin *.inp* files. (Not included, see [list of .inp files](./dev/inp_file_list.py)) They are turned into usable format via the (quite messy) [./dev/inp_data_extractor.py](./dev/inp_data_extractor.py). The generated structs in [./mechanism](./mechanism) have static constexpr members only. In order to swithc between mechanisms in runtime, and make migrating to CUDA easier, these structs are turned into const static members of the `Parameters` class in [./include/parameters.h](./include/parameters.h). This class stores all arrays in a flattened form as raw pointers. Usage: `const Parameters *par = Parameters::get_parameters("chemkin_elte2016_hydrogen");` and get any members like `par->nu`.
 
 ### Control parameters, and ODE function
 
@@ -357,7 +357,7 @@ The `ControlParameters` class, declared in [./include/control_parameters.h](./in
 ```cpp
 ControlParameters cpar = ControlParameters{ControlParameters::Builder{
     .ID                          = 0,
-    .mechanism                   = Parameters::mechanism::chemkin_elte2016_hydrogen,
+    .mechanism                   = "chemkin_elte2016_hydrogen",
     .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
     .ratio                       = 1.00000000000000000e+00,    // 
     .species                     = {"O2"},
@@ -375,8 +375,8 @@ ControlParameters cpar = ControlParameters{ControlParameters::Builder{
     .enable_reactions            = true,
     .enable_dissipated_energy    = true,
     .target_specie               = "H2",
-    .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04, 1.00000000000000000e+00},
     .excitation_type             = Parameters::excitation::sin_impulse
+    .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04, 1.00000000000000000e+00},
 }};
 ```
 These above are also the default values, any builder argument can be missed. Use the `to_sting()` method or the `ostream operator<<` overload to print the control parameters to the console. It will be printed in the same format as above, which is also valid code. The class also have a csv header and a `to_csv()` method, like many other classes.

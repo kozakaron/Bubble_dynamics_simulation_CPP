@@ -16,10 +16,10 @@ public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
     static constexpr size_t max_species = 5;
-    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,target_specie,excitation_params,excitation_type";
+    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,target_specie,excitation_type,excitation_params,";
 // Members
     size_t ID;                          // ID of control parameter
-    std::string mechanism;              // reaction mechanism
+    const Parameters* par;              // reaction mechanism (pointer to Parameters instance)
     size_t error_ID;                    // ID of error in ErrorHandler (ErrorHandler::no_error if no error occured)
     // Initial conditions:
     double R_E;                         // bubble equilibrium radius [m]
@@ -44,8 +44,9 @@ public:
     bool enable_dissipated_energy;
     index_t target_specie;
     // Excitation parameters:
-    double excitation_params[max_excitation_params];    // parameters for excitation (pointer to array of doubles)
     Parameters::excitation excitation_type;             // type of excitation
+    double excitation_params[max_excitation_params];    // parameters for excitation (pointer to array of doubles)
+    
 
 // Builder struct, defaults
     /* Usage in initialization: ControlParameters cpar{ControlParameters::Builder{
@@ -75,8 +76,8 @@ public:
         bool enable_reactions                   = true;
         bool enable_dissipated_energy           = true;
         std::string target_specie               = "H2";
-        std::vector<double> excitation_params   = {-2.0e5, 30000.0, 1.0};
         Parameters::excitation excitation_type  = Parameters::excitation::sin_impulse;
+        std::vector<double> excitation_params   = {-2.0e5, 30000.0, 1.0};
     };
     
 // Methods
@@ -89,6 +90,8 @@ public:
     // Constructor from JSON file (using 'cpar' key)
     ControlParameters(const std::string& json_path);
     ~ControlParameters();
+    // Set reaction mechanism by name
+    void set_mechanism(const std::string& mechanism_name);
     // Set species and their fractions like this: set_species({"H2", "N2"}, {0.75, 0.25}); or set_species({par->get_species("O2")}, {1.0});
     void set_species(const std::vector<std::string> species_list, const std::vector<double> fractions_list);
     void set_species(const std::vector<index_t>& species_list, const std::vector<double>& fractions_list);
