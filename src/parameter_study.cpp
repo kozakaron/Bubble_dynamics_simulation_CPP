@@ -82,7 +82,7 @@ ParameterStudy::ParameterStudy(
         general_info_file << "t_max: " << t_max << "\n";
         general_info_file << "timeout: " << timeout << "\n";
         general_info_file << "max_threads: " << std::thread::hardware_concurrency() << "\n";
-        general_info_file << "mechanism: " << par->model << "\n";
+        general_info_file << "mechanism: " << par->mechanism_name << "\n";
         general_info_file << "number_of_species: " << par->num_species << "\n";
         general_info_file << "number_of_reactions: " << par->num_reactions << "\n";
         general_info_file << "species: " << ::to_string((std::string*)par->species_names.data(), par->num_species) << "\n\n";

@@ -13,18 +13,18 @@ void benchmark_ode_fun()
     {
     // Set up control parameters
         OdeFun ode = OdeFun();
-        const Parameters *par = Parameters::get_parameters(Parameters::mechanism::chemkin_otomo2018);
+        const Parameters *par = Parameters::get_parameters("chemkin_otomo2018_ammonia");
         (void)par;
         ControlParameters cpar{ControlParameters::Builder{
             .ID                          = 0,
-            .mechanism                   = Parameters::mechanism::chemkin_otomo2018,
+            .mechanism                   = "chemkin_otomo2018_ammonia",
             .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
             .ratio                       = 1.50000000000000000e+00,    // R_0/R_E for unforced oscillations [-]
             .species                     = {"H2", "N2"},
             .fractions                   = {7.50000000000000000e-01, 2.50000000000000000e-01},
             .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]
             .T_inf                       = 2.93149999999999977e+02,    // ambient temperature [K]
-            .alfa_M                      = 3.49999999999999978e-01,    // water accommodation coefficient [-]
+            .alpha_M                     = 3.49999999999999978e-01,    // water accommodation coefficient [-]
             .P_v                         = 2.33809999999999991e+03,    // vapour pressure [Pa]
             .mu_L                        = 1.00000000000000002e-03,    // dynamic viscosity [Pa*s]
             .rho_L                       = 9.98200000000000045e+02,    // liquid density [kg/m^3]
@@ -35,8 +35,8 @@ void benchmark_ode_fun()
             .enable_reactions            = true,
             .enable_dissipated_energy    = true,
             .target_specie               = "NH3",
-            .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04, 1.00000000000000000e+00},
-            .excitation_type             = Parameters::excitation::sin_impulse
+            .excitation_type             = Parameters::excitation::sin_impulse,
+            .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04, 1.00000000000000000e+00}
         }};
 
         (void)ode.init(cpar);
@@ -73,11 +73,12 @@ void benchmark_ode_fun()
 
     // forward_rate()
         double M = 0.8363084533423445;
-        std::array<double, 23> M_eff = {4.44204225, 4.44204225, 4.44204225, 1.55048452, 4.77157568,
+        std::array<double, 26> M_eff = {4.44204225, 4.44204225, 4.44204225, 1.55048452, 4.77157568,
         3.80254336, 0.83630845, 0.83630845, 3.26860315, 3.26860315,
         0.83630845, 3.26860315, 0.92062359, 0.83630845, 0.83630845,
         0.83630845, 0.83630845, 0.83630845, 0.83630845, 3.90748095,
-        0.83630845, 0.83630845, 0.83630845};
+        0.83630845, 0.83630845, 0.83630845, 0.83630845, 0.83630845,
+        0.83630845};
         std::copy(M_eff.begin(), M_eff.end(), ode.M_eff);
         
         BENCHMARK_LINE(ode.forward_rate(T, M, p, 1e30);, 100000);
@@ -97,19 +98,19 @@ void benchmark_ode_fun()
 // Set up control parameters
         OdeFun ode = OdeFun();
         ControlParameters cpar;
-        const Parameters *par = Parameters::get_parameters(Parameters::mechanism::chemkin_otomo2018);
-
+        const Parameters *par = Parameters::get_parameters("chemkin_elte2016_hydrogen");
+        
         cpar.ID = 0;
-        cpar.mechanism = Parameters::mechanism::chemkin_ar_he;
+        cpar.set_mechanism("chemkin_elte2016_hydrogen");
         // Initial conditions:
         cpar.R_E = 10e-6;
         cpar.ratio = 1.0;
-        cpar.set_species({par->get_species("O2")}, {1.0});
+        cpar.set_species({"O2"}, {1.0});
         // Ambient parameters:
         cpar.P_amb = 101325.0;
         cpar.T_inf = 293.15;
         // Liquid parameters:
-        cpar.alfa_M = 0.35;
+        cpar.alpha_M = 0.35;
         cpar.P_v = 2338.1;
         cpar.mu_L = 0.001;
         cpar.rho_L = 998.2;
@@ -120,11 +121,10 @@ void benchmark_ode_fun()
         cpar.enable_evaporation = true;
         cpar.enable_reactions = true;
         cpar.enable_dissipated_energy = true;
-        cpar.target_specie = par->get_species("NH3");
+        cpar.target_specie = par->get_species("H2");
         // Excitation parameters:
-        cpar.set_excitation_params({-2.0e5, 30000.0, 1.0});
         cpar.excitation_type = Parameters::excitation::sin_impulse;
-
+        cpar.set_excitation_params({-2.0e5, 30000.0, 1.0});
         (void)ode.init(cpar);
 
     // Setup inputs

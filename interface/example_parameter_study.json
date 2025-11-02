@@ -54,6 +54,7 @@
         "enable_reactions": true,
         "enable_dissipated_energy": true,
         "target_specie": "H2",
+        "excitation_type": "sin_impulse",
         "excitation_params": [
             {
                 "type": "LinearRange",
@@ -69,7 +70,6 @@
                 "type": "Const",
                 "value": 1.0
             }
-        ],
-        "excitation_type": "sin_impulse"
+        ]
     }
 }

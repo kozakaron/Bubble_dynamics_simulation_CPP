@@ -145,12 +145,8 @@ is_success OdeFun::init(const ControlParameters& cpar)
 {
     this->cpar = cpar;
     const Parameters *old_par = this->par;
-    this->par = Parameters::get_parameters(cpar.mechanism);
-    if (this->par == nullptr)
-    {
-        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Invalid mechanism: " + cpar.mechanism, this->cpar.ID);
-        return false;
-    }
+    this->par = cpar.par;
+    if (this->par == nullptr) return false;
     this->num_species = this->par->num_species;
     if (this->cpar.enable_evaporation && this->par->index_of_water == this->par->invalid_index)
     {
@@ -451,7 +447,7 @@ void OdeFun::forward_rate(
 
         this->ln_k_forward[index] = ln_A + b * logT - E_over_R / T;
     }
-
+    
 // Pressure dependent reactions
     index_t troe_index=0, sri_index=0;
     for(index_t j = 0; j < par->num_falloff_reactions; ++j)
@@ -532,7 +528,7 @@ void OdeFun::forward_rate(
 
         this->ln_k_forward[index] = ln_k_inf + ln_Pr - std::log1p(std::exp(ln_Pr)) + ln_F;  // std::log(1.0 + P_r) = std::log1p(P_r)
     } // pressure dependent reactions end
-
+    
 // PLOG reactions
     for(index_t j = 0; j < par->num_plog_reactions; ++j)
     {
@@ -575,7 +571,7 @@ void OdeFun::forward_rate(
             this->ln_k_forward[index] = ln_k_lower + (std::log(p) - std::log(P_lower)) / (std::log(P_upper) - std::log(P_lower)) * (ln_k_upper - ln_k_lower);
         }
     }
-
+    
 // Forward rate thresholding
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
@@ -584,6 +580,7 @@ void OdeFun::forward_rate(
         if (!std::isfinite(ln_k_forward) || ln_k_forward > ln_threshold)
             this->ln_k_forward[index] = ln_threshold;
     }
+    
 }
 
 
