@@ -211,6 +211,57 @@ is_success OdeFun::init(const ControlParameters& cpar)
         this->C_v_inf = interval_values[0] + interval_derivatives[0] * (this->cpar.T_inf - T_high) - par->R_g;
     }
 
+    // Check excitation parameters
+    if (this->cpar.excitation_cycles <= 0.0)
+    {
+        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Number of excitation cycles must be positive, instead it is " + std::to_string(this->cpar.excitation_cycles), this->cpar.ID);
+        return false;
+    }
+    if (this->cpar.ramp_up_cycles < 0.0 || this->cpar.ramp_up_cycles > this->cpar.excitation_cycles / 2.0)
+    {
+        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Number of ramp-up cycles must be in the range [0, " + std::to_string(this->cpar.excitation_cycles / 2.0) + "], instead it is " + std::to_string(this->cpar.ramp_up_cycles), this->cpar.ID);
+        return false;
+    }
+    switch (this->cpar.excitation_type)
+    {
+    case Parameters::excitation::no_excitation:
+        break;
+    case Parameters::excitation::sinusoid:
+        if (this->cpar.excitation_params[1] <= 0.0)
+        {
+            this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "freq must be positive, instead it is " + std::to_string(this->cpar.excitation_params[1]), this->cpar.ID);
+            return false;
+        }
+        break;
+    case Parameters::excitation::two_sinusoids:
+        if (this->cpar.excitation_params[2] <= 0.0)
+        {
+            this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "freq1 must be positive, instead it is " + std::to_string(this->cpar.excitation_params[2]), this->cpar.ID);
+            return false;
+        }
+        if (this->cpar.excitation_params[3] <= 0.0)
+        {
+            this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "freq2 must be positive, instead it is " + std::to_string(this->cpar.excitation_params[3]), this->cpar.ID);
+            return false;
+        }
+        break;
+    case Parameters::excitation::square:
+        if (this->cpar.excitation_params[1] <= 0.0)
+        {
+            this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Frequency must be positive, instead it is " + std::to_string(this->cpar.excitation_params[1]), this->cpar.ID);
+            return false;
+        }
+        if (this->cpar.excitation_params[2] < 1.0 || std::abs(std::round(this->cpar.excitation_params[2]) - this->cpar.excitation_params[2]) > 1e-12)
+        {
+            this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Number of harmonics must be a positive integer, instead it is " + std::to_string(this->cpar.excitation_params[2]), this->cpar.ID);
+            return false;
+        }
+        break;
+    default:
+        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Invalid excitation type enum value: " + std::to_string(this->cpar.excitation_type), this->cpar.ID);
+        return false;
+    }
+
     return true;
 }
 
@@ -270,6 +321,57 @@ is_success OdeFun::initial_conditions(
 }
 
 
+// Helper function for Tukey window calculation used in OdeFun::pressures()
+inline std::pair<double, double> _tukey_window(
+    const double t,
+    const double freq,
+    const double excitation_cycles,
+    const double ramp_up_cycles
+) //noexcept
+{
+    const double t_end = excitation_cycles / freq;
+    const double t_ramp = ramp_up_cycles / freq;
+
+    double p, p_dot;
+    if (t < 0.0 || t > t_end)
+    {
+        p = 0.0;
+        p_dot = 0.0;
+    }
+    else if (t < t_ramp)
+    {
+        p = 0.5 * (1.0 - cos(std::numbers::pi * t / t_ramp));
+        p_dot = 0.5 * (std::numbers::pi / t_ramp) * sin(std::numbers::pi * t / t_ramp);
+    }
+    else if (t > t_end - t_ramp)
+    {
+        p = 0.5 * (1.0 - cos(std::numbers::pi * (t_end - t) / t_ramp));
+        p_dot = 0.5 * (std::numbers::pi / t_ramp) * sin(std::numbers::pi * (t_end - t) / t_ramp);
+    }
+    else
+    {
+        p = 1.0;
+        p_dot = 0.0;
+    }
+    return std::make_pair(p, p_dot);
+}
+
+
+// Helper function for sinusoidal pressure calculation used in OdeFun::pressures()
+inline std::pair<double, double> _sin(
+    const double t,
+    const double p_A,
+    const double freq,
+    const double phase_shift
+) //noexcept
+{
+    const double insin = 2.0 * std::numbers::pi * freq;
+    const double p = p_A * sin(insin * t + phase_shift);
+    const double p_dot = p_A * insin * cos(insin * t + phase_shift);
+    return std::make_pair(p, p_dot);
+}
+
+
 std::pair<double, double> OdeFun::pressures(
     const double t,
     const double R,
@@ -281,6 +383,17 @@ std::pair<double, double> OdeFun::pressures(
     double p_Inf, p_Inf_dot;
     switch (cpar.excitation_type)
     {
+    case Parameters::excitation::sinusoid:
+        {
+            const double& p_A = cpar.excitation_params[0];
+            const double& freq = cpar.excitation_params[1];
+
+            const auto [w, w_dot] = _tukey_window(t, freq, cpar.excitation_cycles, cpar.ramp_up_cycles);
+            const auto [p1, p1_dot] = _sin(t, p_A, freq, 0.0);
+            p_Inf = cpar.P_amb + w * p1;
+            p_Inf_dot = w_dot * p1 + w * p1_dot;
+            break;
+        }
     case Parameters::excitation::two_sinusoids:
         {
             const double& p_A1 = cpar.excitation_params[0];
@@ -288,57 +401,33 @@ std::pair<double, double> OdeFun::pressures(
             const double& freq1 = cpar.excitation_params[2];
             const double& freq2 = cpar.excitation_params[3];
             const double& theta_phase = cpar.excitation_params[4];
-            const double& n_cycles = cpar.excitation_params[5];
 
-            // TODO: fix discontinuities if freq1 and freq2 are not harmonics
-            if (t < 0.0 || (t > n_cycles / freq1 && t > n_cycles / freq2))
-            {
-                p_Inf = cpar.P_amb;
-                p_Inf_dot = 0.0;
-            }
-            else
-            {
-                p_Inf = cpar.P_amb + p_A1 * sin(2.0 * std::numbers::pi * freq1 * t) + p_A2 * sin(2.0 * std::numbers::pi * freq2 * t + theta_phase);
-                p_Inf_dot = 2.0 * std::numbers::pi * (p_A1 * freq1 * cos(2.0 * std::numbers::pi * freq1 * t) + p_A2 * freq2 * cos(2.0 * std::numbers::pi * freq2 * t + theta_phase));
-            }
+            const auto [w, w_dot] = _tukey_window(t, freq1, cpar.excitation_cycles, cpar.ramp_up_cycles);
+            const auto [p1, p1_dot] = _sin(t, p_A1, freq1, 0.0);
+            const auto [p2, p2_dot] = _sin(t, p_A2, freq2, theta_phase);
+            p_Inf = cpar.P_amb + w * (p1 + p2);
+            p_Inf_dot = w_dot * (p1 + p2) + w * (p1_dot + p2_dot);
             break;
         }
-    case Parameters::excitation::sin_impulse:
+    case Parameters::excitation::square:
         {
             const double& p_A = cpar.excitation_params[0];
             const double& freq = cpar.excitation_params[1];
-            const double& n_cycles = cpar.excitation_params[2];
+            const size_t harmonics = round(cpar.excitation_params[2]);
 
-            if (t < 0.0 || t > n_cycles / freq)
+            const auto [w, w_dot] = _tukey_window(t, freq, cpar.excitation_cycles, cpar.ramp_up_cycles);
+            double p_sum = 0.0;
+            double p_sum_dot = 0.0;
+            for (size_t n = 1; n <= 2*harmonics; n += 2)
             {
-                p_Inf = cpar.P_amb;
-                p_Inf_dot = 0.0;
+                const double p_An = p_A * (4.0 / (std::numbers::pi * n));
+                const double freqn = n * freq;
+                const auto [p_n, p_n_dot] = _sin(t, p_An, freqn, 0.0);
+                p_sum += p_n;
+                p_sum_dot += p_n_dot;
             }
-            else
-            {
-                double insin = 2.0 * std::numbers::pi * freq;
-                p_Inf = cpar.P_amb + p_A * sin(insin * t);
-                p_Inf_dot = p_A * insin * cos(insin * t);
-            }
-            break;
-        }
-    case Parameters::excitation::sin_impulse_logf:
-        {
-            const double& p_A = cpar.excitation_params[0];
-            const double& freq = pow(10.0, cpar.excitation_params[1]);
-            const double& n_cycles = cpar.excitation_params[2];
-
-            if (t < 0.0 || t > n_cycles / freq)
-            {
-                p_Inf = cpar.P_amb;
-                p_Inf_dot = 0.0;
-            }
-            else
-            {
-                double insin = 2.0 * std::numbers::pi * freq;
-                p_Inf = cpar.P_amb + p_A * sin(insin * t);
-                p_Inf_dot = p_A * insin * cos(insin * t);
-            }
+            p_Inf = cpar.P_amb + w * p_sum;
+            p_Inf_dot = w_dot * p_sum + w * p_sum_dot;
             break;
         }
     default: // no_excitation

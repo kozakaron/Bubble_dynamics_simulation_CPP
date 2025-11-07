@@ -5,6 +5,7 @@
 
 # Folders (keep here, whatever you don't want to push)
 bin/*
+build/*
 !bin/.gitkeep
 temp/*
 CMakeFiles/*

@@ -626,5 +626,5 @@ Parameters::excitation Parameters::string_to_excitation(std::string excitation_s
     ss << "Invalid excitation type: " << excitation_str << ". Valid options are: ";
     ss << ::to_string((char**)Parameters::excitation_names.data(), Parameters::excitation_names.size());
     LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
-    return Parameters::excitation::sin_impulse; // Default to a known excitation type
+    return Parameters::excitation::sinusoid; // Default to a known excitation type
 }

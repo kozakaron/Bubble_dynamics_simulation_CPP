@@ -21,30 +21,30 @@ public:
 // EXCITATION AND REACTION TYPES
 
     enum reac_type: index_t {lindemann, troe, sri};
-    enum excitation: index_t {no_excitation=0, two_sinusoids=1, sin_impulse=2, sin_impulse_logf=3};
+    enum excitation: index_t {no_excitation=0, sinusoid=1, two_sinusoids=2, square=3};
     static constexpr std::array<index_t, 4> excitation_arg_nums = {
         0, // no_excitation
-        6, // two_sinusoids
-        3, // sin_impulse
-        3  // sin_impulse_logf
+        2, // sinusoid
+        5, // two_sinusoids
+        3  // square
     };
     static constexpr std::array<const char*, 4> excitation_names = {
         "no_excitation",
+        "sinusoid",
         "two_sinusoids",
-        "sin_impulse",
-        "sin_impulse_logf"
+        "square"
     };
     static constexpr std::array<const char*, 4> excitation_arg_names = {
         "",                                            // no_excitation
-        "p_A1 p_A2 freq1 freq2 theta_phase n_cycles",  // two_sinusoids
-        "p_A freq n_cycles",                           // sin_impulse
-        "p_A log_f n_cycles"                           // sin_impulse_logf
+        "p_A freq",                                    // sinusoid
+        "p_A1 p_A2 freq1 freq2 phase_shift",           // two_sinusoids
+        "p_A freq harmonics"                           // square
     };
     static constexpr std::array<const char*, 4> excitation_arg_units = {
         "",                                            // no_excitation
-        "Pa Pa Hz Hz rad -",                           // two_sinusoids
-        "Pa Hz -",                                     // sin_impulse
-        "Pa - -"                                       // sin_impulse_logf
+        "Pa Hz",                                       // sinusoid
+        "Pa Pa Hz Hz rad",                             // two_sinusoids
+        "Pa Hz -"                                      // square
     };
 
 // PHYSICAL CONSTANTS

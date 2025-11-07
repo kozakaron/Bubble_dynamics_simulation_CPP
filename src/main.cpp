@@ -74,7 +74,7 @@ int main(int argc, char **argv)
         // Run simulation
         ControlParameters cpar(json_path);        
         OdeFun ode; ode.init(cpar);
-        OdeSolver solver(ode.par->num_species+4);
+        OdeSolver solver(cpar.par->num_species+4);
         SimulationData data = solver.solve(
             result["tmax"].as<double>(),        // t_max [s]
             &ode,                               // ode_ptr

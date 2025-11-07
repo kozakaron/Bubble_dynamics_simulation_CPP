@@ -286,6 +286,8 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
     this->enable_dissipated_energy =    builder.enable_dissipated_energy;
     this->target_specie =               builder.target_specie;
     this->excitation_type =             builder.excitation_type;
+    this->excitation_cycles =           get_unique_ptr(builder.excitation_cycles);
+    this->ramp_up_cycles =              get_unique_ptr(builder.ramp_up_cycles);
 
     this->excitation_params.reserve(builder.excitation_params.size());
     for (const auto &excitation_param : builder.excitation_params)
@@ -303,6 +305,8 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
     this->total_combination_count *= this->rho_L->get_num_steps();
     this->total_combination_count *= this->c_L->get_num_steps();
     this->total_combination_count *= this->surfactant->get_num_steps();
+    this->total_combination_count *= this->excitation_cycles->get_num_steps();
+    this->total_combination_count *= this->ramp_up_cycles->get_num_steps();
     for (const auto &excitation_param : this->excitation_params)
     {
         this->total_combination_count *= excitation_param->get_num_steps();
@@ -545,6 +549,8 @@ void ParameterCombinator::init(const ordered_json& j)
         builder.excitation_type = Parameters::string_to_excitation(
                                             get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
         );
+        builder.excitation_cycles =         get_range                           (j, "excitation_cycles",        builder.excitation_cycles);
+        builder.ramp_up_cycles =            get_range                           (j, "ramp_up_cycles",           builder.ramp_up_cycles);
 
         if (j.contains("excitation_params"))
         {
@@ -696,17 +702,16 @@ std::string ParameterCombinator::to_string(const bool with_code) const
     ss << format_field_name << ".enable_reactions" << " = " << std::boolalpha << this->enable_reactions << ",\n";
     ss << format_field_name << ".enable_dissipated_energy" << " = " << std::boolalpha << this->enable_dissipated_energy << ",\n";
     ss << format_field_name << ".target_specie" << " = " << species_to_string(this->target_specie) << ",\n";
-    ss << format_field_name << ".excitation_params" << " = {";
+    ss << format_field_name << ".excitation_type"            << " = " << (with_code ? "Parameters::excitation::" : "") << Parameters::excitation_names[this->excitation_type] << "\n";
+    ss << format_field_name << ".excitation_params" << " = {\n";
     for (size_t i = 0; i < this->excitation_params.size(); ++i)
     {
-        if (i == 0)
-            ss << "\n";
         ss << "        " << format_range(this->excitation_params.at(i).get(), i == this->excitation_params.size() - 1);
         ss << "\n";
     }
-
     ss << "    },\n";
-    ss << format_field_name << ".excitation_type"            << " = " << (with_code ? "Parameters::excitation::" : "") << Parameters::excitation_names[this->excitation_type] << "\n";
+    ss << format_field_name << ".excitation_cycles" << " = " << format_range(this->excitation_cycles.get()) << "\n";
+    ss << format_field_name << ".ramp_up_cycles" << " = " << format_range(this->ramp_up_cycles.get(), true) << "\n";
 
     if (with_code) ss << "}";
     ss << std::right;
@@ -742,6 +747,8 @@ ordered_json ParameterCombinator::to_json() const
     {
         j["excitation_params"].push_back(excitation_param->to_json());
     }
+    j["excitation_cycles"] = this->excitation_cycles->to_json();
+    j["ramp_up_cycles"] = this->ramp_up_cycles->to_json();
 
     return {{"parameter_study", j}};
 }
@@ -804,7 +811,9 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         .enable_dissipated_energy = this->enable_dissipated_energy,
         .target_specie = this->target_specie,
         .excitation_type = this->excitation_type,
-        .excitation_params = excitation_values
+        .excitation_params = excitation_values,
+        .excitation_cycles = get_value(this->excitation_cycles),
+        .ramp_up_cycles = get_value(this->ramp_up_cycles)
     }};
 
     is_success success = combination_ID < this->total_combination_count;

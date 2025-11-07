@@ -16,7 +16,7 @@ public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
     static constexpr size_t max_species = 5;
-    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,target_specie,excitation_type,excitation_params,";
+    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,target_specie,excitation_type,excitation_params,excitation_cycles,ramp_up_cycles";
 // Members
     size_t ID;                          // ID of control parameter
     const Parameters* par;              // reaction mechanism (pointer to Parameters instance)
@@ -46,6 +46,8 @@ public:
     // Excitation parameters:
     Parameters::excitation excitation_type;             // type of excitation
     double excitation_params[max_excitation_params];    // parameters for excitation (pointer to array of doubles)
+    double excitation_cycles;                           // number of excitation cycles to use (according to freq/freq1 in excitation_params) [-]
+    double ramp_up_cycles;                              // number of cycles until the excitation reaches full amplitude (0<=ramp_up_cycles<=excitation_cycles/2) [-]
     
 
 // Builder struct, defaults
@@ -76,8 +78,10 @@ public:
         bool enable_reactions                   = true;
         bool enable_dissipated_energy           = true;
         std::string target_specie               = "H2";
-        Parameters::excitation excitation_type  = Parameters::excitation::sin_impulse;
-        std::vector<double> excitation_params   = {-2.0e5, 30000.0, 1.0};
+        Parameters::excitation excitation_type  = Parameters::excitation::sinusoid;
+        std::vector<double> excitation_params   = {-2.0e5, 30000.0};
+        double excitation_cycles                = 1.0;
+        double ramp_up_cycles                   = 0.0;
     };
     
 // Methods

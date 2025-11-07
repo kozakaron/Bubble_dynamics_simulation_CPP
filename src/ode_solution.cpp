@@ -419,6 +419,10 @@ std::string SimulationData::to_small_string(const ParameterCombinator &ps, const
         ss << "c_L=" << format_double << this->cpar.c_L << " m/s; ";
     if (ps.surfactant->get_num_steps() > 1)
         ss << "surfactant=" << format_double << this->cpar.surfactant << "; ";
+    if (ps.excitation_cycles->get_num_steps() > 1)
+        ss << "excitation_cycles=" << format_double << this->cpar.excitation_cycles << "; ";
+    if (ps.ramp_up_cycles->get_num_steps() > 1)
+        ss << "ramp_up_cycles=" << format_double << this->cpar.ramp_up_cycles << "; ";
 
     std::string excitation_arg_names = Parameters::excitation_arg_names.at(ps.excitation_type);
     std::string excitation_arg_units = Parameters::excitation_arg_units.at(ps.excitation_type);
