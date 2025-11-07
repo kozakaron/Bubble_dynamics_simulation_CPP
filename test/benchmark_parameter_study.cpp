@@ -30,12 +30,13 @@ ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinat
     .enable_reactions            = true,
     .enable_dissipated_energy    = true,
     .target_specie               = "H2",
-    .excitation_type             = Parameters::excitation::sin_impulse,
+    .excitation_type             = Parameters::excitation::sinusoid,
     .excitation_params           = {
         LinearRange(-100000.000000, -300000.000000, 20),    // {-100000, -110526, -121053, -131579, -142105, -152632, -163158, ..., -289474, -300000}
-        Const(20000.000000),                                // {20000}
-        Const(1.000000)                                     // {1}
-    }
+        Const(20000.000000)                                 // {20000}
+    },
+    .excitation_cycles          = Const(1.000000),                                   // {1}
+    .ramp_up_cycles             = Const(0.000000)                                    // {0}
 }};
 
 

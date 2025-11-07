@@ -246,8 +246,10 @@ size_t ErrorHandler::log_error(const Error &err)
     {
         ErrorHandler::log_file << err.to_string(false) << std::endl;
     }
+    if (err.error_severity != Error::severity::error)
+        return ErrorHandler::no_error;
+
     ErrorHandler::errors.push_back(err);
-    
     return ErrorHandler::errors.size() - 1;
 }
 

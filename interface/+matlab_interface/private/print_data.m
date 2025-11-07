@@ -35,6 +35,8 @@ function text = print_data(data, print_it)
     text = text + sprintf("  Target Specie: %s\n", getfield_or_default(cpar, 'target_specie', 'N/A'));
     text = text + sprintf("  Excitation Type: %s\n", getfield_or_default(cpar, 'excitation_type', 'N/A'));
     text = text + sprintf("  Excitation Params: %s\n", mat2str(getfield_or_default(cpar, 'excitation_params', [])));
+    text = text + sprintf("  Excitation Cycles: %d [-]\n", getfield_or_default(cpar, 'excitation_cycles', NaN));
+    text = text + sprintf("  Ramp Up Cycles: %d [-]\n", getfield_or_default(cpar, 'ramp_up_cycles', NaN));
 
     % Simulation Info
     text = text + sprintf("\nSimulation Info:\n");

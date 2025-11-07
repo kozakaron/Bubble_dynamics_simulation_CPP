@@ -54,7 +54,7 @@
         "enable_reactions": true,
         "enable_dissipated_energy": true,
         "target_specie": "H2",
-        "excitation_type": "sin_impulse",
+        "excitation_type": "sinusoid",
         "excitation_params": [
             {
                 "type": "LinearRange",
@@ -65,11 +65,15 @@
             {
                 "type": "Const",
                 "value": 30000.0
-            },
-            {
-                "type": "Const",
-                "value": 1.0
             }
-        ]
+        ],
+        "excitation_cycles": {
+            "type": "Const",
+            "value": 1.0
+        },
+        "ramp_up_cycles": {
+            "type": "Const",
+            "value": 0.0
+        }
     }
 }

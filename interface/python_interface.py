@@ -351,6 +351,8 @@ def _print_data(data, print_it=True):
     text += f"  Target Specie: {cpar.get('target_specie', 'N/A')}\n"
     text += f"  Excitation Type: {cpar.get('excitation_type', 'N/A')}\n"
     text += f"  Excitation Params: {cpar.get('excitation_params', 'N/A')}\n"
+    text += f"  Excitation Cycles: {cpar.get('excitation_cycles', 'N/A')} [-]\n"
+    text += f"  Ramp Up Cycles: {cpar.get('ramp_up_cycles', 'N/A')} [-]\n"
 
     # Simulation info
     text += "\nSimulation Info:\n"
@@ -642,4 +644,6 @@ def line_to_dict(line):
         target_specie = str(line['target_specie']),
         excitation_type = str(line['excitation_type']),
         excitation_params = excitation_params,
+        excitation_cycles = int(line['excitation_cycles']),
+        ramp_up_cycles = int(line['ramp_up_cycles']),
     )

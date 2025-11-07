@@ -115,6 +115,8 @@ private:
     std::string target_specie;
     Parameters::excitation excitation_type;
     std::vector<std::unique_ptr<Range>> excitation_params;
+    std::unique_ptr<Range> excitation_cycles;
+    std::unique_ptr<Range> ramp_up_cycles;
 public:
     typedef std::variant<Const, LinearRange, LogRange, GeomRange> AnyRange;
     struct Builder {
@@ -136,8 +138,10 @@ public:
         bool enable_reactions                   = true;
         bool enable_dissipated_energy           = true;
         std::string target_specie               = "H2";
-        Parameters::excitation excitation_type  = Parameters::excitation::sin_impulse;
-        std::vector<AnyRange> excitation_params = {Const(-2.0e5), Const(30000.0), Const(1.0)};
+        Parameters::excitation excitation_type  = Parameters::excitation::sinusoid;
+        std::vector<AnyRange> excitation_params = {Const(-2.0e5), Const(30000.0)};
+        AnyRange excitation_cycles              = Const(1.0);
+        AnyRange ramp_up_cycles                 = Const(0.0);
     };
 
     ParameterCombinator(const Builder &builder);

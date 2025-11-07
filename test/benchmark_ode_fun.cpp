@@ -6,6 +6,8 @@
 #include "ode_fun.h"
 #include "test_list.h"
 
+NO_OPTIMIZATION
+
 // WARNING: THe correctness of the input values are not guaranteed.
 void benchmark_ode_fun()
 {
@@ -35,8 +37,10 @@ void benchmark_ode_fun()
             .enable_reactions            = true,
             .enable_dissipated_energy    = true,
             .target_specie               = "NH3",
-            .excitation_type             = Parameters::excitation::sin_impulse,
-            .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04, 1.00000000000000000e+00}
+            .excitation_type             = Parameters::excitation::sinusoid,
+            .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04},
+            .excitation_cycles           = 1.00000000000000000e+00,
+            .ramp_up_cycles              = 0.00000000000000000e+00
         }};
 
         (void)ode.init(cpar);
@@ -123,8 +127,10 @@ void benchmark_ode_fun()
         cpar.enable_dissipated_energy = true;
         cpar.target_specie = par->get_species("H2");
         // Excitation parameters:
-        cpar.excitation_type = Parameters::excitation::sin_impulse;
-        cpar.set_excitation_params({-2.0e5, 30000.0, 1.0});
+        cpar.excitation_type = Parameters::excitation::sinusoid;
+        cpar.set_excitation_params({-2.0e5, 30000.0});
+        cpar.excitation_cycles = 1.0;
+        cpar.ramp_up_cycles = 0.0;
         (void)ode.init(cpar);
 
     // Setup inputs

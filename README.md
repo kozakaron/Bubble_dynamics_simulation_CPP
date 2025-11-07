@@ -144,8 +144,10 @@ cpar = {
     'enable_reactions': True,
     'enable_dissipated_energy': True,
     'target_specie': 'H2',
-    'excitation_type': 'sin_impulse',
-    'excitation_params': [-200000.0, 30000.0, 1.0]
+    'excitation_type': 'sinusoid',
+    'excitation_params': [-200000.0, 30000.0],
+    'excitation_cycles': 1,
+    'ramp_up_cycles': 0
  }
 ```
 
@@ -225,7 +227,7 @@ Just like the case of the control parameters, you need to provide the mechanism 
         },
         {'type': 'Const', 'value': 30000.0},
         {'type': 'Const', 'value': 1.0}],
-    'excitation_type': 'sin_impulse'
+    'excitation_type': 'sinusoid'
 }
  ```
 
@@ -375,8 +377,10 @@ ControlParameters cpar = ControlParameters{ControlParameters::Builder{
     .enable_reactions            = true,
     .enable_dissipated_energy    = true,
     .target_specie               = "H2",
-    .excitation_type             = Parameters::excitation::sin_impulse
-    .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04, 1.00000000000000000e+00},
+    .excitation_type             = Parameters::excitation::sinusoid,
+    .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04},
+    .excitation_cycles           = 1,
+    .ramp_up_cycles              = 0
 }};
 ```
 These above are also the default values, any builder argument can be missed. Use the `to_sting()` method or the `ostream operator<<` overload to print the control parameters to the console. It will be printed in the same format as above, which is also valid code. The class also have a csv header and a `to_csv()` method, like many other classes.
@@ -391,7 +395,7 @@ ode.init(cpar);
 `OdeFun` is also responsible to calculate the initial conditions, however, an array of appropiate size has to be provided as a pointer. This step is handled by the solver:
 
 ```cpp
-std::vector<double> x_0(ode.par->num_species+4);
+std::vector<double> x_0(cpar.par->num_species+4);
 ode.initial_conditions(x_0.data());
 ```
 
@@ -410,7 +414,7 @@ OdeFun ode;
 ode.init(cpar);
 
 // solve the ODE      
-OdeSolver solver(ode.par->num_species+4);
+OdeSolver solver(cpar.par->num_species+4);
 SimulationData data = solver.solve(
     1.0,     // t_max [s]
     &ode,    // ode_ptr
@@ -438,7 +442,7 @@ ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinat
         Const(20000.000000),                                // {20000}
         Const(1.000000)                                     // {1}
     },
-    .excitation_type             = Parameters::excitation::sin_impulse
+    .excitation_type             = Parameters::excitation::sinusoid
 }};
 
 std::cout << parameter_combinator << std::endl;

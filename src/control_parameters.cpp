@@ -133,6 +133,8 @@ ControlParameters::ControlParameters(const ordered_json& j)
                                             get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
         );
         builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params);
+        builder.excitation_cycles =         get_value<double>                   (j, "excitation_cycles",        builder.excitation_cycles);
+        builder.ramp_up_cycles =            get_value<double>                   (j, "ramp_up_cycles",           builder.ramp_up_cycles);
     }
     catch(const std::exception& e)
     {
@@ -217,6 +219,8 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->enable_dissipated_energy = builder.enable_dissipated_energy;
     this->target_specie = par->get_species(builder.target_specie);
     this->excitation_type = builder.excitation_type;
+    this->excitation_cycles = builder.excitation_cycles;
+    this->ramp_up_cycles = builder.ramp_up_cycles;
 
     if (this->target_specie == par->invalid_index)
     {
@@ -378,6 +382,7 @@ std::string ControlParameters::to_csv() const
     ss << "," << Parameters::excitation_names[this->excitation_type];
     for (size_t index = 0; index < Parameters::excitation_arg_nums[this->excitation_type]; ++index)
         ss << format_double << this->excitation_params[index] << ";";
+    ss << "," << format_double << this->excitation_cycles << "," << format_double << this->ramp_up_cycles;
 
     return ss.str();
 }
@@ -433,6 +438,8 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << format_string << ".target_specie"              << " = " << species_to_string(this->target_specie)           << ",\n";
     ss << format_string << ".excitation_type"            << " = " << (with_code ? "Parameters::excitation::" : "") << Parameters::excitation_names[this->excitation_type] << "\n";
     ss << format_string << ".excitation_params"          << " = " << ::to_string((double*)this->excitation_params, Parameters::excitation_arg_nums[this->excitation_type]) << ",\n";
+    ss << format_string << ".excitation_cycles"          << " = " << format_double << this->excitation_cycles         << ",    // number of excitation cycles [-]\n";
+    ss << format_string << ".ramp_up_cycles"             << " = " << format_double << this->ramp_up_cycles            << "     // number of ramp-up cycles until full amplitude is reached [-]\n";
 
     if (with_code) ss << "}";
     ss << std::right;
@@ -476,7 +483,9 @@ ordered_json ControlParameters::to_json() const
     j["target_specie"] = par->species_names.at(this->target_specie);
     j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
     j["excitation_params"] = std::vector<double>(this->excitation_params, this->excitation_params + Parameters::excitation_arg_nums.at(this->excitation_type));
-    
+    j["excitation_cycles"] = this->excitation_cycles;
+    j["ramp_up_cycles"] = this->ramp_up_cycles;
+
     return j;
 }
 
