@@ -284,6 +284,8 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
     this->enable_evaporation =          builder.enable_evaporation;
     this->enable_reactions =            builder.enable_reactions;
     this->enable_dissipated_energy =    builder.enable_dissipated_energy;
+    this->enable_van_der_waals =        builder.enable_van_der_waals;
+    this->enable_rate_thresholding =    builder.enable_rate_thresholding;
     this->target_specie =               builder.target_specie;
     this->excitation_type =             builder.excitation_type;
     this->excitation_cycles =           get_unique_ptr(builder.excitation_cycles);
@@ -545,6 +547,8 @@ void ParameterCombinator::init(const ordered_json& j)
         builder.enable_evaporation =        get_value<bool>                     (j, "enable_evaporation",       builder.enable_evaporation);
         builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
         builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
+        builder.enable_van_der_waals =      get_value<bool>                     (j, "enable_van_der_waals",     builder.enable_van_der_waals);
+        builder.enable_rate_thresholding =  get_value<bool>                     (j, "enable_rate_thresholding", builder.enable_rate_thresholding);
         builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
         builder.excitation_type = Parameters::string_to_excitation(
                                             get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
@@ -701,6 +705,8 @@ std::string ParameterCombinator::to_string(const bool with_code) const
     ss << format_field_name << ".enable_evaporation" << " = " << std::boolalpha << this->enable_evaporation << ",\n";
     ss << format_field_name << ".enable_reactions" << " = " << std::boolalpha << this->enable_reactions << ",\n";
     ss << format_field_name << ".enable_dissipated_energy" << " = " << std::boolalpha << this->enable_dissipated_energy << ",\n";
+    ss << format_field_name << ".enable_van_der_waals" << " = " << std::boolalpha << this->enable_van_der_waals << ",\n";
+    ss << format_field_name << ".enable_rate_thresholding" << " = " << std::boolalpha << this->enable_rate_thresholding << ",\n";
     ss << format_field_name << ".target_specie" << " = " << species_to_string(this->target_specie) << ",\n";
     ss << format_field_name << ".excitation_type"            << " = " << (with_code ? "Parameters::excitation::" : "") << Parameters::excitation_names[this->excitation_type] << "\n";
     ss << format_field_name << ".excitation_params" << " = {\n";
@@ -740,6 +746,8 @@ ordered_json ParameterCombinator::to_json() const
     j["enable_evaporation"] = this->enable_evaporation;
     j["enable_reactions"] = this->enable_reactions;
     j["enable_dissipated_energy"] = this->enable_dissipated_energy;
+    j["enable_van_der_waals"] = this->enable_van_der_waals;
+    j["enable_rate_thresholding"] = this->enable_rate_thresholding;
     j["target_specie"] = this->target_specie;
     j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
     j["excitation_params"] = ordered_json::array();
@@ -809,6 +817,8 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         .enable_evaporation = this->enable_evaporation,
         .enable_reactions = this->enable_reactions,
         .enable_dissipated_energy = this->enable_dissipated_energy,
+        .enable_van_der_waals = this->enable_van_der_waals,
+        .enable_rate_thresholding = this->enable_rate_thresholding,
         .target_specie = this->target_specie,
         .excitation_type = this->excitation_type,
         .excitation_params = excitation_values,

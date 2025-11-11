@@ -36,6 +36,8 @@ void benchmark_ode_fun()
             .enable_evaporation          = true,
             .enable_reactions            = true,
             .enable_dissipated_energy    = true,
+            .enable_van_der_waals        = true,
+            .enable_rate_thresholding    = true,
             .target_specie               = "NH3",
             .excitation_type             = Parameters::excitation::sinusoid,
             .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04},
@@ -85,10 +87,10 @@ void benchmark_ode_fun()
         0.83630845};
         std::copy(M_eff.begin(), M_eff.end(), ode.M_eff);
         
-        BENCHMARK_LINE(ode.forward_rate(T, M, p, 1e30);, 100000);
+        BENCHMARK_LINE(ode.forward_rate(T, M, p);, 100000);
 
     // backward_rate()
-        BENCHMARK_LINE(ode.backward_rate(T, 1e30);, 10000);
+        BENCHMARK_LINE(ode.backward_rate(T);, 10000);
 
     // production_rate()
         BENCHMARK_LINE(ode.production_rate(T, p, M, x.data()+3);, 10000);
@@ -125,6 +127,8 @@ void benchmark_ode_fun()
         cpar.enable_evaporation = true;
         cpar.enable_reactions = true;
         cpar.enable_dissipated_energy = true;
+        cpar.enable_van_der_waals = true;
+        cpar.enable_rate_thresholding = true;
         cpar.target_specie = par->get_species("H2");
         // Excitation parameters:
         cpar.excitation_type = Parameters::excitation::sinusoid;
@@ -166,10 +170,10 @@ void benchmark_ode_fun()
         };
         std::copy(M_eff.begin(), M_eff.end(), ode.M_eff);
         
-        BENCHMARK_LINE(ode.forward_rate(T, M, p, 1e30);, 100000);
+        BENCHMARK_LINE(ode.forward_rate(T, M, p);, 100000);
 
     // backward_rate()
-        BENCHMARK_LINE(ode.backward_rate(T, 1e30);, 10000);
+        BENCHMARK_LINE(ode.backward_rate(T);, 10000);
 
     // production_rate()
         BENCHMARK_LINE(ode.production_rate(T, p, M, x.data()+3);, 10000);

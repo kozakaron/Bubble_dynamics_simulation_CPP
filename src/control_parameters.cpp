@@ -128,6 +128,8 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.enable_evaporation =        get_value<bool>                     (j, "enable_evaporation",       builder.enable_evaporation);
         builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
         builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
+        builder.enable_van_der_waals =      get_value<bool>                     (j, "enable_van_der_waals",     builder.enable_van_der_waals);
+        builder.enable_rate_thresholding =  get_value<bool>                     (j, "enable_rate_thresholding", builder.enable_rate_thresholding);
         builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
         builder.excitation_type = Parameters::string_to_excitation(
                                             get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
@@ -217,6 +219,8 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->enable_evaporation = builder.enable_evaporation;
     this->enable_reactions = builder.enable_reactions;
     this->enable_dissipated_energy = builder.enable_dissipated_energy;
+    this->enable_van_der_waals = builder.enable_van_der_waals;
+    this->enable_rate_thresholding = builder.enable_rate_thresholding;
     this->target_specie = par->get_species(builder.target_specie);
     this->excitation_type = builder.excitation_type;
     this->excitation_cycles = builder.excitation_cycles;
@@ -378,6 +382,7 @@ std::string ControlParameters::to_csv() const
     ss << format_double << this->c_L << "," << format_double << this->surfactant << ",";
     ss << std::boolalpha << this->enable_heat_transfer << "," << std::boolalpha << this->enable_evaporation << ",";
     ss << std::boolalpha << this->enable_reactions << "," << std::boolalpha << this->enable_dissipated_energy << ",";
+    ss << std::boolalpha << this->enable_van_der_waals << "," << std::boolalpha << this->enable_rate_thresholding << ",";
     ss << par->species_names[this->target_specie] << ",";
     ss << "," << Parameters::excitation_names[this->excitation_type];
     for (size_t index = 0; index < Parameters::excitation_arg_nums[this->excitation_type]; ++index)
@@ -435,6 +440,8 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << format_string << ".enable_evaporation"         << " = " << format_bool   << this->enable_evaporation        << ",\n";
     ss << format_string << ".enable_reactions"           << " = " << format_bool   << this->enable_reactions          << ",\n";
     ss << format_string << ".enable_dissipated_energy"   << " = " << format_bool   << this->enable_dissipated_energy  << ",\n";
+    ss << format_string << ".enable_van_der_waals"       << " = " << format_bool   << this->enable_van_der_waals      << ",\n";
+    ss << format_string << ".enable_rate_thresholding"   << " = " << format_bool   << this->enable_rate_thresholding  << ",\n";
     ss << format_string << ".target_specie"              << " = " << species_to_string(this->target_specie)           << ",\n";
     ss << format_string << ".excitation_type"            << " = " << (with_code ? "Parameters::excitation::" : "") << Parameters::excitation_names[this->excitation_type] << "\n";
     ss << format_string << ".excitation_params"          << " = " << ::to_string((double*)this->excitation_params, Parameters::excitation_arg_nums[this->excitation_type]) << ",\n";
@@ -480,6 +487,8 @@ ordered_json ControlParameters::to_json() const
     j["enable_evaporation"] = this->enable_evaporation;
     j["enable_reactions"] = this->enable_reactions;
     j["enable_dissipated_energy"] = this->enable_dissipated_energy;
+    j["enable_van_der_waals"] = this->enable_van_der_waals;
+    j["enable_rate_thresholding"] = this->enable_rate_thresholding;
     j["target_specie"] = par->species_names.at(this->target_specie);
     j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
     j["excitation_params"] = std::vector<double>(this->excitation_params, this->excitation_params + Parameters::excitation_arg_nums.at(this->excitation_type));

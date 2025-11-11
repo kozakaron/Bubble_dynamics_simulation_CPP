@@ -22,6 +22,8 @@
         "enable_evaporation": true,
         "enable_reactions": true,
         "enable_dissipated_energy": true,
+        "enable_van_der_waals": true,
+        "enable_rate_thresholding": true,
         "target_specie": "H2",
         "excitation_type": "sinusoid",
         "excitation_params": [
