@@ -291,17 +291,17 @@ This code is object oriented. Most classes include some of the following methods
 ### High level overwiev
 
 ```
-                                                 ┌─────────────────────────────────┐
-                                                 │Parameters                       │
-              ┌──────────────────────────────┐   ├─────────────────────────────────┤
-              │ControlParameters             │   │Holds constants and coefficients │
-┌──────────┐  ├──────────────────────────────┤   │describing reaction mechanisms:  │
-│JSON input│  │Holds all settings influencing│   │ ∘ chemkin_ar_he                 │
-├──────────┤--│the simulation: R_E, P_amb,   │---│ ∘ chemkin_kaust2023_ammonia          │
-└──────────┘  │excitation parameters, ...    │   │ ∘ chemkin_kaust2023_ammonia_oxygenless│
-              └──────────────────────────────┘   │ ∘ chemkin_otomo2018_ammonia_oxygenless   │
-                              |                  │ ∘ chemkin_otomo2018_ammonia             │
-                              |                  └─────────────────────────────────┘
+                                                 ┌────────────────────────────────────────┐
+                                                 │Parameters                              │
+              ┌──────────────────────────────┐   ├────────────────────────────────────────┤
+              │ControlParameters             │   │Holds constants and coefficients        │
+┌──────────┐  ├──────────────────────────────┤   │describing reaction mechanisms, like:   │
+│JSON input│  │Holds all settings influencing│   │ ∘ chemkin_elte2016_hydrogen            │
+├──────────┤--│the simulation: R_E, P_amb,   │---│ ∘ chemkin_kaust2023_ammonia            │
+└──────────┘  │excitation parameters, ...    │   │ ∘ chemkin_kaust2023_ammonia_oxygenless │
+              └──────────────────────────────┘   │ ∘ chemkin_otomo2018_ammonia_oxygenless │
+                              |                  │ ∘ chemkin_otomo2018_ammonia            │
+                              |                  └────────────────────────────────────────┘
                               |                                                     
                               |                                                     
    ┌─────────────────────────────────────────────────────┐                          
@@ -350,7 +350,25 @@ Errors are logged with the `LOG_ERROR(...)` macro, e.g.: `size_t error_ID = LOG_
 
 ### Chemical mechanisms
 
-Chemical mechanisms are generated from chemkin *.inp* files. (Not included, see [list of .inp files](./dev/inp_file_list.py)) They are turned into usable format via the (quite messy) [./dev/inp_data_extractor.py](./dev/inp_data_extractor.py). The generated structs in [./mechanism](./mechanism) have static constexpr members only. In order to swithc between mechanisms in runtime, and make migrating to CUDA easier, these structs are turned into const static members of the `Parameters` class in [./include/parameters.h](./include/parameters.h). This class stores all arrays in a flattened form as raw pointers. Usage: `const Parameters *par = Parameters::get_parameters("chemkin_elte2016_hydrogen");` and get any members like `par->nu`.
+Chemical mechanisms are stored in [./mechanism](./mechanism). They are converted from Chemkin INP files to Cantera YAML files, and then to JSON files with the provided Python scripts. See [./mechanism/README.md](./mechanism/README.md) for details and to add new mechanisms.
+
+When parsed, these structs are turned into const static members of the `Parameters` class in [./include/parameters.h](./include/parameters.h). This class stores all arrays in a flattened form as raw pointers. Usage: `const Parameters *par = Parameters::get_parameters("chemkin_elte2016_hydrogen");` and get any members like `par->nu`.
+
+Available mechanisms:
+| Name                         | Reagent atoms | Non-reagent molecules | Number of species [-] | Number of reactions [-] |
+|------------------------------|----------------|------------------------|------------------------|--------------------------|
+| uson2022_hydrogen            | H, O           | -                      | 10                     | 34                       |
+| elte2016_hydrogen            | H, O           | He, N2, Ar             | 12                     | 30                       |
+| elte2016_syngas              | H, C, O        | He, N2, Ar             | 15                     | 44                       |
+| elte2016_ethanol             | H, C, O        | He, N2, Ne, Ar, Kr     | 49                     | 251                      |
+| elte2017_methanol            | H, C, O        | He, N2, Ne, Ar, Kr     | 24                     | 102                      |
+| kaust2023_ammonia            | H, N, O        | He, Ar                 | 32                     | 243                      |
+| kaust2023_ammonia_oxygenless | H, N           | He, Ar                 | 14                     | 49                       |
+| otomo2018_ammonia            | H, N, O        | He, Ar                 | 32                     | 213                      |
+| otomo2018_ammonia_oxygenless | H, N           | He, Ar                 | 12                     | 35                       |
+
+
+
 
 ### Control parameters, and ODE function
 
