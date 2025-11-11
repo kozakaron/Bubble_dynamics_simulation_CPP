@@ -882,9 +882,8 @@ is_success OdeFun::operator()(
         Q_r_dot -= this->omega_dot[k] * this->H[k];
     }
     const double T_dot = (Q_r_dot + 3.0 / R * (-p * R_dot + Q_th_dot + evap_energy)) / (M * C_v_avg);
-    //const double M_dot = sum_omega_dot - 3.0 * R_dot / R * M + n_net_dot * 3.0 / R;
-    //const double p_dot = 0.1 * (M_dot * par->R_g * T + M * par->R_g * T_dot);
-    const double p_dot = p * (sum_omega_dot / M + T_dot / T - 3.0 * R_dot / R);
+    const double M_dot = sum_omega_dot - 3.0 * R_dot / R * M + n_net_dot * 3.0 / R;
+    const double p_dot = M_dot * par->R_g * T + M * par->R_g * T_dot;
     dxdt[2] = T_dot;
 
 // d/dt R_dot
