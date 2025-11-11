@@ -45,6 +45,8 @@ parameter_studies = dict(
         'enable_evaporation': True,
         'enable_reactions': True,
         'enable_dissipated_energy': True,
+        'enable_van_der_waals': True,
+        'enable_rate_thresholding': True,
         'target_specie': 'H2',
         'excitation_type': 'sinusoid',
         'excitation_params': [
@@ -72,6 +74,8 @@ parameter_studies = dict(
         'enable_evaporation': True,
         'enable_reactions': True,
         'enable_dissipated_energy': True,
+        'enable_van_der_waals': True,
+        'enable_rate_thresholding': True,
         'target_specie': 'NH3',
         'excitation_type': 'sinusoid',
         'excitation_params': [
@@ -99,6 +103,8 @@ parameter_studies = dict(
         'enable_evaporation': True,
         'enable_reactions': True,
         'enable_dissipated_energy': True,
+        'enable_van_der_waals': True,
+        'enable_rate_thresholding': True,
         'target_specie': 'NH3',
         'excitation_type': 'sinusoid',
         'excitation_params': [
@@ -126,6 +132,8 @@ parameter_studies = dict(
         'enable_evaporation': False,
         'enable_reactions': True,
         'enable_dissipated_energy': True,
+        'enable_van_der_waals': True,
+        'enable_rate_thresholding': True,
         'target_specie': 'NH3',
         'excitation_type': 'sinusoid',
         'excitation_params': [
@@ -153,6 +161,8 @@ parameter_studies = dict(
         'enable_evaporation': False,
         'enable_reactions': True,
         'enable_dissipated_energy': False,
+        'enable_van_der_waals': True,
+        'enable_rate_thresholding': True,
         'target_specie': 'NH3',
         'excitation_type': 'sinusoid',
         'excitation_params': [

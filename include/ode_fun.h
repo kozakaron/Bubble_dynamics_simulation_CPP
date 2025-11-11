@@ -63,14 +63,12 @@ private:
     void forward_rate(
         const double T,
         const double M,
-        const double p,
-        const double ln_reaction_rate_threshold
+        const double p
     ) ; //noexcept
 
 
     void backward_rate(
-        const double T,
-        const double ln_reaction_rate_threshold
+        const double T
     ) ; //noexcept
 
     

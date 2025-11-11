@@ -348,6 +348,8 @@ def _print_data(data, print_it=True):
     text += f"  Enable Evaporation: {cpar.get('enable_evaporation', 'N/A')}\n"
     text += f"  Enable Reactions: {cpar.get('enable_reactions', 'N/A')}\n"
     text += f"  Enable Dissipated Energy: {cpar.get('enable_dissipated_energy', 'N/A')}\n"
+    text += f"  Enable Van der Waals: {cpar.get('enable_van_der_waals', 'N/A')}\n"
+    text += f"  Enable Rate Thresholding: {cpar.get('enable_rate_thresholding', 'N/A')}\n"
     text += f"  Target Specie: {cpar.get('target_specie', 'N/A')}\n"
     text += f"  Excitation Type: {cpar.get('excitation_type', 'N/A')}\n"
     text += f"  Excitation Params: {cpar.get('excitation_params', 'N/A')}\n"
@@ -641,6 +643,8 @@ def line_to_dict(line):
         enable_evaporation = bool(line['enable_evaporation']),
         enable_reactions = bool(line['enable_reactions']),
         enable_dissipated_energy = bool(line['enable_dissipated_energy']),
+        enable_van_der_waals = bool(line['enable_van_der_waals']),
+        enable_rate_thresholding = bool(line['enable_rate_thresholding']),
         target_specie = str(line['target_specie']),
         excitation_type = str(line['excitation_type']),
         excitation_params = excitation_params,

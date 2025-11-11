@@ -522,8 +522,7 @@ std::pair<double, double> OdeFun::evaporation(
 void OdeFun::forward_rate(
     const double T,
     const double M,
-    const double p,
-    const double ln_reaction_rate_threshold
+    const double p
 ) //noexcept
 {
 // Arrhenius reactions
@@ -662,20 +661,25 @@ void OdeFun::forward_rate(
     }
     
 // Forward rate thresholding
+    if (!cpar.enable_rate_thresholding) return;
+    const double reaction_rate_threshold = par->k_B * T / par->h; // [1/s]
+    const double ln_reaction_rate_threshold = std::log(reaction_rate_threshold);
+    const double ln_correction = std::log(par->R_g * T / par->atm2Pa); // unit correction for higher order reactions [m^3/mol]
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
-        const double ln_threshold = ln_reaction_rate_threshold + par->ln_N_A * par->reaction_order[index];
+        const double ln_threshold = ln_reaction_rate_threshold + ln_correction * (par->reaction_order[index] - 1);
         const double ln_k_forward = this->ln_k_forward[index];
         if (!std::isfinite(ln_k_forward) || ln_k_forward > ln_threshold)
+        {
             this->ln_k_forward[index] = ln_threshold;
+        }
     }
     
 }
 
 
 void OdeFun::backward_rate(
-    const double T,
-    const double ln_reaction_rate_threshold
+    const double T
 ) //noexcept 
 {
     const double ln_p_over_RT = std::log(par->atm2Pa / (par->R_g * T));
@@ -695,16 +699,7 @@ void OdeFun::backward_rate(
 
         const double ln_K_p = Delta_S / par->R_g - Delta_H / (par->R_g * T);
         double ln_K_c = ln_K_p + par->sum_nu[index] * ln_p_over_RT;
-        double ln_k_backward = this->ln_k_forward[index] - ln_K_c;
-
-        // Backward rate thresholding
-        const double ln_threshold = ln_reaction_rate_threshold + par->ln_N_A * par->reaction_order[index] - ln_K_c;
-        if (ln_k_backward > ln_threshold || !std::isfinite(ln_k_backward))
-        {
-            ln_k_backward = ln_threshold;
-            this->ln_k_forward[index] = ln_k_backward + ln_K_c;
-        }
-        this->ln_k_backward[index] = ln_k_backward;
+        this->ln_k_backward[index] = this->ln_k_forward[index] - ln_K_c;
     }
 
     // Irreversible reactions
@@ -754,10 +749,8 @@ void OdeFun::production_rate(
         this->M_eff[j] = M_eff_j;
     }
 // Forward and backward rates
-    const double reaction_rate_threshold = par->k_B * T / par->h;
-    const double ln_reaction_rate_threshold = std::log(reaction_rate_threshold);
-    this->forward_rate(T, M, p, ln_reaction_rate_threshold);
-    this->backward_rate(T, ln_reaction_rate_threshold);
+    this->forward_rate(T, M, p);
+    this->backward_rate(T);
 // Net rates
     for (index_t index = 0; index < par->num_reactions; ++index)
     {
