@@ -24,7 +24,7 @@ public:
 private:
 #endif
     // dimensionless form
-    double* conc;                       // molar concentration in SI units (length: Parameters::num_species) [mol/m^3]
+    double* x_dimensional;              // state vector (x) in SI units (length: Parameters::num_species+4) [mol/m^3]
     // evaporation
     double C_v_inf;                     // molar heat capacity of water at constant volume of ambient temperature [J/mol/K]
     // thermodynamic
@@ -86,13 +86,13 @@ public:
     is_success init(const ControlParameters& cpar);
     // Calculates the initial condition of the bubble from the control parameters.
     is_success initial_conditions(
-        double* x
+        double* x_dimless
     ) ; //noexcept
     // Call operator. Calculates the right-hand side of the ODE system.
     is_success operator()(
-        const double t,
-        const double* x,
-        double* dxdt
+        const double t_dimless,
+        const double* x_dimless,
+        double* x_dimless_dot
     ) ; //noexcept
 
 #if defined TEST || defined BENCHMARK
@@ -101,11 +101,11 @@ public:
 private:
 #endif
     void delete_memory();
-    is_success check_before_call(const double* x);
+    is_success check_before_call(const double* x_dimless);
     is_success check_after_call(
-        const double t,
-        const double* x,
-        double* dxdt
+        const double t_dimless,
+        const double* x_dimless,
+        double* x_dimless_dot
     );
 
 };  // class OdeFun
