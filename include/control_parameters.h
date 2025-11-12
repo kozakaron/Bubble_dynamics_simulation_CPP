@@ -50,7 +50,17 @@ public:
     double excitation_params[max_excitation_params];    // parameters for excitation (pointer to array of doubles)
     double excitation_cycles;                           // number of excitation cycles to use (according to freq/freq1 in excitation_params) [-]
     double ramp_up_cycles;                              // number of cycles until the excitation reaches full amplitude (0<=ramp_up_cycles<=excitation_cycles/2) [-]
-    
+
+    // Reference values for dimensionless parameters: A_star = A / A_ref
+    static constexpr double epsilon = 1e-30;            // small value to avoid log(0)
+    static constexpr double t_ref = 1e-6;               // reference time [s]
+    static constexpr double t_ref_inv = 1e6;            // inverse reference time [1/s]
+    double c_ref;                                       // reference concentration [mol/m3]
+    double R_ref;                                       // reference radius [m]
+    double T_ref;                                       // reference temperature [K]
+    double E_diss_ref;                                  // reference dissipated energy [J] (instead of R_ref^2 * t_ref_inv^2)
+
+
 
 // Builder struct, defaults
     /* Usage in initialization: ControlParameters cpar{ControlParameters::Builder{
@@ -116,6 +126,12 @@ public:
     nlohmann::ordered_json to_json() const;
     // Ostream overload
     friend std::ostream& operator<<(std::ostream& os, const ControlParameters& cpar);
+    // Transform from x(t) to x_dimless(t_dimless)
+    void nondimensionalize(double &t, double* x) const;
+    // Transform from x_dimless(t_dimless) to x(t)
+    void dimensionalize(double &t, double* x) const;
+    // Transform x_dot to x_dimless_dot
+    void nondimensionalize_dot(double* x_dot, double* x) const;
 private:
     void init(const Builder& builder);
 };

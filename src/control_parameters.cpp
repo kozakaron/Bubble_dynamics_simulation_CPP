@@ -2,6 +2,7 @@
 #include <sstream>
 #include <fstream>
 #include <numeric>
+#include <numbers>
 #include <iomanip>
 #include <stdint.h>
 
@@ -235,6 +236,19 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->num_initial_species = 0;
     this->set_species(std::vector<std::string>(builder.species), std::vector<double>(builder.fractions));
     this->set_excitation_params(std::vector<double>(builder.excitation_params));
+
+    // Set reference values
+    const double p_E = this->P_amb + 2.0 * this->surfactant * par->sigma / this->R_E;   // [Pa]
+    const double V_E = 4.0 / 3.0 * std::numbers::pi * this->R_E * this->R_E * this->R_E;    // [m^3]
+    const double n_gas = p_E * V_E / (par->R_g * this->T_inf);    // [mol]
+    double M = n_gas / V_E;   // [mol/m^3]
+    (void)M;
+
+    this->R_ref = this->R_E;
+    this->T_ref = this->T_inf;
+    // J = kg*m^2/s^2
+    this->E_diss_ref = 1.0;
+    this->c_ref = 1e8;  // TODO: rename?
 }
 
 
@@ -498,8 +512,91 @@ ordered_json ControlParameters::to_json() const
     return j;
 }
 
+
 std::ostream& operator<<(std::ostream& os, const ControlParameters& cpar)
 {
     os << cpar.to_string(true);
     return os;
+}
+
+
+void ControlParameters::nondimensionalize(double &t, double* x) const
+{
+    t *= this->t_ref_inv;
+    if (par == nullptr) return;
+    if (x == nullptr) 
+    {
+        LOG_ERROR("x is nullptr");
+        return;
+    }
+
+    //const double R = x[0];
+    //const double V = 4.0 / 3.0 * std::numbers::pi * R * R * R;
+    x[0] /= this->R_ref;
+    x[1] *= this->t_ref / this->R_ref;
+    x[2] /= this->T_ref;
+    for (size_t i = 0; i < par->num_species; ++i)
+    {
+        //const double n_i = x[i + 3] * V; // [mol]
+        x[i+3] /= this->c_ref;
+        //x[i + 3] = std::log(x[i + 3] + this->epsilon);
+    }
+    x[par->num_species + 3] /= this->E_diss_ref;
+}
+
+
+void ControlParameters::dimensionalize(double &t, double* x) const
+{
+    t *= this->t_ref;
+    if (par == nullptr) return;
+    if (x == nullptr) 
+    {
+        LOG_ERROR("x is nullptr");
+        return;
+    }
+
+    //const double R = x[0] * R_ref;
+    //const double V = 4.0 / 3.0 * std::numbers::pi * R * R * R;
+    x[0] *= this->R_ref;
+    x[1] *= this->R_ref * this->t_ref_inv;
+    x[2] *= this->T_ref;
+    for (size_t i = 0; i < par->num_species; ++i)
+    {
+        //const double n_i = x[i + 3] * this->c_ref; // [mol]
+        //x[i + 3] = n_i / V;
+        x[i + 3] *= this->c_ref;
+        //x[i + 3] = std::exp(x[i + 3]) - this->epsilon;
+    }
+    x[par->num_species + 3] *= this->E_diss_ref;
+}
+
+
+void ControlParameters::nondimensionalize_dot(double* x_dot, double* x) const
+{
+    if (par == nullptr) return;
+    if (x_dot == nullptr || x == nullptr) 
+    {
+        LOG_ERROR("x_dot or x is nullptr");
+        return;
+    }
+
+    //const double R = x[0];
+    //const double R_dot = x[1];
+    //const double V = 4.0 / 3.0 * std::numbers::pi * R * R * R;
+    //const double V_dot = 4.0 * std::numbers::pi * R * R * R_dot;
+    x_dot[0] *= this->t_ref / this->R_ref;
+    x_dot[1] *= this->t_ref * this->t_ref / this->R_ref;
+    x_dot[2] *= this->t_ref / this->T_ref;
+    for (index_t k = 0; k < par->num_species; ++k)
+    {
+        // x_dimless = x * V / c_ref
+        // dx_dimless/dt_dimless = (dx/dt * V + x * dV/dt) / c_ref * t_ref
+        // dx/dt = (dx/dt * V + x * dV/dt) / V
+        // turn mol/m3/s to mol/s
+        //const double n_i_dot = x_dot[k + 3] * V; // [mol/s]
+        //const double 
+        x_dot[k + 3] *= this->t_ref / this->c_ref;
+        //x_dot[k + 3] *= this->t_ref / (x[k + 3] + this->epsilon);
+    }
+    x_dot[par->num_species + 3] *= this->t_ref / this->E_diss_ref;
 }

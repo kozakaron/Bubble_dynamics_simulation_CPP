@@ -170,7 +170,7 @@ OdeSolver::OdeSolver(const size_t num_dim):
         NV_Ith_S(abstol, i) = 1e-11;          // molar concentrations
     NV_Ith_S(abstol, 0) = 1e-10;              // R
     NV_Ith_S(abstol, 1) = 1e-10;              // R_dot
-    NV_Ith_S(abstol, 2) = 1e-8;               // T
+    NV_Ith_S(abstol, 2) = 1e-10;              // T
     NV_Ith_S(abstol, num_dim-1) = 1e-10;      // E_diss
     
     for (size_t i = 0; i < num_dim; i++)
@@ -185,7 +185,7 @@ OdeSolver::OdeSolver(const size_t num_dim):
     HANDLE_ERROR_CODE(CVodeInit(cvode_mem, right_hand_side, 0.0, x));
     HANDLE_ERROR_CODE(CVodeSetMaxNumSteps(cvode_mem, 2000000000));
     HANDLE_ERROR_CODE(CVodeSetMaxHnilWarns(cvode_mem, 10));    // maximum number of warnings for t+h=t
-    HANDLE_ERROR_CODE(CVodeSetMaxStep(cvode_mem, 1.0e-3));     // Limit max step size to 1 ms
+    HANDLE_ERROR_CODE(CVodeSetMaxStep(cvode_mem, 1.0e-3 * ControlParameters::t_ref_inv));     // Limit max step size to 1 ms
     HANDLE_ERROR_CODE(CVodeSetStabLimDet(cvode_mem, SUNTRUE));
     HANDLE_ERROR_CODE(CVodeSVtolerances(cvode_mem, reltol, abstol));
     HANDLE_ERROR_CODE(CVodeSetConstraints(cvode_mem, constraints));
@@ -225,7 +225,7 @@ void init_solve(
 {
     HANDLE_ERROR_CODE(CVodeReInit(cvode_mem, 0.0, x));
     HANDLE_ERROR_CODE(CVodeSetUserData(cvode_mem, user_data));
-    HANDLE_ERROR_CODE(CVodeSetInitStep(cvode_mem, 1.0e-20));
+    HANDLE_ERROR_CODE(CVodeSetInitStep(cvode_mem, 1.0e-20 * ControlParameters::t_ref_inv));
 }
 
 
@@ -348,6 +348,7 @@ SimulationData OdeSolver::solve(
     Timer timer; timer.start();
     SimulationData data(ode_ptr->cpar);
     OdeSolution& solution = data.sol;
+    const double t_max_dimless = t_max * ode_ptr->cpar.t_ref_inv;
     user_data.ode_ptr = ode_ptr;
     user_data.timer_ptr = &timer;
     user_data.timeout = timeout;
@@ -370,6 +371,7 @@ SimulationData OdeSolver::solve(
     solution.num_dim = NV_LENGTH_S(x);
     ode_ptr->initial_conditions(NV_DATA_S(x));
     solution.push_t_x(0.0, NV_DATA_S(x));
+    ode_ptr->cpar.dimensionalize(solution.t.back(), solution.x.back().data());
     init_solve(cvode_mem, &user_data, x, &(solution.error_ID));
     if (solution.error_ID != ErrorHandler::no_error)  return data;
 
@@ -378,7 +380,7 @@ SimulationData OdeSolver::solve(
     while (true)
     {
         // Integration (step)
-        int retval = CVode(cvode_mem, t_max, x, &t, CV_ONE_STEP);
+        int retval = CVode(cvode_mem, t_max_dimless, x, &t, CV_ONE_STEP);
 
         // Success
         if (retval == CV_SUCCESS) {
@@ -389,6 +391,7 @@ SimulationData OdeSolver::solve(
             if (save_solution)
             {
                 solution.push_t_x(t, NV_DATA_S(x));
+                ode_ptr->cpar.dimensionalize(solution.t.back(), solution.x.back().data());
             }
 
             // Save Jacobian
@@ -422,13 +425,14 @@ SimulationData OdeSolver::solve(
         }
 
         // Exit conditions
-        if (t >= t_max)  break;
+        if (t >= t_max_dimless)  break;
         if (user_data.timed_out)  break;
         if (retval != CV_SUCCESS)  break;
     }
 
     // fill solution
     solution.push_t_x(t, NV_DATA_S(x));
+    ode_ptr->cpar.dimensionalize(solution.t.back(), solution.x.back().data());
     construct_solution(solution, cvode_mem, &(solution.error_ID), x);
     solution.runtime       = timer.lap();
     user_data.ode_ptr      = nullptr;

@@ -224,13 +224,13 @@ SimulationData::SimulationData(const ControlParameters &cpar):
 
 void SimulationData::midprocess(const double t, const double* x)
 {
-    if (x[0] > R_max) R_max = x[0];
-    if (x[2] < T_min) T_min = x[2];
-    if (x[0] < R_min) R_min = x[0];
-    if (x[2] > T_max)
+    if (x[0] * cpar.R_ref < R_min) R_min = x[0] * cpar.R_ref;
+    if (x[0] * cpar.R_ref > R_max) R_max = x[0] * cpar.R_ref;
+    if (x[2] * cpar.T_ref < T_min) T_min = x[2] * cpar.T_ref;
+    if (x[2] * cpar.T_ref > T_max)
     {
-        T_max = x[2];
-        t_peak = t;
+        T_max = x[2] * cpar.T_ref;
+        t_peak = t * cpar.t_ref;
     }
 }
 
@@ -292,9 +292,9 @@ void SimulationData::postprocess()
     {
         const double R_last = sol.x.back()[0];  // [m]
         const double V_last = 4.0 / 3.0 * std::numbers::pi * std::pow(R_last, 3); // [m^3]
-        const double c_target = sol.x.back()[3+cpar.target_specie];  // [mol/cm^3]
+        const double c_target = sol.x.back()[3+cpar.target_specie];  // [mol/m^3]
 
-        n_target_specie = 1e6 * c_target * V_last;  // [mol]
+        n_target_specie = c_target * V_last;  // [mol]
     }
 
     if (n_target_specie < -1.0e-8)

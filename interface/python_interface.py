@@ -427,7 +427,7 @@ def plot(data, n=5.0, base_name='', format='png',
     c = x[:end_index, 3:-1] # [mol/m^3]
 
     V = 4.0 / 3.0 * R**3 * np.pi # [m^3]
-    n = 1e6 * (c.T * V).T # [mol]
+    n = (c.T * V).T # [mol]
     #internal_pressure = np.sum(n, axis=1) * 8.31446 * T / V # [MPa]
 
 # plot R and T
