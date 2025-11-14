@@ -147,7 +147,7 @@ OdeSolver::OdeSolver(const size_t num_dim):
     t(0.0),
     x(nullptr),
     abstol(nullptr),
-    reltol(1.0e-10),
+    reltol(1.0e-14),
     A(nullptr),
     linear_solver(nullptr),
     cvode_mem(nullptr),
@@ -167,7 +167,7 @@ OdeSolver::OdeSolver(const size_t num_dim):
     HANDLE_RETURN_PTR(constraints, N_VNew_Serial(num_dim, sun_context));
 
     for (size_t i = 0; i < num_dim; i++)
-        NV_Ith_S(abstol, i) = 1e-11;          // molar concentrations
+        NV_Ith_S(abstol, i) = 1e-10;          // molar concentrations
     NV_Ith_S(abstol, 0) = 1e-10;              // R
     NV_Ith_S(abstol, 1) = 1e-10;              // R_dot
     NV_Ith_S(abstol, 2) = 1e-10;              // T
