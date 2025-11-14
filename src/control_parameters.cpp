@@ -248,7 +248,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->T_ref = this->T_inf;
     // J = kg*m^2/s^2
     this->E_diss_ref = 1.0;
-    this->c_ref = 1e8;  // TODO: rename?
+    this->c_ref = 1e6*n_gas;  // TODO: rename?
 }
 
 
@@ -530,15 +530,15 @@ void ControlParameters::nondimensionalize(double &t, double* x) const
         return;
     }
 
-    //const double R = x[0];
-    //const double V = 4.0 / 3.0 * std::numbers::pi * R * R * R;
+    const double R = x[0];
+    const double V = 4.0 / 3.0 * std::numbers::pi * R * R * R;
     x[0] /= this->R_ref;
     x[1] *= this->t_ref / this->R_ref;
     x[2] /= this->T_ref;
     for (size_t i = 0; i < par->num_species; ++i)
     {
-        //const double n_i = x[i + 3] * V; // [mol]
-        x[i+3] /= this->c_ref;
+        const double n_i = x[i + 3] * V; // [mol]
+        x[i+3] = n_i / this->c_ref;
         //x[i + 3] = std::log(x[i + 3] + this->epsilon);
     }
     x[par->num_species + 3] /= this->E_diss_ref;
@@ -555,16 +555,15 @@ void ControlParameters::dimensionalize(double &t, double* x) const
         return;
     }
 
-    //const double R = x[0] * R_ref;
-    //const double V = 4.0 / 3.0 * std::numbers::pi * R * R * R;
+    const double R = x[0] * R_ref;
+    const double V = 4.0 / 3.0 * std::numbers::pi * R * R * R;
     x[0] *= this->R_ref;
     x[1] *= this->R_ref * this->t_ref_inv;
     x[2] *= this->T_ref;
     for (size_t i = 0; i < par->num_species; ++i)
     {
-        //const double n_i = x[i + 3] * this->c_ref; // [mol]
-        //x[i + 3] = n_i / V;
-        x[i + 3] *= this->c_ref;
+        const double n_i = x[i + 3] * this->c_ref; // [mol]
+        x[i + 3] = n_i / V;
         //x[i + 3] = std::exp(x[i + 3]) - this->epsilon;
     }
     x[par->num_species + 3] *= this->E_diss_ref;
@@ -580,10 +579,10 @@ void ControlParameters::nondimensionalize_dot(double* x_dot, double* x) const
         return;
     }
 
-    //const double R = x[0];
-    //const double R_dot = x[1];
-    //const double V = 4.0 / 3.0 * std::numbers::pi * R * R * R;
-    //const double V_dot = 4.0 * std::numbers::pi * R * R * R_dot;
+    const double R = x[0];          // [m]
+    const double R_dot = x[1];      // [m/s]
+    const double V = 4.0 / 3.0 * std::numbers::pi * R * R * R;      // [m^3]
+    const double V_dot = 4.0 * std::numbers::pi * R * R * R_dot;    // [m^3/s]
     x_dot[0] *= this->t_ref / this->R_ref;
     x_dot[1] *= this->t_ref * this->t_ref / this->R_ref;
     x_dot[2] *= this->t_ref / this->T_ref;
@@ -592,10 +591,7 @@ void ControlParameters::nondimensionalize_dot(double* x_dot, double* x) const
         // x_dimless = x * V / c_ref
         // dx_dimless/dt_dimless = (dx/dt * V + x * dV/dt) / c_ref * t_ref
         // dx/dt = (dx/dt * V + x * dV/dt) / V
-        // turn mol/m3/s to mol/s
-        //const double n_i_dot = x_dot[k + 3] * V; // [mol/s]
-        //const double 
-        x_dot[k + 3] *= this->t_ref / this->c_ref;
+        x_dot[k + 3] = (x_dot[k + 3] * V + x[k + 3] * V_dot) * this->t_ref / this->c_ref;
         //x_dot[k + 3] *= this->t_ref / (x[k + 3] + this->epsilon);
     }
     x_dot[par->num_species + 3] *= this->t_ref / this->E_diss_ref;
