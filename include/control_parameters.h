@@ -53,8 +53,8 @@ public:
 
     // Reference values for dimensionless parameters: A_star = A / A_ref
     static constexpr double epsilon = 1e-30;            // small value to avoid log(0)
-    static constexpr double t_ref = 1e-6;               // reference time [s]
-    static constexpr double t_ref_inv = 1e6;            // inverse reference time [1/s]
+    static constexpr double t_ref = 1e-9;               // reference time [s]
+    static constexpr double t_ref_inv = 1e9;            // inverse reference time [1/s]
     double c_ref;                                       // reference concentration [mol/m3]
     double R_ref;                                       // reference radius [m]
     double T_ref;                                       // reference temperature [K]
@@ -126,12 +126,12 @@ public:
     nlohmann::ordered_json to_json() const;
     // Ostream overload
     friend std::ostream& operator<<(std::ostream& os, const ControlParameters& cpar);
-    // Transform from x(t) to x_dimless(t_dimless)
+    // Transform from x(t) to x_dimless(t_dimless) in place
     void nondimensionalize(double &t, double* x) const;
-    // Transform from x_dimless(t_dimless) to x(t)
+    // Transform from x_dimless(t_dimless) to x(t) in place
     void dimensionalize(double &t, double* x) const;
-    // Transform x_dot to x_dimless_dot
-    void nondimensionalize_dot(double* x_dot, double* x) const;
+    // Transform x_dot to x_dimless_dot in place
+    void nondimensionalize_dot(double* x_dot, const double* x) const;
 private:
     void init(const Builder& builder);
 };

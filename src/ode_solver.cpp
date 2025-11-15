@@ -147,7 +147,7 @@ OdeSolver::OdeSolver(const size_t num_dim):
     t(0.0),
     x(nullptr),
     abstol(nullptr),
-    reltol(1.0e-14),
+    reltol(1.0e-10),
     A(nullptr),
     linear_solver(nullptr),
     cvode_mem(nullptr),
@@ -187,9 +187,9 @@ OdeSolver::OdeSolver(const size_t num_dim):
     HANDLE_ERROR_CODE(CVodeSetMaxHnilWarns(cvode_mem, 10));    // maximum number of warnings for t+h=t
     HANDLE_ERROR_CODE(CVodeSetMaxStep(cvode_mem, 1.0e-3 * ControlParameters::t_ref_inv));     // Limit max step size to 1 ms
     HANDLE_ERROR_CODE(CVodeSetStabLimDet(cvode_mem, SUNTRUE));
-    HANDLE_ERROR_CODE(CVodeSVtolerances(cvode_mem, reltol, abstol));
+    //HANDLE_ERROR_CODE(CVodeSVtolerances(cvode_mem, reltol, abstol));
     HANDLE_ERROR_CODE(CVodeSetConstraints(cvode_mem, constraints));
-    //HANDLE_ERROR_CODE(CVodeSStolerances(cvode_mem, 1e-10, 1e-10));
+    HANDLE_ERROR_CODE(CVodeSStolerances(cvode_mem, 1e-10, 1e-10));
 
     // Setup linear solver
     HANDLE_RETURN_PTR(A, SUNDenseMatrix(num_dim, num_dim, sun_context));
