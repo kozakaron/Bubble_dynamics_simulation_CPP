@@ -677,7 +677,7 @@ void OdeFun::forward_rate(
         const double ln_k_forward = this->ln_k_forward[index];
         if (!std::isfinite(ln_k_forward) || ln_k_forward > ln_threshold)
         {
-            this->ln_k_forward[index] = ln_threshold;
+            this->ln_k_forward[index] = std::copysign(ln_threshold, ln_k_forward);
         }
     }
     

@@ -248,7 +248,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->T_ref = this->T_inf;
     // J = kg*m^2/s^2
     this->E_diss_ref = 1.0;
-    this->c_ref = 1e6*n_gas;  // TODO: rename?
+    this->c_ref = n_gas;  // TODO: rename?
 }
 
 
@@ -381,7 +381,7 @@ std::string ControlParameters::to_csv() const
     };
     if (par == nullptr)
     {
-        return ",,,,,,,,,,,,,,,,,,,";
+        return ",,,,,,,,,,,,,,,,,,,,,,,,";
     }
 
     ss << this->ID << "," << par->mechanism_name << "," << format_double << this->R_E << "," << format_double << this->ratio << ",";
@@ -398,7 +398,7 @@ std::string ControlParameters::to_csv() const
     ss << std::boolalpha << this->enable_reactions << "," << std::boolalpha << this->enable_dissipated_energy << ",";
     ss << std::boolalpha << this->enable_van_der_waals << "," << std::boolalpha << this->enable_rate_thresholding << ",";
     ss << par->species_names[this->target_specie] << ",";
-    ss << "," << Parameters::excitation_names[this->excitation_type];
+    ss << Parameters::excitation_names[this->excitation_type] << ",";
     for (size_t index = 0; index < Parameters::excitation_arg_nums[this->excitation_type]; ++index)
         ss << format_double << this->excitation_params[index] << ";";
     ss << "," << format_double << this->excitation_cycles << "," << format_double << this->ramp_up_cycles;
@@ -537,9 +537,10 @@ void ControlParameters::nondimensionalize(double &t, double* x) const
     x[2] /= this->T_ref;
     for (size_t i = 0; i < par->num_species; ++i)
     {
-        const double n_i = x[i + 3] * V; // [mol]
-        x[i+3] = n_i / this->c_ref;
-        //x[i + 3] = std::log(x[i + 3] + this->epsilon);
+        const double n_i = x[i + 3] * V;
+        const double n_dimless_i = n_i / this->c_ref;
+        //const double n_log_i = std::log(n_dimless_i + this->epsilon);
+        x[i+3] = n_log_i;
     }
     x[par->num_species + 3] /= this->E_diss_ref;
 }
@@ -562,15 +563,17 @@ void ControlParameters::dimensionalize(double &t, double* x) const
     x[2] *= this->T_ref;
     for (size_t i = 0; i < par->num_species; ++i)
     {
-        const double n_i = x[i + 3] * this->c_ref; // [mol]
-        x[i + 3] = n_i / V;
-        //x[i + 3] = std::exp(x[i + 3]) - this->epsilon;
+        const double n_log_i = x[i + 3];
+        const double n_dimless_i = std::exp(n_log_i) - this->epsilon;
+        const double n_i = n_dimless_i * this->c_ref;
+        const double c_i = n_i / V;
+        x[i + 3] = c_i;
     }
     x[par->num_species + 3] *= this->E_diss_ref;
 }
 
 
-void ControlParameters::nondimensionalize_dot(double* x_dot, double* x) const
+void ControlParameters::nondimensionalize_dot(double* x_dot, const double* x) const
 {
     if (par == nullptr) return;
     if (x_dot == nullptr || x == nullptr) 
@@ -588,11 +591,15 @@ void ControlParameters::nondimensionalize_dot(double* x_dot, double* x) const
     x_dot[2] *= this->t_ref / this->T_ref;
     for (index_t k = 0; k < par->num_species; ++k)
     {
-        // x_dimless = x * V / c_ref
-        // dx_dimless/dt_dimless = (dx/dt * V + x * dV/dt) / c_ref * t_ref
-        // dx/dt = (dx/dt * V + x * dV/dt) / V
-        x_dot[k + 3] = (x_dot[k + 3] * V + x[k + 3] * V_dot) * this->t_ref / this->c_ref;
-        //x_dot[k + 3] *= this->t_ref / (x[k + 3] + this->epsilon);
+        // x_dimless = ln(x * V / c_ref + epsilon) + log_offset = ln(f(x)) + log_offset
+        // dx_dimless/dt_dimless = 1/f(x) * df/dt * dt/dt_dimless
+            // f(x) = x * V / c_ref + epsilon
+            // df/dt = (dx/dt * V + x * dV/dt) / c_ref
+            // dt/dt_dimless = d/dt_dimless (t_dimless * t_ref) = t_ref
+        // dx_dimless/dt_dimless = 1 / (x * V / c_ref + epsilon)  *  (dx/dt * V + x * dV/dt) / c_ref * t_ref
+        const double fi = (x[k + 3] * V / this->c_ref + this->epsilon);
+        const double dfdt = (x_dot[k + 3] * V + x[k + 3] * V_dot) / this->c_ref;
+        x_dot[k + 3] = (1.0 / fi) * dfdt * this->t_ref;
     }
     x_dot[par->num_species + 3] *= this->t_ref / this->E_diss_ref;
 }
