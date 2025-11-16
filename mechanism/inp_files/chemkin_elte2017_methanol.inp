@@ -6,10 +6,10 @@
 !           Uncertainty quantification of a newly optimized methanol           !
 !                       and formaldehyde combustion mechanism                  !
 !                                                                              !
-!               Carsten Olm 1,2, Tam�s Varga 1,2 , �va Valk� 1,2               !
-!                        Henry J. Curran 3, T. Tur�nyi 2                       !
+!               Carsten Olm 1,2, Tamás Varga 1,2 , Éva Valkó 1,2               !
+!                        Henry J. Curran 3, T. Turányi 2                       !
 !                                                                              !
-! 1 Institute of Chemistry, E�tv�s University (ELTE), Budapest, Hungary        !
+! 1 Institute of Chemistry, Eötvös University (ELTE), Budapest, Hungary        !
 ! 2 MTA-ELTE Research Group on Complex Chemical Systems, Budapest, Hungary     !
 ! 3 Combustion Chemistry Centre, National University of Ireland Galway (NUIG), !
 !   Galway, Ireland                                                            !
@@ -22,12 +22,42 @@
 !       before performing simulations that require transport data              !
 !                                                                              !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-ELEMENTS  C  H  O  N  AR  HE   KR   NE  END       ! Added KR, NE manually                                        
+ELEMENTS  C  H  O  N  AR  HE   KR   NE  END       ! Added KR, NE manually
+
 SPECIES                                                                         
 CH3OH   O2      CO      CO2     CH2O    H2O     CH4     H2      H2O2    CH3     
 H       OH      CH2OH   HCO     HO2     O       CH3O    C2H6    AR      N2      
 HE      OHEX    KR      NE
 END
+
+TRANSPORT
+AR                 0   136.500     3.330     0.000     0.000     0.000
+C2H6               2   247.500     4.350     0.000     0.000     1.500
+CH2O               2   498.000     3.590     0.000     0.000     2.000
+CH2OH              2   417.000     3.690     1.700     0.000     2.000
+CH3                1   144.000     3.800     0.000     0.000     0.000
+CH3O               2   417.000     3.690     1.700     0.000     2.000
+CH3OH              2   481.800     3.626     0.000     0.000     1.000
+CH4                2   141.400     3.746     0.000     2.600    13.000
+CO                 1    98.100     3.650     0.000     1.950     1.800
+CO2                1   244.000     3.763     0.000     2.650     2.100
+H                  0   145.000     2.050     0.000     0.000     0.000
+H2                 1    38.000     2.920     0.000     0.790   280.000
+H2O                2   572.400     2.605     1.844     0.000     4.000
+H2O2               2   107.400     3.458     0.000     0.000     3.800
+HCO                2   498.000     3.590     0.000     0.000     0.000
+HE                 0    10.200     2.576     0.000     0.000     0.000
+HO2                2   107.400     3.458     0.000     0.000     1.000
+N2                 1    97.530     3.621     0.000     1.760     4.000
+O                  0    80.000     2.750     0.000     0.000     0.000
+O2                 1   107.400     3.458     0.000     1.600     3.800
+OH                 1    80.000     2.750     0.000     0.000     0.000
+OHEX               1    80.000     2.750     0.000     0.000     0.000
+! KR and NE were not in original database - source???
+NE                 0    32.800     2.820     0.000     0.000     0.000
+KR                 0   178.900     3.660     0.000     0.000     0.000
+END
+
 THERMO ALL
    300.000  1000.000  5000.000
 CH3OH Methanol          C   1H   4O   1    0G    200.00   6000.00 1000.00    0 1 ! taken from Burcat thermo database. Last update: 03/13/2015
@@ -127,6 +157,7 @@ NE REF ELEMENT    G 5/97NE  100  0    0    0G   200.000  6000.000 1000.        1
 -7.45375000E+02 3.35532272E+00 2.50000000E+00 0.00000000E+00 0.00000000E+00    3
  0.00000000E+00 0.00000000E+00-7.45375000E+02 3.35532272E+00 0.00000000E+00    4
 END
+
 REACTIONS   MOLES  KELVINS
 !     1
 H+O2<=>O+OH                         5.0712E+15  -0.48596      8116.1
