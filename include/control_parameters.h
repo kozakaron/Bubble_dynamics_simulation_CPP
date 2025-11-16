@@ -52,7 +52,8 @@ public:
     double ramp_up_cycles;                              // number of cycles until the excitation reaches full amplitude (0<=ramp_up_cycles<=excitation_cycles/2) [-]
 
     // Reference values for dimensionless parameters: A_star = A / A_ref
-    static constexpr double epsilon = 1e-30;            // small value to avoid log(0)
+    static constexpr double epsilon = 1e-15;            // small value to avoid log(0)
+    static constexpr double epsilon_inv = 1e15;         // inverse of small value
     static constexpr double t_ref = 1e-9;               // reference time [s]
     static constexpr double t_ref_inv = 1e9;            // inverse reference time [1/s]
     double c_ref;                                       // reference concentration [mol/m3]

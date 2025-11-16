@@ -241,14 +241,12 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     const double p_E = this->P_amb + 2.0 * this->surfactant * par->sigma / this->R_E;   // [Pa]
     const double V_E = 4.0 / 3.0 * std::numbers::pi * this->R_E * this->R_E * this->R_E;    // [m^3]
     const double n_gas = p_E * V_E / (par->R_g * this->T_inf);    // [mol]
-    double M = n_gas / V_E;   // [mol/m^3]
-    (void)M;
 
     this->R_ref = this->R_E;
     this->T_ref = this->T_inf;
     // J = kg*m^2/s^2
     this->E_diss_ref = 1.0;
-    this->c_ref = n_gas;  // TODO: rename?
+    this->c_ref = 1e6*n_gas;  // TODO: rename?
 }
 
 
@@ -540,7 +538,8 @@ void ControlParameters::nondimensionalize(double &t, double* x) const
         const double n_i = x[i + 3] * V;
         const double n_dimless_i = n_i / this->c_ref;
         //const double n_log_i = std::log(n_dimless_i + this->epsilon);
-        x[i+3] = n_log_i;
+        //const double n_log_i = std::log1p(n_dimless_i * this->epsilon_inv);
+        x[i+3] = n_dimless_i;
     }
     x[par->num_species + 3] /= this->E_diss_ref;
 }
@@ -564,8 +563,9 @@ void ControlParameters::dimensionalize(double &t, double* x) const
     for (size_t i = 0; i < par->num_species; ++i)
     {
         const double n_log_i = x[i + 3];
-        const double n_dimless_i = std::exp(n_log_i) - this->epsilon;
-        const double n_i = n_dimless_i * this->c_ref;
+        //const double n_dimless_i = std::exp(n_log_i) - this->epsilon;
+        //const double n_dimless_i = std::expm1(n_log_i) * this->epsilon;
+        const double n_i = n_log_i * this->c_ref;
         const double c_i = n_i / V;
         x[i + 3] = c_i;
     }
@@ -591,15 +591,35 @@ void ControlParameters::nondimensionalize_dot(double* x_dot, const double* x) co
     x_dot[2] *= this->t_ref / this->T_ref;
     for (index_t k = 0; k < par->num_species; ++k)
     {
-        // x_dimless = ln(x * V / c_ref + epsilon) + log_offset = ln(f(x)) + log_offset
+        // x_dimless = x * V / c_ref = f(x)
+        // dx_dimless/dt_dimless = df/dt * dt/dt_dimless
+            // f(x) = x * V / c_ref + epsilon
+            // df/dt = (dx/dt * V + x * dV/dt) / c_ref
+            // dt/dt_dimless = d/dt_dimless (t_dimless * t_ref) = t_ref
+        const double dfdt = (x_dot[k + 3] * V + x[k + 3] * V_dot) / this->c_ref;
+        x_dot[k + 3] = dfdt * this->t_ref;
+
+
+        /*// x_dimless = ln(x * V / c_ref + epsilon) + log_offset = ln(f(x)) + log_offset
         // dx_dimless/dt_dimless = 1/f(x) * df/dt * dt/dt_dimless
             // f(x) = x * V / c_ref + epsilon
             // df/dt = (dx/dt * V + x * dV/dt) / c_ref
             // dt/dt_dimless = d/dt_dimless (t_dimless * t_ref) = t_ref
-        // dx_dimless/dt_dimless = 1 / (x * V / c_ref + epsilon)  *  (dx/dt * V + x * dV/dt) / c_ref * t_ref
         const double fi = (x[k + 3] * V / this->c_ref + this->epsilon);
         const double dfdt = (x_dot[k + 3] * V + x[k + 3] * V_dot) / this->c_ref;
-        x_dot[k + 3] = (1.0 / fi) * dfdt * this->t_ref;
+        x_dot[k + 3] = (1.0 / fi) * dfdt * this->t_ref;*/
+
+        /*// x_dimless = ln( 1 + x * V / c_ref / epsilon) = ln(1 + f(x)/epsilon)
+        // dx_dimless/dt_dimless = 1/(1 + f(x)) df/dt * dt/dt_dimless
+            // f(x) = x * V / c_ref / epsilon
+            // df/dt = (dx/dt * V + x * dV/dt) / c_ref / epsilon
+            // dt/dt_dimless = d/dt_dimless (t_dimless * t_ref) = t_ref
+        // c_ref = n_gas
+        // epsilon = 1e-15
+        // atol = 1e-12; rtol = 1e-10;
+        const double fi = (1.0 + x[k + 3] * V / this->c_ref * this->epsilon_inv);
+        const double dfdt = (x_dot[k + 3] * V + x[k + 3] * V_dot) / this->c_ref * this->epsilon_inv;
+        x_dot[k + 3] = 1.0 / (1.0 + fi) * dfdt * this->t_ref;*/
     }
     x_dot[par->num_species + 3] *= this->t_ref / this->E_diss_ref;
 }
