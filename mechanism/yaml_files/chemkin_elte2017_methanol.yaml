@@ -7,10 +7,10 @@ description: |-
              Uncertainty quantification of a newly optimized methanol           !
                          and formaldehyde combustion mechanism                  !
                                                                                 !
-                 Carsten Olm 1,2, Tam�s Varga 1,2 , �va Valk� 1,2               !
-                          Henry J. Curran 3, T. Tur�nyi 2                       !
+                 Carsten Olm 1,2, Tamás Varga 1,2 , Éva Valkó 1,2               !
+                          Henry J. Curran 3, T. Turányi 2                       !
                                                                                 !
-   1 Institute of Chemistry, E�tv�s University (ELTE), Budapest, Hungary        !
+   1 Institute of Chemistry, Eötvös University (ELTE), Budapest, Hungary        !
    2 MTA-ELTE Research Group on Complex Chemical Systems, Budapest, Hungary     !
    3 Combustion Chemistry Centre, National University of Ireland Galway (NUIG), !
      Galway, Ireland                                                            !
@@ -27,7 +27,7 @@ description: |-
 generator: ck2yaml
 input-files: [chemkin_elte2017_methanol.inp]
 cantera-version: 3.1.0
-date: Tue, 28 Oct 2025 10:57:16 +0100
+date: Sun, 16 Nov 2025 01:31:51 +0100
 
 units: {length: cm, time: s, quantity: mol, activation-energy: K}
 
@@ -38,6 +38,7 @@ phases:
   species: [CH3OH, O2, CO, CO2, CH2O, H2O, CH4, H2, H2O2, CH3, H, OH, 
       CH2OH, HCO, HO2, O, CH3O, C2H6, AR, N2, HE, OHEX, KR, NE]
   kinetics: gas
+  transport: mixture-averaged
   state: {T: 300.0, P: 1 atm}
 
 species:
@@ -54,6 +55,12 @@ species:
     note: |-
       Methanol          
        taken from Burcat thermo database. Last update: 03/13/2015
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 481.8
+    diameter: 3.626
+    rotational-relaxation: 1.0
 - name: O2
   composition: {O: 2}
   thermo:
@@ -65,6 +72,13 @@ species:
     - [3.66096065, 6.56365811e-04, -1.41149627e-07, 2.05797935e-11, 
         -1.29913436e-15, -1215.97718, 3.41536279]
     note: as in optimized syngas mechanism
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 107.4
+    diameter: 3.458
+    polarizability: 1.6
+    rotational-relaxation: 3.8
 - name: CO
   composition: {C: 1, O: 1}
   thermo:
@@ -76,6 +90,13 @@ species:
     - [3.0484859, 1.3517281e-03, -4.8579405e-07, 7.8853644e-11, 
         -4.6980746e-15, -1.4266117e+04, 6.0170977]
     note: as in optimized syngas mechanism
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 98.1
+    diameter: 3.65
+    polarizability: 1.95
+    rotational-relaxation: 1.8
 - name: CO2
   composition: {C: 1, O: 2}
   thermo:
@@ -87,6 +108,13 @@ species:
     - [4.6365111, 2.7414569e-03, -9.9589759e-07, 1.6038666e-10, 
         -9.1619857e-15, -4.9024904e+04, -1.9348955]
     note: as in optimized syngas mechanism
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 244.0
+    diameter: 3.763
+    polarizability: 2.65
+    rotational-relaxation: 2.1
 - name: CH2O
   composition: {H: 2, C: 1, O: 1}
   thermo:
@@ -100,6 +128,12 @@ species:
     note: |-
       Formaldehyde       
        taken from Burcat thermo database. Last update: 03/13/2015
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 498.0
+    diameter: 3.59
+    rotational-relaxation: 2.0
 - name: H2O
   composition: {H: 2, O: 1}
   thermo:
@@ -111,6 +145,13 @@ species:
     - [2.6770389, 2.9731816e-03, -7.7376889e-07, 9.4433514e-11, 
         -4.2689991e-15, -2.9885894e+04, 6.88255]
     note: as in optimized syngas mechanism
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 572.4
+    diameter: 2.605
+    dipole: 1.844
+    rotational-relaxation: 4.0
 - name: CH4
   composition: {C: 1, H: 4}
   thermo:
@@ -124,6 +165,13 @@ species:
     note: |-
       Methane Anharmonic  
        taken from Burcat thermo database. Last update: 03/13/2015
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 141.4
+    diameter: 3.746
+    polarizability: 2.6
+    rotational-relaxation: 13.0
 - name: H2
   composition: {H: 2}
   thermo:
@@ -135,6 +183,13 @@ species:
     - [2.93286575, 8.26608026e-04, -1.46402364e-07, 1.54100414e-11, 
         -6.888048e-16, -813.065581, -1.02432865]
     note: as in optimized syngas mechanism
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 38.0
+    diameter: 2.92
+    polarizability: 0.79
+    rotational-relaxation: 280.0
 - name: H2O2
   composition: {H: 2, O: 2}
   thermo:
@@ -146,6 +201,12 @@ species:
     - [4.573167, 4.336136e-03, -1.474689e-06, 2.348904e-10, 
         -1.431654e-14, -1.800696e+04, 0.501137]
     note: as in optimized syngas mechanism
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 107.4
+    diameter: 3.458
+    rotational-relaxation: 3.8
 - name: CH3
   composition: {C: 1, H: 3}
   thermo:
@@ -159,6 +220,11 @@ species:
     note: |-
       Methyl Radical      
        taken from Burcat thermo database. Last update: 03/13/2015
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 144.0
+    diameter: 3.8
 - name: H
   composition: {H: 1}
   thermo:
@@ -167,6 +233,11 @@ species:
     data:
     - [2.5, 0.0, 0.0, 0.0, 0.0, 2.547366e+04, -0.44668285]
     note: as in optimized syngas mechanism
+  transport:
+    model: gas
+    geometry: atom
+    well-depth: 145.0
+    diameter: 2.05
 - name: OH
   composition: {H: 1, O: 1}
   thermo:
@@ -178,6 +249,11 @@ species:
     - [2.83853033, 1.10741289e-03, -2.94000209e-07, 4.20698729e-11, 
         -2.4228989e-15, 3697.80808, 5.84494652]
     note: as in optimized syngas mechanism
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 80.0
+    diameter: 2.75
 - name: CH2OH
   composition: {C: 1, H: 3, O: 1}
   thermo:
@@ -191,6 +267,13 @@ species:
     note: |-
       HydroxymethyleneR 
        taken from Burcat thermo database. Last update: 03/13/2015
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 417.0
+    diameter: 3.69
+    dipole: 1.7
+    rotational-relaxation: 2.0
 - name: HCO
   composition: {C: 1, H: 1, O: 1}
   thermo:
@@ -202,6 +285,11 @@ species:
     - [3.92001542, 2.52279324e-03, -6.71004164e-07, 1.05615948e-10, 
         -7.43798261e-15, 3653.42928, 3.58077056]
     note: as in optimized syngas mechanism
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 498.0
+    diameter: 3.59
 - name: HO2
   composition: {H: 1, O: 2}
   thermo:
@@ -213,6 +301,12 @@ species:
     - [4.17228741, 1.88117627e-03, -3.46277286e-07, 1.94657549e-11, 
         1.76256905e-16, 31.0206839, 2.95767672]
     note: 'taken from Burcat thermo database. Last update: 03/13/2015'
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 107.4
+    diameter: 3.458
+    rotational-relaxation: 1.0
 - name: O
   composition: {O: 1}
   thermo:
@@ -224,6 +318,11 @@ species:
     - [2.54363697, -2.73162486e-05, -4.1902952e-09, 4.95481845e-12, 
         -4.79553694e-16, 2.9226012e+04, 4.92229457]
     note: 'taken from Burcat thermo database. Last update: 03/13/2015'
+  transport:
+    model: gas
+    geometry: atom
+    well-depth: 80.0
+    diameter: 2.75
 - name: CH3O
   composition: {C: 1, H: 3, O: 1}
   thermo:
@@ -237,6 +336,13 @@ species:
     note: |-
       Methoxy Radical    
        taken from Burcat thermo database. Last update: 03/13/2015
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 417.0
+    diameter: 3.69
+    dipole: 1.7
+    rotational-relaxation: 2.0
 - name: C2H6
   composition: {H: 6, C: 2}
   thermo:
@@ -250,6 +356,12 @@ species:
     note: |-
       Ethane             
        taken from S.M. Burke, J.M. Simmie, H. Curran, J. Phys. Chem. Ref. Data, 44, 013101 (2015)
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 247.5
+    diameter: 4.35
+    rotational-relaxation: 1.5
 - name: AR
   composition: {Ar: 1}
   thermo:
@@ -258,6 +370,11 @@ species:
     data:
     - [2.5, 0.0, 0.0, 0.0, 0.0, -745.375, 4.37967491]
     note: as in optimized syngas mechanism
+  transport:
+    model: gas
+    geometry: atom
+    well-depth: 136.5
+    diameter: 3.33
 - name: N2
   composition: {N: 2}
   thermo:
@@ -269,6 +386,13 @@ species:
     - [2.95257637, 1.3969004e-03, -4.92631603e-07, 7.86010195e-11, 
         -4.60755204e-15, -923.948688, 5.87188762]
     note: as in optimized syngas mechanism
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 97.53
+    diameter: 3.621
+    polarizability: 1.76
+    rotational-relaxation: 4.0
 - name: HE
   composition: {He: 1}
   thermo:
@@ -277,6 +401,11 @@ species:
     data:
     - [2.5, 0.0, 0.0, 0.0, 0.0, -745.375, 0.928723974]
     note: as in optimized syngas mechanism
+  transport:
+    model: gas
+    geometry: atom
+    well-depth: 10.2
+    diameter: 2.576
 - name: OHEX
   composition: {H: 1, O: 1}
   thermo:
@@ -288,6 +417,11 @@ species:
     - [2.86008075, 1.04841848e-03, -2.54786367e-07, 3.22101509e-11, 
         -1.99685197e-15, 5.03080592e+04, 5.72798116]
     note: '2023-01-24: Refitted to avoid discontinuity'
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 80.0
+    diameter: 2.75
 - name: KR
   composition: {Kr: 1}
   thermo:
@@ -298,6 +432,11 @@ species:
     - [2.50001436, -2.78190281e-08, 1.74071629e-11, -4.31400304e-15, 
         3.66743374e-19, -745.380247, 5.49087778]
     note: REF ELEMENT   G 8/97
+  transport:
+    model: gas
+    geometry: atom
+    well-depth: 178.9
+    diameter: 3.66
 - name: NE
   composition: {Ne: 1}
   thermo:
@@ -306,6 +445,11 @@ species:
     data:
     - [2.5, 0.0, 0.0, 0.0, 0.0, -745.375, 3.35532272]
     note: REF ELEMENT    G 5/97
+  transport:
+    model: gas
+    geometry: atom
+    well-depth: 32.8
+    diameter: 2.82
 
 reactions:
 - equation: H + O2 <=> O + OH  # Reaction 1

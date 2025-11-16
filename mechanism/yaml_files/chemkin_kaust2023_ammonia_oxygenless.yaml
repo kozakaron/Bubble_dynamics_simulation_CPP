@@ -1,7 +1,7 @@
 generator: ck2yaml
 input-files: [chemkin_kaust2023_ammonia_oxygenless.inp]
 cantera-version: 3.1.0
-date: Tue, 28 Oct 2025 10:57:17 +0100
+date: Sun, 16 Nov 2025 01:31:52 +0100
 
 units: {length: cm, time: s, quantity: mol, activation-energy: K}
 
@@ -12,6 +12,7 @@ phases:
   species: [AR, H, H2, H2NN, HE, N, N2, N2H2, N2H3, N2H4, NH, NH2, NH3,
     NNH]
   kinetics: gas
+  transport: mixture-averaged
   state: {T: 300.0, P: 1 atm}
 
 species:
@@ -31,6 +32,11 @@ species:
         max difference S/R  = 7.1054e-15 at T =   398.7494 K
         T_match =  1000.000000 jump
         Delta(Cp/R, H/RT, S/R) = ( 0.000e+00, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: atom
+    well-depth: 136.5
+    diameter: 3.33
 - name: H
   composition: {H: 1}
   thermo:
@@ -48,6 +54,11 @@ species:
          max difference S/R  = 8.5018e-09 at T =  1000.6503 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = ( 0.000e+00, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: atom
+    well-depth: 145.0
+    diameter: 2.05
 - name: H2
   composition: {H: 2}
   thermo:
@@ -65,6 +76,13 @@ species:
         max difference S/R  = 8.0172e-04 at T =   200.0000 K
         T_match =  1000.000000 jump
         Delta(Cp/R, H/RT, S/R) = (-4.441e-16, 3.553e-15,-3.553e-15)
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 38.0
+    diameter: 2.92
+    polarizability: 0.79
+    rotational-relaxation: 280.0
 - name: H2NN
   composition: {H: 2, N: 2}
   thermo:
@@ -82,6 +100,12 @@ species:
         max difference S/R  = 6.5678e-03 at T =   200.0000 K
         T_match =  1000.000000 jump
         Delta(Cp/R, H/RT, S/R) = ( 1.776e-15,-7.105e-15, 0.000e+00)
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 71.4
+    diameter: 3.798
+    rotational-relaxation: 1.0
 - name: HE
   composition: {He: 1}
   thermo:
@@ -128,6 +152,11 @@ species:
          max difference S/R  = 3.5527e-15 at T =   437.9190 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = ( 4.441e-16, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: atom
+    well-depth: 10.2
+    diameter: 2.576
 - name: N
   composition: {N: 1}
   thermo:
@@ -215,6 +244,11 @@ species:
          max difference S/R  = 9.1974e-05 at T =  1007.7039 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = ( 0.000e+00, 7.105e-15,-3.553e-15)
+  transport:
+    model: gas
+    geometry: atom
+    well-depth: 71.4
+    diameter: 3.298
 - name: N2
   composition: {N: 2}
   thermo:
@@ -232,6 +266,13 @@ species:
         max difference S/R  = 1.5396e-06 at T =  1024.1621 K
         T_match =  1000.000000 jump
         Delta(Cp/R, H/RT, S/R) = (-4.441e-16,-4.441e-16, 0.000e+00)
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 97.53
+    diameter: 3.621
+    polarizability: 1.76
+    rotational-relaxation: 4.0
 - name: N2H2
   composition: {H: 2, N: 2}
   thermo:
@@ -249,6 +290,12 @@ species:
         max difference S/R  = 7.9163e-09 at T =  1002.2170 K
         T_match =  1000.000000 jump
         Delta(Cp/R, H/RT, S/R) = ( 0.000e+00, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 71.4
+    diameter: 3.798
+    rotational-relaxation: 1.0
 - name: N2H3
   composition: {H: 3, N: 2}
   thermo:
@@ -266,6 +313,12 @@ species:
         max difference S/R  = 9.1309e-03 at T =   200.0000 K
         T_match =  1000.000000 jump
         Delta(Cp/R, H/RT, S/R) = (-3.553e-15, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 200.0
+    diameter: 3.9
+    rotational-relaxation: 1.0
 - name: N2H4
   composition: {H: 4, N: 2}
   thermo:
@@ -283,6 +336,13 @@ species:
         max difference S/R  = 1.5014e-02 at T =   200.0000 K
         T_match =  1000.000000 jump
         Delta(Cp/R, H/RT, S/R) = ( 3.553e-15, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 205.0
+    diameter: 4.23
+    polarizability: 4.26
+    rotational-relaxation: 1.5
 - name: NH
   composition: {H: 1, N: 1}
   thermo:
@@ -310,6 +370,12 @@ species:
          max difference S/R  = 1.9533e-08 at T =  1000.5143 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = ( 4.441e-16, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 80.0
+    diameter: 2.65
+    rotational-relaxation: 4.0
 - name: NH2
   composition: {H: 2, N: 1}
   thermo:
@@ -327,6 +393,13 @@ species:
         max difference S/R  = 5.9200e-08 at T =  1804.1893 K
         T_match =  1000.000000 jump
         Delta(Cp/R, H/RT, S/R) = ( 8.882e-16,-3.553e-15, 0.000e+00)
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 80.0
+    diameter: 2.65
+    polarizability: 2.26
+    rotational-relaxation: 4.0
 - name: NH3
   composition: {H: 3, N: 1}
   thermo:
@@ -354,6 +427,13 @@ species:
          max difference S/R  = 4.7840e-06 at T =  1470.8854 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = ( 0.000e+00,-8.882e-16, 3.553e-15)
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 481.0
+    diameter: 2.92
+    dipole: 1.47
+    rotational-relaxation: 10.0
 - name: NNH
   composition: {H: 1, N: 2}
   thermo:
@@ -371,6 +451,12 @@ species:
         max difference S/R  = 2.7707e-08 at T =  1000.5143 K
         T_match =  1000.000000 jump
         Delta(Cp/R, H/RT, S/R) = (-8.882e-16, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 71.4
+    diameter: 3.798
+    rotational-relaxation: 1.0
 
 reactions:
 - equation: H2 + M <=> 2 H + M  # Reaction 1

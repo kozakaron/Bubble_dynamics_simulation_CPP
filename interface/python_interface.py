@@ -582,6 +582,9 @@ def read_parameter_study(directory: str) -> pd.DataFrame:
     all_data = pd.DataFrame()
     num = 0
 
+    # treat weird tokens as NaN when reading CSVs
+    _na_tokens = ['-nan(ind)', 'nan', 'NaN', 'inf', '-inf', 'Infinity', '-Infinity']
+
     # iterate trough all files in directory (including subdirectories)
     for (root, dirs, files) in os.walk(directory):
         for file in files:
@@ -592,7 +595,11 @@ def read_parameter_study(directory: str) -> pd.DataFrame:
 
             # read file
             num += 1
-            current_data = pd.read_csv(os.path.join(root, file))
+            current_data = pd.read_csv(
+                os.path.join(root, file),
+                na_values=_na_tokens,
+                keep_default_na=True
+            )
 
             # Cast object-dtype columns with all-bool values to bool dtype
             for col in current_data.columns:
@@ -601,12 +608,17 @@ def read_parameter_study(directory: str) -> pd.DataFrame:
 
             subdir = os.path.join(root.removeprefix(directory), file)
             print(f'\t{subdir: <64} ({current_data.shape[0]: >4} rows)')
-            all_data = pd.concat([all_data, current_data])
+            all_data = pd.concat([all_data, current_data], ignore_index=True)
         
     # Print some stats:
     print(f'_______________________________________')
     total = all_data.shape[0]
-    all_data = all_data.sort_values(['energy_demand'], ascending=True)
+
+    # Ensure numeric sort key and keep NaNs last
+    if 'energy_demand' in all_data.columns:
+        all_data['energy_demand'] = pd.to_numeric(all_data['energy_demand'], errors='coerce')
+        all_data = all_data.sort_values(['energy_demand'], ascending=True, na_position='last')
+
     print(f'total: {total: >4} rows in {num: >2} files')
 
     return all_data

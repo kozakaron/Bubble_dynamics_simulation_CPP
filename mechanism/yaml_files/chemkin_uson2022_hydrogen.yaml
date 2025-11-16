@@ -19,7 +19,7 @@ description: |-
 generator: ck2yaml
 input-files: [chemkin_uson2022_hydrogen.inp]
 cantera-version: 3.1.0
-date: Tue, 28 Oct 2025 10:57:18 +0100
+date: Sun, 16 Nov 2025 01:31:52 +0100
 
 units: {length: cm, time: s, quantity: mol, activation-energy: K}
 
@@ -29,6 +29,7 @@ phases:
   elements: [H, O]
   species: [O, H, H2, OH, O2, H2O, HO2, H2O2, O3, OHEX]
   kinetics: gas
+  transport: mixture-averaged
   state: {T: 300.0, P: 1 atm}
 
 species:
@@ -50,6 +51,11 @@ species:
          max difference S/R  = 8.0172e-04 at T =   200.0000 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = (-4.441e-16, 3.553e-15,-3.553e-15)
+  transport:
+    model: gas
+    geometry: atom
+    well-depth: 80.0
+    diameter: 2.75
 - name: H
   composition: {H: 1}
   thermo:
@@ -67,6 +73,11 @@ species:
          max difference S/R  = 3.5527e-15 at T =   664.2321 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = ( 4.441e-16, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: atom
+    well-depth: 145.0
+    diameter: 2.05
 - name: H2
   composition: {H: 2}
   thermo:
@@ -85,6 +96,13 @@ species:
          max difference S/R  = 4.8930e-03 at T =   200.0000 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = ( 2.220e-15, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 38.0
+    diameter: 2.92
+    polarizability: 0.79
+    rotational-relaxation: 280.0
 - name: OH
   composition: {O: 1, H: 1}
   thermo:
@@ -103,6 +121,11 @@ species:
          max difference S/R  = 9.6662e-05 at T =   200.0000 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = (-4.441e-16, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 80.0
+    diameter: 2.75
 - name: O2
   composition: {O: 2}
   thermo:
@@ -121,6 +144,13 @@ species:
          max difference S/R  = 1.6560e-03 at T =   200.0000 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = ( 8.882e-16, 4.441e-16, 0.000e+00)
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 107.4
+    diameter: 3.458
+    polarizability: 1.6
+    rotational-relaxation: 3.8
 - name: H2O
   composition: {H: 2, O: 1}
   thermo:
@@ -139,6 +169,13 @@ species:
          max difference S/R  = 5.3027e-04 at T =   200.0000 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = ( 0.000e+00, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 572.4
+    diameter: 2.605
+    dipole: 1.844
+    rotational-relaxation: 4.0
 - name: HO2
   composition: {H: 1, O: 2}
   thermo:
@@ -157,6 +194,12 @@ species:
          max difference S/R  = 5.5082e-03 at T =   200.0000 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = (-8.882e-16, 8.882e-16, 0.000e+00)
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 107.4
+    diameter: 3.458
+    rotational-relaxation: 1.0
 - name: H2O2
   composition: {H: 2, O: 2}
   thermo:
@@ -175,6 +218,12 @@ species:
          max difference S/R  = 6.3234e-03 at T =   200.0000 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = ( 0.000e+00, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 107.4
+    diameter: 3.458
+    rotational-relaxation: 3.8
 - name: O3
   composition: {O: 3}
   thermo:
@@ -193,6 +242,12 @@ species:
          max difference S/R  = 2.1460e-02 at T =   200.0000 K
          T_match =  1000.000000 jump
          Delta(Cp/R, H/RT, S/R) = ( 3.553e-15, 3.553e-15, 0.000e+00)
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 180.0
+    diameter: 4.1
+    rotational-relaxation: 2.0
 - name: OHEX
   composition: {H: 1, O: 1}
   thermo:
@@ -210,6 +265,11 @@ species:
         max difference S/R  = 4.0716e-06 at T =  3852.6263 K
         T_match =  1000.000000 jump
         Delta(Cp/R, H/RT, S/R) = ( 0.000e+00, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 80.0
+    diameter: 2.75
 
 reactions:
 - equation: H + O2 <=> O + OH  # Reaction 1

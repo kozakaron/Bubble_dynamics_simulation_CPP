@@ -22,37 +22,6 @@ white =     '\033[97m'
 bold =      '\033[1m'
 italic =    '\033[3m'
 
-# thermal conductivity [W/m/K]
-lambdas_dict = dict(
-    HE=0.151,
-    NE=0.0491,
-    AR=0.0177,
-    KR=0.00943,
-    H2=0.1805,
-    O2=0.02658,
-    H2O=0.016,
-    H2O2=0.5863,
-    O3=0.019854,
-    CO=0.024,
-    CO2=0.01663,
-    CH3=0.0156,
-    CH4=0.03281,
-    C2H4=0.020,
-    C2H5=0.019,
-    C2H6=0.018,
-    C3H4=0.015,
-    C3H5=0.018,
-    C3H6=0.017,
-    C3H7=0.016,
-    C3H8=0.01674,
-    CH2O=0.0165,
-    C2OH=0.015,
-    C3OH=0.01407,
-    CH3OH=0.018,
-    N2=0.02583,
-    NH3=0.00244,
-    NO2=0.00988,
-)
 
 def log(message: str, level: str = 'error'):
     """
@@ -216,12 +185,28 @@ if __name__ == '__main__':
         json_path = os.path.join(json_dir, json_file).replace('\\', '/').replace('//', '/')
         print('_' * len(f'Converting {yaml_file}'))
         print(f'{bold}Converting {yaml_file}{reset}')
-        mechanism = ct.Solution(yaml_path)
+        mechanism = ct.Solution(yaml_path, transport='mixture-averaged')
 
 
 # SPECIES
 
-        lambdas = [lambdas_dict.get(species, 0.0) for species in mechanism.species_names]
+        lambdas = []
+        if mechanism.transport_model != 'mixture-averaged':
+            log(f'Mechanism {yaml_file} does not use mixture-averaged transport model, perhaps you are missing some transport data.', level='warning')
+        for species in mechanism.species():
+            mechanism.TPX = 303.15, 101325.0, f'{species.name}:1.0'
+            try:
+                lambdas.append(round(mechanism.thermal_conductivity, 8))
+            except Exception as e:
+                log(f'Error calculating thermal conductivity for {species.name}: {e}', level='error')
+                lambdas.append(0.0)
+        my_round  = lambda x: float(f'{x:.4e}')
+        transport = [species.transport for species in mechanism.species()]
+        epsilon   = [my_round(t.well_depth)            for t in transport]
+        sigma     = [my_round(t.diameter)              for t in transport]
+        mu        = [my_round(t.dipole)                for t in transport]
+        alpha     = [my_round(t.polarizability)        for t in transport]
+        Z_rot     = [my_round(t.rotational_relaxation) for t in transport]
 
         species_text = f'''"num_elements": {mechanism.n_elements},
 "num_species": {mechanism.n_species},
@@ -231,7 +216,12 @@ if __name__ == '__main__':
                        {remark(print_1D_array(list(range(mechanism.n_species)), width=10))}
 "species_names":          {print_1D_array(mechanism.species_names, width=10, comma=True)}
 "molar_weights":          {print_1D_array([round(1e-3*sp.molecular_weight, 8) for sp in mechanism.species()], width=10, remark='[kg/mol]', comma=True)}
-"thermal_conductivities": {print_1D_array(lambdas, width=10, remark='[W/m/K]', comma=False)}
+"thermal_conductivities": {print_1D_array(lambdas, width=10, remark='[W/m/K] (at 303.15 K)', comma=True)}
+"LJ_well_depths":         {print_1D_array(epsilon, width=10, remark='[J]', comma=True)}
+"LJ_collision_diameters": {print_1D_array(sigma, width=10, remark='[m]', comma=True)}
+"dipole_moments":         {print_1D_array(mu, width=10, remark='[C*m]', comma=True)}
+"polarizabilities":       {print_1D_array(alpha, width=10, remark='[m^3]', comma=True)}
+"rotational_relaxations": {print_1D_array(Z_rot, width=10, remark='[-]', comma=False)}
 '''
 
 
