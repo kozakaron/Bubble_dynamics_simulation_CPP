@@ -51,12 +51,10 @@ public:
     double excitation_cycles;                           // number of excitation cycles to use (according to freq/freq1 in excitation_params) [-]
     double ramp_up_cycles;                              // number of cycles until the excitation reaches full amplitude (0<=ramp_up_cycles<=excitation_cycles/2) [-]
 
-    // Reference values for dimensionless parameters: A_star = A / A_ref
-    static constexpr double epsilon = 1e-15;            // small value to avoid log(0)
-    static constexpr double epsilon_inv = 1e15;         // inverse of small value
+    // Reference values for dimensionless parameters: A_dimless = A / A_ref
     static constexpr double t_ref = 1e-9;               // reference time [s]
     static constexpr double t_ref_inv = 1e9;            // inverse reference time [1/s]
-    double c_ref;                                       // reference concentration [mol/m3]
+    double n_ref;                                       // reference concentration [mol/m3]
     double R_ref;                                       // reference radius [m]
     double T_ref;                                       // reference temperature [K]
     double E_diss_ref;                                  // reference dissipated energy [J] (instead of R_ref^2 * t_ref_inv^2)
