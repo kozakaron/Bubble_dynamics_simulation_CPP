@@ -232,6 +232,8 @@ Parameters::Parameters(const nlohmann::json& j):
     invalid_index(                  get_value<index_t>(j, "species", "invalid_index")),
     W(                              nullptr),
     thermal_conductivities(         nullptr),
+    van_der_waals_a(                nullptr),
+    van_der_waals_b(                nullptr),
     temp_ranges(                    nullptr),
     a_low(                          nullptr),
     a_high(                         nullptr),
@@ -271,6 +273,8 @@ Parameters::Parameters(const nlohmann::json& j):
     // Fill simple arrays
     copy_array_1d<double> (j, "species", "molar_weights", W, num_species);
     copy_array_1d<double> (j, "species", "thermal_conductivities", thermal_conductivities, num_species);
+    copy_array_1d<double> (j, "species", "van_der_waals_a", van_der_waals_a, num_species);
+    copy_array_1d<double> (j, "species", "van_der_waals_b", van_der_waals_b, num_species);
     copy_array_2d<double> (j, "thermodynamics", "temp_ranges", temp_ranges, num_species, 3);
     copy_array_2d<double> (j, "thermodynamics", "a_low", a_low, num_species, NASA_order + 2);
     copy_array_2d<double> (j, "thermodynamics", "a_high", a_high, num_species, NASA_order + 2);
@@ -504,6 +508,8 @@ Parameters::~Parameters()
 {
     if (W != nullptr) delete[] W;
     if (thermal_conductivities != nullptr) delete[] thermal_conductivities;
+    if (van_der_waals_a != nullptr) delete[] van_der_waals_a;
+    if (van_der_waals_b != nullptr) delete[] van_der_waals_b;
     if (temp_ranges != nullptr) delete[] temp_ranges;
     if (a_low != nullptr) delete[] a_low;
     if (a_high != nullptr) delete[] a_high;

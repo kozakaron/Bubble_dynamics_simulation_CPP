@@ -61,6 +61,11 @@ def print_element(element, width=0):
     if element is None: element = 'null'
     if isinstance(element, str): element = f'"{element}"'
     if isinstance(element, bool): element = 'true' if element else 'false'
+    if isinstance(element, float): 
+        s = f'{element:>{width}.{width-5}g}'
+        if "." not in s and "e" not in s.lower():
+            s = s[2:] + ".0"
+        return s
     element = str(element)
     return f'{element: >{width}}'
 
@@ -200,6 +205,7 @@ if __name__ == '__main__':
             except Exception as e:
                 log(f'Error calculating thermal conductivity for {species.name}: {e}', level='error')
                 lambdas.append(0.0)
+        N_A       = ct.avogadro / 1000.0
         my_round  = lambda x: float(f'{x:.4e}')
         transport = [species.transport for species in mechanism.species()]
         epsilon   = [my_round(t.well_depth)            for t in transport]
@@ -207,21 +213,25 @@ if __name__ == '__main__':
         mu        = [my_round(t.dipole)                for t in transport]
         alpha     = [my_round(t.polarizability)        for t in transport]
         Z_rot     = [my_round(t.rotational_relaxation) for t in transport]
+        vdw_a     = [8.0*math.pi/3.0 * epsilon[i] * sigma[i]**3 * N_A**2 for i in range(mechanism.n_species)]
+        vdw_b     = [2.0*math.pi/3.0 * sigma[i]**3 * N_A for i in range(mechanism.n_species)]
 
         species_text = f'''"num_elements": {mechanism.n_elements},
 "num_species": {mechanism.n_species},
 "index_of_water": {mechanism.species_index('H2O') if 'H2O' in mechanism.species_names else invalid_index},
 "invalid_index": {invalid_index},
-"element_names": {print_1D_array(mechanism.element_names, width=5, max_len=10, comma=True)}
-                       {remark(print_1D_array(list(range(mechanism.n_species)), width=10))}
-"species_names":          {print_1D_array(mechanism.species_names, width=10, comma=True)}
-"molar_weights":          {print_1D_array([round(1e-3*sp.molecular_weight, 8) for sp in mechanism.species()], width=10, remark='[kg/mol]', comma=True)}
-"thermal_conductivities": {print_1D_array(lambdas, width=10, remark='[W/m/K] (at 303.15 K)', comma=True)}
-"LJ_well_depths":         {print_1D_array(epsilon, width=10, remark='[J]', comma=True)}
-"LJ_collision_diameters": {print_1D_array(sigma, width=10, remark='[m]', comma=True)}
-"dipole_moments":         {print_1D_array(mu, width=10, remark='[C*m]', comma=True)}
-"polarizabilities":       {print_1D_array(alpha, width=10, remark='[m^3]', comma=True)}
-"rotational_relaxations": {print_1D_array(Z_rot, width=10, remark='[-]', comma=False)}
+"element_names": {print_1D_array(mechanism.element_names, width=5, max_len=12, comma=True)}
+                       {remark(print_1D_array(list(range(mechanism.n_species)), width=12))}
+"species_names":          {print_1D_array(mechanism.species_names, width=12, comma=True)}
+"molar_weights":          {print_1D_array([round(1e-3*sp.molecular_weight, 8) for sp in mechanism.species()], width=12, remark='[kg/mol]', comma=True)}
+"thermal_conductivities": {print_1D_array(lambdas, width=12, remark='[W/m/K] (at 303.15 K)', comma=True)}
+"van_der_waals_a":        {print_1D_array(vdw_a, width=12, remark='[m^6*Pa/mol^2]', comma=True)}
+"van_der_waals_b":        {print_1D_array(vdw_b, width=12, remark='[m^3/mol]', comma=True)}
+"LJ_well_depths":         {print_1D_array(epsilon, width=12, remark='[J]', comma=True)}
+"LJ_collision_diameters": {print_1D_array(sigma, width=12, remark='[m]', comma=True)}
+"dipole_moments":         {print_1D_array(mu, width=12, remark='[C*m]', comma=True)}
+"polarizabilities":       {print_1D_array(alpha, width=12, remark='[m^3]', comma=True)}
+"rotational_relaxations": {print_1D_array(Z_rot, width=12, remark='[-]', comma=False)}
 '''
 
 
@@ -235,7 +245,7 @@ if __name__ == '__main__':
 
         nasa7_text = f'''"temp_ranges": {print_2D_array(
     [[th.min_temp, th.coeffs[0], th.max_temp] for th in thermo_list],
-    width=8, lines=species_comments, columns1=["T_low", "T_mid", "T_high"], columns2=["[K]", "[K]", "[K]"]
+    width=10, lines=species_comments, columns1=["T_low", "T_mid", "T_high"], columns2=["[K]", "[K]", "[K]"]
 )},
 "a_low": {print_2D_array(
     [th.coeffs[8:15] for th in thermo_list],
