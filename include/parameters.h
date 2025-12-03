@@ -83,6 +83,8 @@ public:
     index_t get_species(std::string name) const;    // Get index of species by name
     const double *W;                                // Molar masses [kg/mol] (num_species)
     const double *thermal_conductivities;           // Thermal conductivities [W/m/K] (num_species)
+    const double *van_der_waals_a;                  // van der Waals a parameters [m^6*Pa/mol^2] (num_species)
+    const double *van_der_waals_b;                  // van der Waals b parameters [m^3/mol] (num_species)
 // NASA polynomials
     static constexpr index_t NASA_order=5;          // Degree of NASA polynomials
     const double *temp_ranges;                      // Temperature ranges for NASA polynomials [K] (num_species, 3)
