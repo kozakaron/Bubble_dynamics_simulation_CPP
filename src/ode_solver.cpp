@@ -43,7 +43,7 @@ static_assert(std::is_same<sunrealtype, double>::value, "sunrealtype must be dou
 }
 
 
-// CVRhsFn, SUNErrHandlerFn definitisions:
+// CVRhsFn, SUNErrHandlerFn, CVEwtFn definitisions:
 
 // Check if user_data is valid (holds valid pointers).
 bool check_user_data(void* user_data)
@@ -101,10 +101,11 @@ int right_hand_side(sunrealtype t, N_Vector y, N_Vector ydot, void* user_data)
     return !ret;
 }
 static_assert(std::is_same<decltype(&right_hand_side), CVRhsFn>::value, "right_hand_side must match CVRhsFn");
+static_assert(std::is_same<sunrealtype, double>::value, "sunrealtype must be double");
 
 
 // Error handling function for CVODE (SUNErrHandlerFn)
-void error_function(int line, const char* func, const char* file, const char* msg, SUNErrCode err_code, void* err_user_data, SUNContext sunctx)
+void error_handler(int line, const char* func, const char* file, const char* msg, SUNErrCode err_code, void* err_user_data, SUNContext sunctx)
 {
     (void) sunctx;
     if (!check_user_data(err_user_data))  return;
@@ -137,7 +138,47 @@ void error_function(int line, const char* func, const char* file, const char* ms
 
     *error_ID_ptr = ErrorHandler::log_error(error);
 }
-static_assert(std::is_same<decltype(&error_function), SUNErrHandlerFn>::value, "error_function must match SUNErrHandlerFn");
+static_assert(std::is_same<decltype(&error_handler), SUNErrHandlerFn>::value, "error_handler must match SUNErrHandlerFn");
+
+
+// Custom error weight function for CVODE (CVEwtFn)
+// Sets the error weight: ewt_i = 1 / (atol_i + rtol_i * |y_i|)
+int error_weights(N_Vector y, N_Vector ewt, void* user_data)
+{
+    if (!check_user_data(user_data)) return -1;
+    UserData* data = (UserData*)user_data;
+    ControlParameters* cpar = &(data->ode_ptr->cpar);
+    const Parameters* par = data->ode_ptr->par;
+    
+    sunrealtype* y_data = NV_DATA_S(y);
+    sunrealtype* ewt_data = NV_DATA_S(ewt);
+
+    const double one_atom_mol_fraction = 1.0 / (Parameters::N_A * cpar->n_ref);
+    const double abstol_species = 1e8 * one_atom_mol_fraction;
+    const double reltol = 1e-10;
+    const double abstol = 1e-10;
+
+    for (sunindextype i = 0; i < par->num_species+4; i++)
+    {
+        if (i <= 2)    // R, R_dot, T
+        {
+            ewt_data[i] = 1.0 / (abstol + reltol * (std::abs(y_data[i])));
+            continue;
+        }
+        else if (i == par->num_species + 3)    // E_diss
+        {
+            ewt_data[i] = 1.0 / (abstol + reltol * (std::abs(y_data[i])));
+            continue;
+        }
+        else    // species molar concentrations
+        {
+            ewt_data[i] = 1.0 / (abstol_species + reltol * (std::abs(y_data[i])));
+        }
+    }
+    
+    return CV_SUCCESS;
+}
+static_assert(std::is_same<decltype(&error_weights), CVEwtFn>::value, "error_weights must match CVEwtFn");
 
 
 // OdeSolver definitions
@@ -146,8 +187,6 @@ OdeSolver::OdeSolver(const size_t num_dim):
     sun_context(nullptr),
     t(0.0),
     x(nullptr),
-    abstol(nullptr),
-    reltol(1.0e-10),
     A(nullptr),
     linear_solver(nullptr),
     cvode_mem(nullptr),
@@ -159,19 +198,11 @@ OdeSolver::OdeSolver(const size_t num_dim):
     user_data.error_ID_ptr = error_ID_ptr;    // errors are saved in this->init_error_ID
     HANDLE_ERROR_CODE(SUNContext_Create(SUN_COMM_NULL, &sun_context));
     HANDLE_ERROR_CODE(SUNContext_ClearErrHandlers(sun_context));
-    HANDLE_ERROR_CODE(SUNContext_PushErrHandler(sun_context, error_function, (void*)&user_data));
+    HANDLE_ERROR_CODE(SUNContext_PushErrHandler(sun_context, error_handler, (void*)&user_data));
 
     // Setup vectors
     HANDLE_RETURN_PTR(x, N_VNew_Serial(num_dim, sun_context));
-    HANDLE_RETURN_PTR(abstol, N_VNew_Serial(num_dim, sun_context))
     HANDLE_RETURN_PTR(constraints, N_VNew_Serial(num_dim, sun_context));
-
-    for (size_t i = 0; i < num_dim; i++)
-        NV_Ith_S(abstol, i) = 1e-10;          // molar concentrations
-    NV_Ith_S(abstol, 0) = 1e-10;              // R
-    NV_Ith_S(abstol, 1) = 1e-10;              // R_dot
-    NV_Ith_S(abstol, 2) = 1e-10;              // T
-    NV_Ith_S(abstol, num_dim-1) = 1e-8;       // E_diss
     
     for (size_t i = 0; i < num_dim; i++)
         NV_Ith_S(constraints, i) = 1.0;      // molar concentrations c_i >= 0.0
@@ -184,12 +215,12 @@ OdeSolver::OdeSolver(const size_t num_dim):
     HANDLE_RETURN_PTR(cvode_mem, CVodeCreate(CV_BDF, sun_context));
     HANDLE_ERROR_CODE(CVodeInit(cvode_mem, right_hand_side, 0.0, x));
     HANDLE_ERROR_CODE(CVodeSetMaxNumSteps(cvode_mem, 2000000000));
-    HANDLE_ERROR_CODE(CVodeSetMaxHnilWarns(cvode_mem, 10));    // maximum number of warnings for t+h=t
+    HANDLE_ERROR_CODE(CVodeSetMaxHnilWarns(cvode_mem, 10));                                   // maximum number of warnings for t+h=t
     HANDLE_ERROR_CODE(CVodeSetMaxStep(cvode_mem, 1.0e-3 * ControlParameters::t_ref_inv));     // Limit max step size to 1 ms
+    HANDLE_ERROR_CODE(CVodeSetInitStep(cvode_mem, 1.0e-20 * ControlParameters::t_ref_inv));   // Initial step size 1e-20 s
     HANDLE_ERROR_CODE(CVodeSetStabLimDet(cvode_mem, SUNTRUE));
-    HANDLE_ERROR_CODE(CVodeSVtolerances(cvode_mem, reltol, abstol));
     HANDLE_ERROR_CODE(CVodeSetConstraints(cvode_mem, constraints));
-    //HANDLE_ERROR_CODE(CVodeSStolerances(cvode_mem, 1e-10, 1e-10));
+    HANDLE_ERROR_CODE(CVodeWFtolerances(cvode_mem, error_weights));
 
     // Setup linear solver
     HANDLE_RETURN_PTR(A, SUNDenseMatrix(num_dim, num_dim, sun_context));
@@ -197,8 +228,8 @@ OdeSolver::OdeSolver(const size_t num_dim):
     HANDLE_ERROR_CODE(CVodeSetLinearSolver(cvode_mem, linear_solver, A));
 
     // Setup nonlinear solver
-    HANDLE_ERROR_CODE(CVodeSetMaxNonlinIters(cvode_mem, 10));   // maximum number of nonlinear iterations (default: 3)
-    HANDLE_ERROR_CODE(CVodeSetNonlinConvCoef(cvode_mem, 0.01)); // convergence coefficient (default: 0.1)
+    HANDLE_ERROR_CODE(CVodeSetMaxNonlinIters(cvode_mem, 25));    // maximum number of nonlinear iterations (default: 3)
+    HANDLE_ERROR_CODE(CVodeSetNonlinConvCoef(cvode_mem, 0.001)); // convergence coefficient (default: 0.1)
 }
 
 
@@ -206,7 +237,6 @@ OdeSolver::~OdeSolver()
 {
     size_t* error_ID_ptr = &(init_error_ID);
     N_VDestroy(x);
-    N_VDestroy(abstol);
     N_VDestroy(constraints);
     CVodeFree(&cvode_mem);
     HANDLE_ERROR_CODE(SUNLinSolFree(linear_solver));
@@ -225,7 +255,6 @@ void init_solve(
 {
     HANDLE_ERROR_CODE(CVodeReInit(cvode_mem, 0.0, x));
     HANDLE_ERROR_CODE(CVodeSetUserData(cvode_mem, user_data));
-    HANDLE_ERROR_CODE(CVodeSetInitStep(cvode_mem, 1.0e-20 * ControlParameters::t_ref_inv));
 }
 
 
@@ -415,7 +444,7 @@ SimulationData OdeSolver::solve(
         // Failure
         else
         {
-            // Timeout and other errors handled in error_function
+            // Timeout and other errors handled in error_handler
             if (solution.error_ID == ErrorHandler::no_error)
             {
                 solution.error_ID = LOG_ERROR(Error::severity::error, Error::type::cvode,
