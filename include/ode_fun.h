@@ -39,37 +39,54 @@ private:
     double* omega_dot;                  // production rates (length: Parameters::num_species)
 
 // Methods
-    std::pair<double, double> pressures(
+    double internal_pressure(
+        const double T,
+        const double M,
+        const double* conc
+    );
+
+
+    double internal_pressure_derivative(
+        const double T,
+        const double T_dot,
+        const double M,
+        const double M_dot,
+        const double* conc,
+        const double* conc_dot
+    );
+
+
+    std::pair<double, double> pressures_excitation(
         const double t,
         const double R,
         const double R_dot,
         const double p,
         const double p_dot
-    ) ; //noexcept
+    );
 
 
     void thermodynamic(
         const double T
-    ) ; //noexcept
+    );
 
 
     std::pair<double, double> evaporation(
         const double p,
         const double T,
         const double X_H2O
-    ) ; //noexcept
+    );
 
 
     void forward_rate(
         const double T,
         const double M,
         const double p
-    ) ; //noexcept
+    );
 
 
     void backward_rate(
         const double T
-    ) ; //noexcept
+    );
 
     
     void production_rate(
@@ -77,7 +94,7 @@ private:
         const double M,
         const double p,
         const double* c
-    ) ; //noexcept
+    );
 
 public:
     OdeFun();
@@ -87,13 +104,13 @@ public:
     // Calculates the initial condition of the bubble from the control parameters.
     is_success initial_conditions(
         double* x_dimless
-    ) ; //noexcept
+    );
     // Call operator. Calculates the right-hand side of the ODE system.
     is_success operator()(
         const double t_dimless,
         const double* x_dimless,
         double* x_dimless_dot
-    ) ; //noexcept
+    );
 
 #if defined TEST || defined BENCHMARK
 public:

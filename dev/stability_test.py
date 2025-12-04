@@ -23,6 +23,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from interface import python_interface as api
 
 base_dir = './_parameter_studies/stability_test/'
+use_van_der_waals = True
+use_thresholding = True
 semi_success_time = 1000e-6
 timeout = 30.0
 
@@ -45,8 +47,8 @@ parameter_studies = dict(
         'enable_evaporation': True,
         'enable_reactions': True,
         'enable_dissipated_energy': True,
-        'enable_van_der_waals': True,
-        'enable_rate_thresholding': True,
+        'enable_van_der_waals': use_van_der_waals,
+        'enable_rate_thresholding': use_thresholding,
         'target_specie': 'H2',
         'excitation_type': 'sinusoid',
         'excitation_params': [
@@ -74,8 +76,8 @@ parameter_studies = dict(
         'enable_evaporation': True,
         'enable_reactions': True,
         'enable_dissipated_energy': True,
-        'enable_van_der_waals': True,
-        'enable_rate_thresholding': True,
+        'enable_van_der_waals': use_van_der_waals,
+        'enable_rate_thresholding': use_thresholding,
         'target_specie': 'NH3',
         'excitation_type': 'sinusoid',
         'excitation_params': [
@@ -103,8 +105,8 @@ parameter_studies = dict(
         'enable_evaporation': True,
         'enable_reactions': True,
         'enable_dissipated_energy': True,
-        'enable_van_der_waals': True,
-        'enable_rate_thresholding': True,
+        'enable_van_der_waals': use_van_der_waals,
+        'enable_rate_thresholding': use_thresholding,
         'target_specie': 'NH3',
         'excitation_type': 'sinusoid',
         'excitation_params': [
@@ -132,8 +134,8 @@ parameter_studies = dict(
         'enable_evaporation': False,
         'enable_reactions': True,
         'enable_dissipated_energy': True,
-        'enable_van_der_waals': True,
-        'enable_rate_thresholding': True,
+        'enable_van_der_waals': use_van_der_waals,
+        'enable_rate_thresholding': use_thresholding,
         'target_specie': 'NH3',
         'excitation_type': 'sinusoid',
         'excitation_params': [
@@ -161,8 +163,8 @@ parameter_studies = dict(
         'enable_evaporation': False,
         'enable_reactions': True,
         'enable_dissipated_energy': False,
-        'enable_van_der_waals': True,
-        'enable_rate_thresholding': True,
+        'enable_van_der_waals': use_van_der_waals,
+        'enable_rate_thresholding': use_thresholding,
         'target_specie': 'NH3',
         'excitation_type': 'sinusoid',
         'excitation_params': [
