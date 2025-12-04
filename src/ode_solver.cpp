@@ -154,7 +154,7 @@ int error_weights(N_Vector y, N_Vector ewt, void* user_data)
     sunrealtype* ewt_data = NV_DATA_S(ewt);
 
     const double one_atom_mol_fraction = 1.0 / (Parameters::N_A * cpar->n_ref);
-    const double abstol_species = 1e8 * one_atom_mol_fraction;
+    const double abstol_species = std::min(1e8 * one_atom_mol_fraction, 1e-4);
     const double reltol = 1e-10;
     const double abstol = 1e-10;
 

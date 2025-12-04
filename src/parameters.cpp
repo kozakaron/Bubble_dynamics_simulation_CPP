@@ -232,7 +232,7 @@ Parameters::Parameters(const nlohmann::json& j):
     invalid_index(                  get_value<index_t>(j, "species", "invalid_index")),
     W(                              nullptr),
     thermal_conductivities(         nullptr),
-    van_der_waals_a(                nullptr),
+    sqrt_van_der_waals_a(           nullptr),
     van_der_waals_b(                nullptr),
     temp_ranges(                    nullptr),
     a_low(                          nullptr),
@@ -273,7 +273,6 @@ Parameters::Parameters(const nlohmann::json& j):
     // Fill simple arrays
     copy_array_1d<double> (j, "species", "molar_weights", W, num_species);
     copy_array_1d<double> (j, "species", "thermal_conductivities", thermal_conductivities, num_species);
-    copy_array_1d<double> (j, "species", "van_der_waals_a", van_der_waals_a, num_species);
     copy_array_1d<double> (j, "species", "van_der_waals_b", van_der_waals_b, num_species);
     copy_array_2d<double> (j, "thermodynamics", "temp_ranges", temp_ranges, num_species, 3);
     copy_array_2d<double> (j, "thermodynamics", "a_low", a_low, num_species, NASA_order + 2);
@@ -299,6 +298,17 @@ Parameters::Parameters(const nlohmann::json& j):
         {
             _species[species_names.at(i)] = i;
         }
+
+    // Sqare root of van der Waals a parameter
+        if (!check_key_exists(j, "species", "van_der_waals_a")) return;
+        const nlohmann::json& vdw_a_array = j.at("species").at("van_der_waals_a");
+        double* sqrt_van_der_waals_a_temp = new double[num_species];
+        for (index_t i = 0; i < num_species; i++)
+        {
+            double vdw_a = vdw_a_array.at(i).get<double>();
+            sqrt_van_der_waals_a_temp[i] = std::sqrt(vdw_a);
+        }
+        sqrt_van_der_waals_a = (const double*)sqrt_van_der_waals_a_temp;
 
 
     // Compute NASA interval values and derivatives
@@ -508,7 +518,7 @@ Parameters::~Parameters()
 {
     if (W != nullptr) delete[] W;
     if (thermal_conductivities != nullptr) delete[] thermal_conductivities;
-    if (van_der_waals_a != nullptr) delete[] van_der_waals_a;
+    if (sqrt_van_der_waals_a != nullptr) delete[] sqrt_van_der_waals_a;
     if (van_der_waals_b != nullptr) delete[] van_der_waals_b;
     if (temp_ranges != nullptr) delete[] temp_ranges;
     if (a_low != nullptr) delete[] a_low;

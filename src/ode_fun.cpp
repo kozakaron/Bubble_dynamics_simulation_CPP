@@ -268,15 +268,57 @@ is_success OdeFun::init(const ControlParameters& cpar)
 
 is_success OdeFun::initial_conditions(
     double* x_dimless
-) //noexcept
+)
 {
-// Equilibrium state
+// Van der Waals mixture
+    double a_tot = 0.0;
+    double b_tot = 0.0;
+    if (cpar.enable_van_der_waals)
+    {
+        for (index_t k = 0; k < cpar.max_species; ++k)
+        {
+            index_t index = cpar.species[k];
+            double X_k = cpar.fractions[k];
+            if (index == par->invalid_index) continue;
+            a_tot += X_k * par->sqrt_van_der_waals_a[index];
+            b_tot += X_k * par->van_der_waals_b[index];
+            // fraction of water is ignored
+        }
+        a_tot = a_tot * a_tot;
+    }   
+
+// Equilibrium state pressure
     const double p_E = cpar.P_amb + 2.0 * cpar.surfactant * par->sigma / cpar.R_E;   // [Pa]
     const double V_E = 4.0 / 3.0 * std::numbers::pi * cpar.R_E * cpar.R_E * cpar.R_E;    // [m^3]
     double p_gas = cpar.enable_evaporation ? p_E - cpar.P_v : p_E;   // [Pa]
-    const double n_gas = p_gas * V_E / (par->R_g * cpar.T_inf);    // [mol]
+
+// Compute molar concentration from pressure
+    double c_gas = p_gas / (par->R_g * cpar.T_inf); // [mol/m^3]
+    if (cpar.enable_van_der_waals)
+    {
+        // Equation: f(c_gas) = R_g*T_inf*c_gas / (1 - b_tot * c_gas) - a_tot * c_gas^2 - p_gas = 0
+        // Initial guess: ideal gas law
+        // Newton-Raphson method
+        const int max_iter = 20;
+        const double tol = 1e-8;
+
+        for (int i = 0; i < max_iter; ++i)
+        {
+            double den = 1.0 - c_gas * b_tot;
+            if (den < 1e-9) den = 1e-9; // avoid singularity
+
+            double p_calc = (c_gas * par->R_g * cpar.T_inf) / den - a_tot * c_gas * c_gas;
+            double df_dc = (par->R_g * cpar.T_inf) / (den * den) - 2.0 * a_tot * c_gas;
+            double diff = p_calc - p_gas;
+            if (std::abs(diff) < tol) break;
+
+            c_gas = c_gas - diff / df_dc;
+        }
+    }
+
+// Equilibrium state moles
+    const double n_gas = c_gas * V_E;    // [mol]
     double n_H2O = cpar.enable_evaporation ? cpar.P_v * V_E / (par->R_g * cpar.T_inf) : 0.0;   // [mol]
-    double c_gas = n_gas / V_E;   // [mol/m^3]
     double c_H2O = n_H2O / V_E;   // [mol/m^3]
 
 // Isotermic expansion
@@ -327,13 +369,78 @@ is_success OdeFun::initial_conditions(
 }
 
 
+double OdeFun::internal_pressure(
+    const double T,
+    const double M,
+    const double* conc
+)
+{
+    if (cpar.enable_van_der_waals)
+    {
+        double A_tot = 0.0;     // a_tot * M^2
+        double B_tot = 0.0;     // b_tot * M
+        for (index_t k = 0; k < par->num_species; ++k)
+        {
+            A_tot += conc[k] * par->sqrt_van_der_waals_a[k];
+            B_tot += conc[k] * par->van_der_waals_b[k];
+        }
+        A_tot = A_tot * A_tot;
+
+        return (M * par->R_g * T) / (1.0 - B_tot) - A_tot;
+    }
+    else
+    {
+        return M * par->R_g * T;
+    }
+}
+
+
+double OdeFun::internal_pressure_derivative(
+    const double T,
+    const double T_dot,
+    const double M,
+    const double M_dot,
+    const double* conc,
+    const double* conc_dot
+)
+{
+    if (cpar.enable_van_der_waals)
+    {
+        double A_tot     = 0.0;    // a_tot * M^2
+        double A_tot_dot = 0.0;
+        double B_tot     = 0.0;    // b_tot * M
+        double B_tot_dot = 0.0;
+        for (index_t k = 0; k < par->num_species; ++k)
+        {
+            A_tot     += conc[k]     * par->sqrt_van_der_waals_a[k];
+            A_tot_dot += conc_dot[k] * par->sqrt_van_der_waals_a[k];
+            B_tot     += conc[k]     * par->van_der_waals_b[k];
+            B_tot_dot += conc_dot[k] * par->van_der_waals_b[k];
+        }
+        A_tot_dot = 2.0 * A_tot * A_tot_dot;
+        A_tot = A_tot * A_tot;
+
+        const double nom     = par->R_g * T * M;
+        const double nom_dot = par->R_g * (T_dot * M + T * M_dot);
+        const double den     = 1.0 - B_tot;
+        const double den_dot = -B_tot_dot;
+
+        return (nom_dot * den - nom * den_dot) / (den * den) - A_tot_dot;
+    }
+    else
+    {
+        return M * par->R_g * T_dot + M_dot * par->R_g * T;
+    }
+}
+
+
 // Helper function for Tukey window calculation used in OdeFun::pressures()
 inline std::pair<double, double> _tukey_window(
     const double t,
     const double freq,
     const double excitation_cycles,
     const double ramp_up_cycles
-) //noexcept
+)
 {
     const double t_end = excitation_cycles / freq;
     const double t_ramp = ramp_up_cycles / freq;
@@ -369,7 +476,7 @@ inline std::pair<double, double> _sin(
     const double p_A,
     const double freq,
     const double phase_shift
-) //noexcept
+)
 {
     const double insin = 2.0 * std::numbers::pi * freq;
     const double p = p_A * sin(insin * t + phase_shift);
@@ -378,13 +485,13 @@ inline std::pair<double, double> _sin(
 }
 
 
-std::pair<double, double> OdeFun::pressures(
+std::pair<double, double> OdeFun::pressures_excitation(
     const double t,
     const double R,
     const double R_dot,
     const double p,
     const double p_dot
-) //noexcept
+)
 {
     double p_Inf, p_Inf_dot;
     switch (cpar.excitation_type)
@@ -455,7 +562,7 @@ std::pair<double, double> OdeFun::pressures(
 
 void OdeFun::thermodynamic(
     const double T
-) //noexcept
+)
 {
     for (index_t k = 0; k < par->num_species; ++k)
     {
@@ -508,7 +615,7 @@ std::pair<double, double> OdeFun::evaporation(
     const double p,
     const double T,
     const double X_H2O
-) //noexcept
+)
 {
 // condensation and evaporation
     const double p_H2O = p * X_H2O;
@@ -529,7 +636,7 @@ void OdeFun::forward_rate(
     const double T,
     const double M,
     const double p
-) //noexcept
+)
 {
 // Arrhenius reactions
     const double logT = std::log(T);
@@ -686,7 +793,7 @@ void OdeFun::forward_rate(
 
 void OdeFun::backward_rate(
     const double T
-) //noexcept 
+) 
 {
     const double ln_p_over_RT = std::log(par->atm2Pa / (par->R_g * T));
     for(index_t index = 0; index < par->num_reactions; ++index)
@@ -742,7 +849,7 @@ void OdeFun::production_rate(
     const double M,
     const double p,
     const double* conc
-) //noexcept
+)
 {
 // Third body correction factors
     for (index_t j = 0; j < par->num_third_body_reactions; ++j)
@@ -806,7 +913,7 @@ is_success OdeFun::operator()(
         const double t_dimless,
         const double* x_dimless,
         double* x_dimless_dot
-    ) //noexcept
+    )
 {
     if (!this->check_before_call(x_dimless))
         return false;
@@ -846,7 +953,7 @@ is_success OdeFun::operator()(
         C_p_avg += C_p[k] * X_k;
         lambda_avg += par->thermal_conductivities[k] * X_k;
     }
-    const double p = M * par->R_g * T;             // partial pressure of the gases [Pa]
+    const double p = this->internal_pressure(T, M, conc_dimensional);
     const double C_v_avg = C_p_avg - par->R_g;     // average molar heat capacity at constant volume [J/mol/K]
 
 // Heat transfer
@@ -900,11 +1007,11 @@ is_success OdeFun::operator()(
     }
     const double T_dot = (Q_r_dot + 3.0 / R * (-p * R_dot + Q_th_dot + evap_energy)) / (M * C_v_avg);
     const double M_dot = sum_omega_dot - 3.0 * R_dot / R * M + n_net_dot * 3.0 / R;
-    const double p_dot = M_dot * par->R_g * T + M * par->R_g * T_dot;
+    const double p_dot = this->internal_pressure_derivative(T, T_dot, M, M_dot, conc_dimensional, conc_dot);
     x_dimensional_dot[2] = T_dot;
 
 // d/dt R_dot
-    const auto [delta, delta_dot] = this->pressures(t, R, R_dot, p, p_dot);
+    const auto [delta, delta_dot] = this->pressures_excitation(t, R, R_dot, p, p_dot);  // delta = (p_L - p_Inf) / rho_L
     const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
     const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
 
