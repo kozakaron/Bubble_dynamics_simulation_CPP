@@ -486,7 +486,7 @@ T get_value(const ordered_json& j, const std::string& key, const T& default_valu
     for (const auto& element : j.at(key))
     {
         std::string message = "";
-        if (is_float_vector && !element.is_number_float())
+        if (is_float_vector && !(element.is_number_float() || element.is_number_integer()))
         {
             message = "Expected floating point number in array for key \"" + key + "\", instead found " + element.dump() + ". Using default value.";
         }
