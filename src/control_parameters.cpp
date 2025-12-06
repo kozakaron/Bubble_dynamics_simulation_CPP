@@ -82,7 +82,7 @@ T get_value(const ordered_json& j, const std::string& key, const T& default_valu
     {
         for (const auto& element : j.at(key))
         {
-            if (is_float_vector && !element.is_number_float())
+            if (is_float_vector && !(element.is_number_float() || element.is_number_integer()))
             {
                 LOG_ERROR(
                     Error::severity::warning, Error::type::preprocess,

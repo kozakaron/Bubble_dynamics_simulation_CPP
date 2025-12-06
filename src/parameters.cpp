@@ -88,7 +88,7 @@ bool check_key_type(const nlohmann::json& target)
     constexpr bool is_vector = is_int_vector || is_float_vector || is_string_vector || is_bool_vector;
 
     std::string message = "";
-    if (is_floating_point && !target.is_number_float())
+    if (is_floating_point && !(target.is_number_float() || target.is_number_integer()))
     {
         message = "Expected floating point number for key, instead found " + target.dump() + ". Using default value.";
     }
@@ -147,7 +147,7 @@ T get_value(const nlohmann::json& j, const std::string& main_key, const std::str
             {
                 message = "Expected integer number in array for key \"" + sub_key + "\", instead found " + element.dump() + ". Using default value.";
             }
-            else if (is_float_vector && !element.is_number_float())
+            else if (is_float_vector && !(element.is_number_float() || element.is_number_integer()))
             {
                 message = "Expected floating point number in array for key \"" + sub_key + "\", instead found " + element.dump() + ". Using default value.";
             }
