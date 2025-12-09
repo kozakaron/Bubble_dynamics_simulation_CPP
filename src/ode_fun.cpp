@@ -564,6 +564,13 @@ void OdeFun::thermodynamic(
     const double T
 )
 {
+// calculate powers for polynomials
+    const double T1 = T;
+    const double T2 = T1 * T1;
+    const double T3 = T2 * T1;
+    const double T4 = T2 * T2;
+    const double T5 = T3 * T2;
+
     for (index_t k = 0; k < par->num_species; ++k)
     {
         const double& T_low = par->temp_ranges[3*k];
@@ -583,13 +590,6 @@ void OdeFun::thermodynamic(
             {
                 a = &(par->a_high[k*(par->NASA_order+2)]);
             }
-
-        // calculate polynomials
-            const double T1 = T;
-            const double T2 = T1 * T1;
-            const double T3 = T2 * T1;
-            const double T4 = T2 * T2;
-            const double T5 = T3 * T2;
         
             // Molar heat capacities at constant pressure (isobaric) [J/mol/K]
             this->C_p[k] = par->R_g * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4);
