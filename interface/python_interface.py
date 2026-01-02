@@ -446,7 +446,7 @@ def plot(data, n=5.0, base_name='', format='png',
     
 # textbox with initial conditions
     text = f'Initial conditions:\n'
-    text += f'    $R_E$ = {1e6*cpar["R_E"]: .2f} $[\mu m]$\n'
+    text += f'    $R_E$ = {1e6*cpar["R_E"]: .2f} $[\\mu m]$\n'
     if cpar['ratio'] != 1.0:
         text += f'    $R_0/R_E$ = {cpar["ratio"]: .2f} $[-]$\n'
     text += f'    $P_{{amb}}$ = {1e-5*cpar["P_amb"]: .2f} $[bar]$\n'
