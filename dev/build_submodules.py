@@ -85,6 +85,7 @@ def main():
     check_python_package('numpy')
     check_python_package('matplotlib')
     check_python_package('pygments')
+    check_python_package('pandas')
 
 # Check if we are in a Git repository
     if not os.path.exists('.git'):
