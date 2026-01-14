@@ -45,7 +45,7 @@ compiler_flags = [
     #'-fvectorize',             # Enable auto-vectorization (only for clang)
     '-pedantic',               # Enforce strict standard compliance
     '-fno-fast-math',           # Disable fast math optimizations (e.g. associativity, commutativity, etc.)
-    #'-funroll-loops',          # Enable loop unrolling
+    '-funroll-loops',          # Enable loop unrolling
     #'-mlong-double-80',        # Use 80-bit long double. You may also try with -128, however it is less likely to work. Fails with clang++ on win11 with c++20
 # Error handling flags: slight performance boost, harder error identification, might cause unexpected behavior
     #'-fno-exceptions',         # Disable exception handling
