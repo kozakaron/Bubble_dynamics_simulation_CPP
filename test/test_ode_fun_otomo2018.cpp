@@ -595,7 +595,7 @@ void test_ode_fun_otomo2018()
 
 
         tester.ode.production_rate(T, M, p, x.data()+3);
-        ASSERT_APPROX_ARRAY(tester.ode.M_eff, M_eff_expected, tester.par->num_third_bodies, 1e-15);
+        ASSERT_APPROX_ARRAY(tester.ode.M_eff, M_eff_expected, tester.par->num_third_body_reactions, 1e-15);
         ASSERT_APPROX_ARRAY(tester.ode.omega_dot, omega_dot_expected, tester.par->num_species, 1e-12);
         ASSERT_EQUAL(ErrorHandler::get_error_count(), 0);
     );

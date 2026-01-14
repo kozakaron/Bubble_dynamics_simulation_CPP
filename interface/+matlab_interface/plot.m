@@ -37,11 +37,11 @@ function plot(data, n, show_cpar)
     % Extract variables
     R = x(1:end_index, 1); % Radius [m]
     T = x(1:end_index, 3); % Temperature [K]
-    c = x(1:end_index, 4:end-1); % Concentrations [mol/cm^3]
+    c = x(1:end_index, 4:end-1); % Concentrations [mol/m^3]
 
     % Compute molar amounts
-    V = 4.0 / 3.0 * (100.0 * R).^3 * pi; % Volume [cm^3]
-    n_mol = c .* V; % Molar amounts [mol]
+    V = 4.0 / 3.0 * R.^3 * pi; % Volume [m^3]
+    n_mol = c.* V; % Molar amounts [mol]
 
     % Plot R and T
     figure;

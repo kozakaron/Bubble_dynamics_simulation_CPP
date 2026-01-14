@@ -22,8 +22,8 @@ submodules = dict(
         install_dir = "./submodules/sundials/install/",
         src_dir = "./submodules/sundials/",
         cmake_command_list = [
-            "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
-            "-DBUILD_ARKODE=ON",
+            "-DCMAKE_BUILD_TYPE=Release", # Debug, Release, RelWithDebInfo, MinSizeRel
+            "-DBUILD_ARKODE=OFF",
             "-DBUILD_CVODE=ON",
             "-DBUILD_CVODES=OFF",
             "-DBUILD_IDA=OFF",
@@ -85,6 +85,7 @@ def main():
     check_python_package('numpy')
     check_python_package('matplotlib')
     check_python_package('pygments')
+    check_python_package('pandas')
 
 # Check if we are in a Git repository
     if not os.path.exists('.git'):

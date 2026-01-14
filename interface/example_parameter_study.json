@@ -1,6 +1,6 @@
 {
     "parameter_study": {
-        "mechanism": "chemkin_ar_he",
+        "mechanism": "chemkin_elte2016_hydrogen",
         "R_E": {
             "type": "LinearRange",
             "start": 5e-06,
@@ -25,7 +25,7 @@
             "type": "Const",
             "value": 293.15
         },
-        "alfa_M": {
+        "alpha_M": {
             "type": "Const",
             "value": 0.35
         },
@@ -53,7 +53,10 @@
         "enable_evaporation": true,
         "enable_reactions": true,
         "enable_dissipated_energy": true,
+        "enable_van_der_waals": true,
+        "enable_rate_thresholding": true,
         "target_specie": "H2",
+        "excitation_type": "sinusoid",
         "excitation_params": [
             {
                 "type": "LinearRange",
@@ -64,12 +67,15 @@
             {
                 "type": "Const",
                 "value": 30000.0
-            },
-            {
-                "type": "Const",
-                "value": 1.0
             }
         ],
-        "excitation_type": "sin_impulse"
+        "excitation_cycles": {
+            "type": "Const",
+            "value": 1.0
+        },
+        "ramp_up_cycles": {
+            "type": "Const",
+            "value": 0.0
+        }
     }
 }

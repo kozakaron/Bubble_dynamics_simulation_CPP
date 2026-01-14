@@ -338,7 +338,7 @@ def _print_data(data, print_it=True):
     text += f"  Fractions: {cpar.get('fractions', [])}\n"
     text += f"  P_amb: {cpar.get('P_amb', 'N/A')} [Pa]\n"
     text += f"  T_inf: {cpar.get('T_inf', 'N/A')} [K]\n"
-    text += f"  alfa_M: {cpar.get('alfa_M', 'N/A')} [-]\n"
+    text += f"  alpha_M: {cpar.get('alpha_M', 'N/A')} [-]\n"
     text += f"  P_v: {cpar.get('P_v', 'N/A')} [Pa]\n"
     text += f"  mu_L: {cpar.get('mu_L', 'N/A')} [Pa·s]\n"
     text += f"  rho_L: {cpar.get('rho_L', 'N/A')} [kg/m³]\n"
@@ -348,9 +348,13 @@ def _print_data(data, print_it=True):
     text += f"  Enable Evaporation: {cpar.get('enable_evaporation', 'N/A')}\n"
     text += f"  Enable Reactions: {cpar.get('enable_reactions', 'N/A')}\n"
     text += f"  Enable Dissipated Energy: {cpar.get('enable_dissipated_energy', 'N/A')}\n"
+    text += f"  Enable Van der Waals: {cpar.get('enable_van_der_waals', 'N/A')}\n"
+    text += f"  Enable Rate Thresholding: {cpar.get('enable_rate_thresholding', 'N/A')}\n"
     text += f"  Target Specie: {cpar.get('target_specie', 'N/A')}\n"
-    text += f"  Excitation Params: {cpar.get('excitation_params', 'N/A')}\n"
     text += f"  Excitation Type: {cpar.get('excitation_type', 'N/A')}\n"
+    text += f"  Excitation Params: {cpar.get('excitation_params', 'N/A')}\n"
+    text += f"  Excitation Cycles: {cpar.get('excitation_cycles', 'N/A')} [-]\n"
+    text += f"  Ramp Up Cycles: {cpar.get('ramp_up_cycles', 'N/A')} [-]\n"
 
     # Simulation info
     text += "\nSimulation Info:\n"
@@ -420,10 +424,10 @@ def plot(data, n=5.0, base_name='', format='png',
     R = x[:end_index, 0] # [m]
     R_dot = x[:end_index, 1] # [m/s]
     T = x[:end_index, 2] # [K]
-    c = x[:end_index, 3:-1] # [mol/cm^3]
+    c = x[:end_index, 3:-1] # [mol/m^3]
 
-    V = 4.0 / 3.0 * (100.0 * R) ** 3 * np.pi # [cm^3]
-    n = (c.T * V).T
+    V = 4.0 / 3.0 * R**3 * np.pi # [m^3]
+    n = (c.T * V).T # [mol]
     #internal_pressure = np.sum(n, axis=1) * 8.31446 * T / V # [MPa]
 
 # plot R and T
@@ -442,7 +446,7 @@ def plot(data, n=5.0, base_name='', format='png',
     
 # textbox with initial conditions
     text = f'Initial conditions:\n'
-    text += f'    $R_E$ = {1e6*cpar["R_E"]: .2f} $[\mu m]$\n'
+    text += f'    $R_E$ = {1e6*cpar["R_E"]: .2f} $[\\mu m]$\n'
     if cpar['ratio'] != 1.0:
         text += f'    $R_0/R_E$ = {cpar["ratio"]: .2f} $[-]$\n'
     text += f'    $P_{{amb}}$ = {1e-5*cpar["P_amb"]: .2f} $[bar]$\n'
@@ -578,6 +582,9 @@ def read_parameter_study(directory: str) -> pd.DataFrame:
     all_data = pd.DataFrame()
     num = 0
 
+    # treat weird tokens as NaN when reading CSVs
+    _na_tokens = ['-nan(ind)', 'nan', 'NaN', 'inf', '-inf', 'Infinity', '-Infinity']
+
     # iterate trough all files in directory (including subdirectories)
     for (root, dirs, files) in os.walk(directory):
         for file in files:
@@ -588,7 +595,11 @@ def read_parameter_study(directory: str) -> pd.DataFrame:
 
             # read file
             num += 1
-            current_data = pd.read_csv(os.path.join(root, file))
+            current_data = pd.read_csv(
+                os.path.join(root, file),
+                na_values=_na_tokens,
+                keep_default_na=True
+            )
 
             # Cast object-dtype columns with all-bool values to bool dtype
             for col in current_data.columns:
@@ -597,12 +608,17 @@ def read_parameter_study(directory: str) -> pd.DataFrame:
 
             subdir = os.path.join(root.removeprefix(directory), file)
             print(f'\t{subdir: <64} ({current_data.shape[0]: >4} rows)')
-            all_data = pd.concat([all_data, current_data])
+            all_data = pd.concat([all_data, current_data], ignore_index=True)
         
     # Print some stats:
     print(f'_______________________________________')
     total = all_data.shape[0]
-    all_data = all_data.sort_values(['energy_demand'], ascending=True)
+
+    # Ensure numeric sort key and keep NaNs last
+    if 'energy_demand' in all_data.columns:
+        all_data['energy_demand'] = pd.to_numeric(all_data['energy_demand'], errors='coerce')
+        all_data = all_data.sort_values(['energy_demand'], ascending=True, na_position='last')
+
     print(f'total: {total: >4} rows in {num: >2} files')
 
     return all_data
@@ -629,7 +645,7 @@ def line_to_dict(line):
         fractions = fractions,
         P_amb = float(line['P_amb']),
         T_inf = float(line['T_inf']),
-        alfa_M = float(line['alfa_M']),
+        alpha_M = float(line['alpha_M']),
         P_v = float(line['P_v']),
         mu_L = float(line['mu_L']),
         rho_L = float(line['rho_L']),
@@ -639,7 +655,11 @@ def line_to_dict(line):
         enable_evaporation = bool(line['enable_evaporation']),
         enable_reactions = bool(line['enable_reactions']),
         enable_dissipated_energy = bool(line['enable_dissipated_energy']),
+        enable_van_der_waals = bool(line['enable_van_der_waals']),
+        enable_rate_thresholding = bool(line['enable_rate_thresholding']),
         target_specie = str(line['target_specie']),
-        excitation_params = excitation_params,
         excitation_type = str(line['excitation_type']),
+        excitation_params = excitation_params,
+        excitation_cycles = int(line['excitation_cycles']),
+        ramp_up_cycles = int(line['ramp_up_cycles']),
     )

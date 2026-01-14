@@ -23,19 +23,21 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from interface import python_interface as api
 
 base_dir = './_parameter_studies/stability_test/'
+use_van_der_waals = True
+use_thresholding = True
 semi_success_time = 1000e-6
 timeout = 30.0
 
 parameter_studies = dict(
-    chemkin_ar_he__high_p_A = {
-        'mechanism': 'chemkin_ar_he',
+    chemkin_elte2016_hydrogen__high_p_A = {
+        'mechanism': 'chemkin_elte2016_hydrogen',
         'R_E': {'type': 'LinearRange', 'start': 0.5e-06, 'end': 20e-6, 'num_steps': 20},
         'ratio': {'type': 'Const', 'value': 1.0},
         'species': ['O2'],
         'fractions': [1.0],
         'P_amb': {'type': 'Const', 'value': 0.5e5},
         'T_inf': {'type': 'Const', 'value': 293.15},
-        'alfa_M': {'type': 'Const', 'value': 0.35},
+        'alpha_M': {'type': 'Const', 'value': 0.35},
         'P_v': {'type': 'Const', 'value': 2338.1},
         'mu_L': {'type': 'Const', 'value': 0.001},
         'rho_L': {'type': 'Const', 'value': 998.2},
@@ -45,23 +47,26 @@ parameter_studies = dict(
         'enable_evaporation': True,
         'enable_reactions': True,
         'enable_dissipated_energy': True,
+        'enable_van_der_waals': use_van_der_waals,
+        'enable_rate_thresholding': use_thresholding,
         'target_specie': 'H2',
+        'excitation_type': 'sinusoid',
         'excitation_params': [
             {'type': 'LinearRange', 'start': -12e5, 'end': -22e5, 'num_steps': 5},
-            {'type': 'LinearRange', 'start': 2500.0, 'end': 12500.0, 'num_steps': 5},
-            {'type': 'Const', 'value': 1.0}
+            {'type': 'LinearRange', 'start': 2500.0, 'end': 12500.0, 'num_steps': 5}
         ],
-        'excitation_type': 'sin_impulse'
+        'excitation_cycles': {'type': 'Const', 'value': 1},
+        'ramp_up_cycles': {'type': 'Const', 'value': 0},
     },
-    chemkin_otomo2018_simple = {
-        'mechanism': 'chemkin_otomo2018',
+    chemkin_otomo2018_ammonia_simple = {
+        'mechanism': 'chemkin_otomo2018_ammonia',
         'R_E': {'type': 'LinearRange', 'start': 1e-06, 'end': 50e-6, 'num_steps': 20},
         'ratio': {'type': 'Const', 'value': 1.0},
         'species': ['H2', 'N2'],
         'fractions': [0.75, 0.25],
         'P_amb': {'type': 'Const', 'value': 1e5},
         'T_inf': {'type': 'Const', 'value': 293.15},
-        'alfa_M': {'type': 'Const', 'value': 0.35},
+        'alpha_M': {'type': 'Const', 'value': 0.35},
         'P_v': {'type': 'Const', 'value': 2338.1},
         'mu_L': {'type': 'Const', 'value': 0.001},
         'rho_L': {'type': 'Const', 'value': 998.2},
@@ -71,23 +76,26 @@ parameter_studies = dict(
         'enable_evaporation': True,
         'enable_reactions': True,
         'enable_dissipated_energy': True,
+        'enable_van_der_waals': use_van_der_waals,
+        'enable_rate_thresholding': use_thresholding,
         'target_specie': 'NH3',
+        'excitation_type': 'sinusoid',
         'excitation_params': [
             {'type': 'LinearRange', 'start': -12e5, 'end': -20e5, 'num_steps': 5},
-            {'type': 'LinearRange', 'start': 10000.0, 'end': 30000.0, 'num_steps': 5},
-            {'type': 'Const', 'value': 1.0}
+            {'type': 'LinearRange', 'start': 10000.0, 'end': 30000.0, 'num_steps': 5}
         ],
-        'excitation_type': 'sin_impulse'
+        'excitation_cycles': {'type': 'Const', 'value': 1},
+        'ramp_up_cycles': {'type': 'Const', 'value': 0},
     },
-    chemkin_kaust2023_n2_simple = {
-        'mechanism': 'chemkin_kaust2023_n2',
+    chemkin_kaust2023_ammonia_simple = {
+        'mechanism': 'chemkin_kaust2023_ammonia',
         'R_E': {'type': 'LinearRange', 'start': 1e-06, 'end': 100e-6, 'num_steps': 20},
         'ratio': {'type': 'Const', 'value': 1.0},
         'species': ['H2', 'N2'],
         'fractions': [0.75, 0.25],
         'P_amb': {'type': 'Const', 'value': 1e5},
         'T_inf': {'type': 'Const', 'value': 293.15},
-        'alfa_M': {'type': 'Const', 'value': 0.35},
+        'alpha_M': {'type': 'Const', 'value': 0.35},
         'P_v': {'type': 'Const', 'value': 2338.1},
         'mu_L': {'type': 'Const', 'value': 0.001},
         'rho_L': {'type': 'Const', 'value': 998.2},
@@ -97,23 +105,26 @@ parameter_studies = dict(
         'enable_evaporation': True,
         'enable_reactions': True,
         'enable_dissipated_energy': True,
+        'enable_van_der_waals': use_van_der_waals,
+        'enable_rate_thresholding': use_thresholding,
         'target_specie': 'NH3',
+        'excitation_type': 'sinusoid',
         'excitation_params': [
             {'type': 'LinearRange', 'start': -15e5, 'end': -25e5, 'num_steps': 5},
-            {'type': 'LinearRange', 'start': 10000.0, 'end': 80000.0, 'num_steps': 5},
-            {'type': 'Const', 'value': 3.0}
+            {'type': 'LinearRange', 'start': 10000.0, 'end': 80000.0, 'num_steps': 5}
         ],
-        'excitation_type': 'sin_impulse'
+        'excitation_cycles': {'type': 'Const', 'value': 3},
+        'ramp_up_cycles': {'type': 'Const', 'value': 0},
     },
-    chemkin_otomo2018_without_O2 = {
-        'mechanism': 'chemkin_otomo2018_without_o',
+    chemkin_otomo2018_ammonia_without_O2 = {
+        'mechanism': 'chemkin_otomo2018_ammonia_oxygenless',
         'R_E': {'type': 'LinearRange', 'start': 0.5e-06, 'end': 10e-6, 'num_steps': 20},
         'ratio': {'type': 'Const', 'value': 1.0},
         'species': ['H2', 'N2'],
         'fractions': [0.75, 0.25],
         'P_amb': {'type': 'Const', 'value': 0.1e5},
         'T_inf': {'type': 'Const', 'value': 293.15},
-        'alfa_M': {'type': 'Const', 'value': 0.35},
+        'alpha_M': {'type': 'Const', 'value': 0.35},
         'P_v': {'type': 'Const', 'value': 2338.1},
         'mu_L': {'type': 'Const', 'value': 0.001},
         'rho_L': {'type': 'Const', 'value': 998.2},
@@ -123,23 +134,26 @@ parameter_studies = dict(
         'enable_evaporation': False,
         'enable_reactions': True,
         'enable_dissipated_energy': True,
+        'enable_van_der_waals': use_van_der_waals,
+        'enable_rate_thresholding': use_thresholding,
         'target_specie': 'NH3',
+        'excitation_type': 'sinusoid',
         'excitation_params': [
             {'type': 'LinearRange', 'start': -20e5, 'end': -30e5, 'num_steps': 5},
-            {'type': 'LinearRange', 'start': 5000.0, 'end': 10000.0, 'num_steps': 5},
-            {'type': 'Const', 'value': 5.0}
+            {'type': 'LinearRange', 'start': 5000.0, 'end': 10000.0, 'num_steps': 5}
         ],
-        'excitation_type': 'sin_impulse'
+        'excitation_cycles': {'type': 'Const', 'value': 5},
+        'ramp_up_cycles': {'type': 'Const', 'value': 0},
     },
-    chemkin_kaust2023_n2_high_T = {
-        'mechanism': 'chemkin_kaust2023_n2',
+    chemkin_kaust2023_ammonia_high_T = {
+        'mechanism': 'chemkin_kaust2023_ammonia',
         'R_E': {'type': 'LinearRange', 'start': 10e-06, 'end': 100e-6, 'num_steps': 15},
         'ratio': {'type': 'Const', 'value': 1.0},
         'species': ['H2', 'O2', 'N2', 'AR', 'HE'],
         'fractions': [0.45, 0.1, 0.15, 0.2, 0.1],
         'P_amb': {'type': 'Const', 'value': 5e5},
         'T_inf':  {'type': 'LinearRange', 'start': 693.15, 'end': 2093.15, 'num_steps': 10},
-        'alfa_M': {'type': 'Const', 'value': 0.35},
+        'alpha_M': {'type': 'Const', 'value': 0.35},
         'P_v': {'type': 'Const', 'value': 2338.1},
         'mu_L': {'type': 'Const', 'value': 0.001},
         'rho_L': {'type': 'Const', 'value': 998.2},
@@ -149,13 +163,16 @@ parameter_studies = dict(
         'enable_evaporation': False,
         'enable_reactions': True,
         'enable_dissipated_energy': False,
+        'enable_van_der_waals': use_van_der_waals,
+        'enable_rate_thresholding': use_thresholding,
         'target_specie': 'NH3',
+        'excitation_type': 'sinusoid',
         'excitation_params': [
             {'type': 'Const', 'value': -20e5},
-            {'type': 'Const', 'value': 25000.0},
-            {'type': 'Const', 'value': 1.0}
+            {'type': 'Const', 'value': 25000.0}
         ],
-        'excitation_type': 'sin_impulse'
+        'excitation_cycles': {'type': 'Const', 'value': 1},
+        'ramp_up_cycles': {'type': 'Const', 'value': 0},
     },
 )
 
