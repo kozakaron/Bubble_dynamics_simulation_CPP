@@ -116,7 +116,7 @@ help(api)
 Example codes use the Python interface. However, names are the same and functionalities are similar in Matlab as well. To run and plot an indavidual parameter study, you should first assemble a dictionary containing the control parameters. As a template, you may use `example_cpar()` and modify the returned dictionary:
 ```Python
 cpar = api.example_cpar()
-cpar['mechanism'] = 'chemkin_otomo2018'
+cpar['mechanism'] = 'chemkin_otomo2018_ammonia'
 cpar['species'] = ['H2', 'N2']
 cpar['fractions'] = [0.25, 0.75]
 cpar['enable_evaporation'] = True
@@ -126,14 +126,14 @@ Or you may create a brand new dictionary:
 ```Python
 cpar = {
     'ID': 0,
-    'mechanism': 'chemkin_otomo2018',
+    'mechanism': 'chemkin_otomo2018_ammonia',
     'R_E': 1e-05,
     'ratio': 1.0,
     'species': ['H2', 'N2'],
     'fractions': [0.25, 0.75],
     'P_amb': 101325.0,
     'T_inf': 293.15,
-    'alfa_M': 0.35,
+    'alpha_M': 0.35,
     'P_v': 2338.1,
     'mu_L': 0.001,
     'rho_L': 998.2,
@@ -143,9 +143,13 @@ cpar = {
     'enable_evaporation': True,
     'enable_reactions': True,
     'enable_dissipated_energy': True,
+    'enable_van_der_waals': True,
+    'enable_rate_thresholding': True,
     'target_specie': 'H2',
-    'excitation_params': [-200000.0, 30000.0, 1.0],
-    'excitation_type': 'sin_impulse'
+    'excitation_type': 'sinusoid',
+    'excitation_params': [-200000.0, 30000.0],
+    'excitation_cycles': 1,
+    'ramp_up_cycles': 0
  }
 ```
 
@@ -205,7 +209,7 @@ Just like the case of the control parameters, you need to provide the mechanism 
  A sample of such a control dict may look like this:
  ```Python
  parameter_studies = {
-    'mechanism': 'chemkin_ar_he',
+    'mechanism': 'chemkin_elte2016_hydrogen',
     'R_E': {
         'type': 'LinearRange',
         'start': 5e-06,
@@ -225,7 +229,7 @@ Just like the case of the control parameters, you need to provide the mechanism 
         },
         {'type': 'Const', 'value': 30000.0},
         {'type': 'Const', 'value': 1.0}],
-    'excitation_type': 'sin_impulse'
+    'excitation_type': 'sinusoid'
 }
  ```
 
@@ -289,46 +293,110 @@ This code is object oriented. Most classes include some of the following methods
 ### High level overwiev
 
 ```
-                                                 ┌─────────────────────────────────┐
-                                                 │Parameters                       │
-              ┌──────────────────────────────┐   ├─────────────────────────────────┤
-              │ControlParameters             │   │Holds constants and coefficients │
-┌──────────┐  ├──────────────────────────────┤   │describing reaction mechanisms:  │
-│JSON input│  │Holds all settings influencing│   │ ∘ chemkin_ar_he                 │
-├──────────┤--│the simulation: R_E, P_amb,   │---│ ∘ chemkin_kaust2023_n2          │
-└──────────┘  │excitation parameters, ...    │   │ ∘ chemkin_kaust2023_n2_without_o│
-              └──────────────────────────────┘   │ ∘ chemkin_otomo2018_without_o   │
-                              |                  │ ∘ chemkin_otomo2018             │
-                              |                  └─────────────────────────────────┘
-                              |                                                     
-                              |                                                     
-   ┌─────────────────────────────────────────────────────┐                          
-   │OdeFun                                               │                          
-   ├─────────────────────────────────────────────────────┤                          
-   │Computes the right-hand-side function: dxdt = f[x, t]│                          
-   │+ init(ControlParameters& cpar)                      │                          
-   │+ initial_conditions(double* x)                      │                          
-   │+ operator(double t, double* x, double* dxdt)        │                          
-   └─────────────────────────────────────────────────────┘                          
-                              |                                                     
-            ┌──────────────────────────────────┐                                    
-            │OdeSolver                         │                                    
-            ├──────────────────────────────────┤                                    
-            │Uses SUNDIALS CVODE to compute the│                                    
-            │numerical solution.               │                                    
-            │ + solve(OdeFun* ode_ptr, ...)    │                                    
-            └──────────────────────────────────┘                                    
-                              |                                                     
-                              |                                                     
-          ┌───────────────────────────────────────┐                                 
-          │SimulationData                         │                                 
-          ├───────────────────────────────────────┤   ┌───────────┐                 
-          │Contains the results of the simulation:│   │JSON output│                 
-          │ ∘ ControlParameters: inputs           │---├───────────┤                 
-          │ ∘ OdeSolution: numerical solution     │   └───────────┘                 
-          │ ∘ post-processing data: output        │                                 
-          │ + postprocess()                       │                                 
-          └───────────────────────────────────────┘                                 
+                                                  ┌─────────────────────────────────────┐
+             ┌────────────────────────────────┐   │JSON Mechanism                       │
+             │Parameters                      │   ├─────────────────────────────────────┤
+             ├────────────────────────────────┤   │Constants and coefficients describing│
+             │Holds constants and coefficients│   │reaction mechanisms, like:           │
+             │describing reaction mechanisms. │---│∘ chemkin_elte2016_hydrogen          │
+             │                                │   │∘ chemkin_kaust2023_ammonia          │
+             │Parsed from JSON files.         │   │∘ chemkin_otomo2018_ammonia          │
+             └────────────────────────────────┘   │∘ ...                                │
+                              |                   └─────────────────────────────────────┘
+                              |                                                          
+                              |                                                          
+              ┌──────────────────────────────┐                                           
+┌──────────┐  │ControlParameters             │                                           
+│JSON      │  ├──────────────────────────────┤                                           
+├──────────┤--│Holds all settings influencing│                                           
+│Input file│  │the simulation: R_E, P_amb,   │                                           
+└──────────┘  │excitation parameters, ...    │                                           
+              └──────────────────────────────┘                                           
+                              |                                                          
+   ┌─────────────────────────────────────────────────────┐                               
+   │OdeFun                                               │                               
+   ├─────────────────────────────────────────────────────┤                               
+   │Computes the right-hand-side function: dxdt = f(x, t)│                               
+   │--                                                   │                               
+   │+ init(ControlParameters& cpar)                      │                               
+   │+ initial_conditions(double* x)                      │                               
+   │+ operator(double t, double* x, double* dxdt)        │                               
+   └─────────────────────────────────────────────────────┘                               
+                              |                                                          
+                                                                                         
+            ┌──────────────────────────────────┐                                         
+            │OdeSolver                         │                                         
+            ├──────────────────────────────────┤                                         
+            │Uses SUNDIALS CVODE to compute the│                                         
+            │numerical solution.               │                                         
+            │--                                │                                         
+            │+ solve(OdeFun* ode_ptr, ...)     │                                         
+            └──────────────────────────────────┘                                         
+                              |                                                          
+          ┌───────────────────────────────────────┐                                      
+          │SimulationData                         │                                      
+          ├───────────────────────────────────────┤   ┌───────────┐                      
+          │Contains the results of the simulation:│   │JSON       │                      
+          │∘ ControlParameters: inputs            │   ├───────────┤                      
+          │∘ OdeSolution: numerical solution      │---│Output file│                      
+          │∘ post-processing data: output         │   └───────────┘                      
+          │--                                     │                                      
+          │+ postprocess()                        │                                      
+          └───────────────────────────────────────┘                                               
+```
+
+```
+                                    ┌──────────┐                                    
+                                    │JSON      │                                    
+                                    ├──────────┤                                    
+                                    │Input file│                                    
+                                    └──────────┘                                    
+                                          |                                         
+                                          |                                         
+                      ┌─────────────────────────────────────┐                       
+                      │ParameterCombinator                  │                       
+                      ├─────────────────────────────────────┤                       
+                      │Generates parameter combinations.    │                       
+                      │--                                   │                       
+                      │+ get_total_combination_count() const│                       
+                      │+ get_next_combination()             │                       
+                      └─────────────────────────────────────┘                       
+                                          |                                         
+       ┌────────────────────────────────────────────────────────────────────┐       
+       │ParameterStudy                                                      │       
+       ├────────────────────────────────────────────────────────────────────┤       
+       │Runs parameter studies, distributing tasks across available threads.│       
+       │--                                                                  │       
+       │+ run()                                                             │       
+       └────────────────────────────────────────────────────────────────────┘       
+         |                    |                    |                    |            
+         |                    |                    |                    |           
+┌─────────────────┐  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+│ControlParameters│  │ControlParameters│   │ControlParameters│   │ControlParameters│
+├─────────────────┤  ├─────────────────┤   ├─────────────────┤   ├─────────────────┤
+└─────────────────┘  └─────────────────┘   └─────────────────┘   └─────────────────┘
+         |                     |                     |                    |         
+     ┌──────┐              ┌──────┐              ┌──────┐             ┌──────┐      
+     │OdeFun│              │OdeFun│              │OdeFun│             │OdeFun│      
+     ├──────┤              ├──────┤              ├──────┤             ├──────┤      
+     └──────┘              └──────┘              └──────┘             └──────┘      
+         |                     |                     |                    |         
+    ┌─────────┐          ┌─────────┐           ┌─────────┐           ┌─────────┐    
+    │OdeSolver│          │OdeSolver│           │OdeSolver│           │OdeSolver│    
+    ├─────────┤          ├─────────┤           ├─────────┤           ├─────────┤    
+    └─────────┘          └─────────┘           └─────────┘           └─────────┘    
+         |                     |                     |                    |         
+         |                     |                     |                    |         
+   ┌───────────┐        ┌───────────┐         ┌───────────┐         ┌───────────┐   
+   │OdeSolution│        │OdeSolution│         │OdeSolution│         │OdeSolution│   
+   ├───────────┤        ├───────────┤         ├───────────┤         ├───────────┤   
+   └───────────┘        └───────────┘         └───────────┘         └───────────┘   
+         |                     |                     |                    |         
+┌────────────────┐    ┌────────────────┐    ┌────────────────┐   ┌────────────────┐ 
+│CSV             │    │CSV             │    │CSV             │   │CSV             │ 
+├────────────────┤    ├────────────────┤    ├────────────────┤   ├────────────────┤ 
+│Thread 1 results│    │Thread 2 results│    │Thread 3 results│   │Thread 4 results│ 
+└────────────────┘    └────────────────┘    └────────────────┘   └────────────────┘ 
 ```
 
 ### Error handling
@@ -348,7 +416,25 @@ Errors are logged with the `LOG_ERROR(...)` macro, e.g.: `size_t error_ID = LOG_
 
 ### Chemical mechanisms
 
-Chemical mechanisms are generated from chemkin *.inp* files. (Not included, see [list of .inp files](./dev/inp_file_list.py)) They are turned into usable format via the (quite messy) [./dev/inp_data_extractor.py](./dev/inp_data_extractor.py). The generated structs in [./mechanism](./mechanism) have static constexpr members only. In order to swithc between mechanisms in runtime, and make migrating to CUDA easier, these structs are turned into const static members of the `Parameters` class in [./include/parameters.h](./include/parameters.h). This class stores all arrays in a flattened form as raw pointers. Usage: `const Parameters *par = Parameters::get_parameters(Parameters::mechanism::chemkin_ar_he);` and get any members like `par->nu`.
+Chemical mechanisms are stored in [./mechanism](./mechanism). They are converted from Chemkin INP files to Cantera YAML files, and then to JSON files with the provided Python scripts. See [./mechanism/README.md](./mechanism/README.md) for details and to add new mechanisms.
+
+When parsed, these structs are turned into const static members of the `Parameters` class in [./include/parameters.h](./include/parameters.h). This class stores all arrays in a flattened form as raw pointers. Usage: `const Parameters *par = Parameters::get_parameters("chemkin_elte2016_hydrogen");` and get any members like `par->nu`.
+
+Available mechanisms:
+| Name                         | Reagent atoms | Non-reagent molecules | Number of species [-] | Number of reactions [-] |
+|------------------------------|----------------|------------------------|------------------------|--------------------------|
+| uson2022_hydrogen            | H, O           | -                      | 10                     | 34                       |
+| elte2016_hydrogen            | H, O           | He, N2, Ar             | 12                     | 30                       |
+| elte2016_syngas              | H, C, O        | He, N2, Ar             | 15                     | 44                       |
+| elte2016_ethanol             | H, C, O        | He, N2, Ne, Ar, Kr     | 49                     | 251                      |
+| elte2017_methanol            | H, C, O        | He, N2, Ne, Ar, Kr     | 24                     | 102                      |
+| kaust2023_ammonia            | H, N, O        | He, Ar                 | 32                     | 243                      |
+| kaust2023_ammonia_oxygenless | H, N           | He, Ar                 | 14                     | 49                       |
+| otomo2018_ammonia            | H, N, O        | He, Ar                 | 32                     | 213                      |
+| otomo2018_ammonia_oxygenless | H, N           | He, Ar                 | 12                     | 35                       |
+
+
+
 
 ### Control parameters, and ODE function
 
@@ -357,14 +443,14 @@ The `ControlParameters` class, declared in [./include/control_parameters.h](./in
 ```cpp
 ControlParameters cpar = ControlParameters{ControlParameters::Builder{
     .ID                          = 0,
-    .mechanism                   = Parameters::mechanism::chemkin_ar_he,
+    .mechanism                   = "chemkin_elte2016_hydrogen",
     .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
     .ratio                       = 1.00000000000000000e+00,    // 
     .species                     = {"O2"},
     .fractions                   = {1.00000000000000000e+00},
     .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]
     .T_inf                       = 2.93149999999999977e+02,    // ambient temperature [K]
-    .alfa_M                      = 3.49999999999999978e-01,    // water accommodation coefficient [-]
+    .alpha_M                     = 3.49999999999999978e-01,    // water accommodation coefficient [-]
     .P_v                         = 2.33809999999999991e+03,    // vapour pressure [Pa]
     .mu_L                        = 1.00000000000000002e-03,    // dynamic viscosity [Pa*s]
     .rho_L                       = 9.98200000000000045e+02,    // liquid density [kg/m^3]
@@ -374,9 +460,13 @@ ControlParameters cpar = ControlParameters{ControlParameters::Builder{
     .enable_evaporation          = true,
     .enable_reactions            = true,
     .enable_dissipated_energy    = true,
+    .enable_van_der_waals        = true,
+    .enable_rate_thresholding    = true,
     .target_specie               = "H2",
-    .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04, 1.00000000000000000e+00},
-    .excitation_type             = Parameters::excitation::sin_impulse
+    .excitation_type             = Parameters::excitation::sinusoid,
+    .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04},
+    .excitation_cycles           = 1,
+    .ramp_up_cycles              = 0
 }};
 ```
 These above are also the default values, any builder argument can be missed. Use the `to_sting()` method or the `ostream operator<<` overload to print the control parameters to the console. It will be printed in the same format as above, which is also valid code. The class also have a csv header and a `to_csv()` method, like many other classes.
@@ -391,7 +481,7 @@ ode.init(cpar);
 `OdeFun` is also responsible to calculate the initial conditions, however, an array of appropiate size has to be provided as a pointer. This step is handled by the solver:
 
 ```cpp
-std::vector<double> x_0(ode.par->num_species+4);
+std::vector<double> x_0(cpar.par->num_species+4);
 ode.initial_conditions(x_0.data());
 ```
 
@@ -410,7 +500,7 @@ OdeFun ode;
 ode.init(cpar);
 
 // solve the ODE      
-OdeSolver solver(ode.par->num_species+4);
+OdeSolver solver(cpar.par->num_species+4);
 SimulationData data = solver.solve(
     1.0,     // t_max [s]
     &ode,    // ode_ptr
@@ -427,7 +517,7 @@ A bruteforce parameter study can be defined by the `ParameterCombinator` class d
 
 ```cpp
 ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinator::Builder{
-    .mechanism                   = Parameters::mechanism::chemkin_ar_he,
+    .mechanism                   = Parameters::mechanism::chemkin_elte2016_hydrogen,
     .R_E                         = LinearRange(0.000005, 0.000125, 5),                 // {5e-06, 3.5e-05, 6.5e-05, 9.5e-05, 0.000125}
     .P_amb                       = Const(101325.000000),                               // {101325}
      /* ... */
@@ -438,7 +528,7 @@ ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinat
         Const(20000.000000),                                // {20000}
         Const(1.000000)                                     // {1}
     },
-    .excitation_type             = Parameters::excitation::sin_impulse
+    .excitation_type             = Parameters::excitation::sinusoid
 }};
 
 std::cout << parameter_combinator << std::endl;

@@ -224,13 +224,13 @@ SimulationData::SimulationData(const ControlParameters &cpar):
 
 void SimulationData::midprocess(const double t, const double* x)
 {
-    if (x[0] > R_max) R_max = x[0];
-    if (x[2] < T_min) T_min = x[2];
-    if (x[0] < R_min) R_min = x[0];
-    if (x[2] > T_max)
+    if (x[0] * cpar.R_ref < R_min) R_min = x[0] * cpar.R_ref;
+    if (x[0] * cpar.R_ref > R_max) R_max = x[0] * cpar.R_ref;
+    if (x[2] * cpar.T_ref < T_min) T_min = x[2] * cpar.T_ref;
+    if (x[2] * cpar.T_ref > T_max)
     {
-        T_max = x[2];
-        t_peak = t;
+        T_max = x[2] * cpar.T_ref;
+        t_peak = t * cpar.t_ref;
     }
 }
 
@@ -246,7 +246,7 @@ void SimulationData::postprocess()
         LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Dissipated energy is negative: " + std::to_string(dissipated_energy), cpar.ID);
 
 // expansion work [J]
-    const Parameters* par = Parameters::get_parameters(cpar.mechanism);
+    const Parameters* par = cpar.par;
     if (
         par == nullptr ||
         cpar.ratio == 1.0
@@ -290,9 +290,9 @@ void SimulationData::postprocess()
     }
     else
     {
-        const double R_last = 100.0 * sol.x.back()[0];  // [cm]
-        const double V_last = 4.0 / 3.0 * std::numbers::pi * std::pow(R_last, 3); // [cm^3]
-        const double c_target = sol.x.back()[3+cpar.target_specie];  // [mol/cm^3]
+        const double R_last = sol.x.back()[0];  // [m]
+        const double V_last = 4.0 / 3.0 * std::numbers::pi * std::pow(R_last, 3); // [m^3]
+        const double c_target = sol.x.back()[3+cpar.target_specie];  // [mol/m^3]
 
         n_target_specie = c_target * V_last;  // [mol]
     }
@@ -301,7 +301,7 @@ void SimulationData::postprocess()
         LOG_ERROR(Error::severity::warning, Error::type::postprocess, "Target specie concentration is negative: " + std::to_string(n_target_specie), cpar.ID);
 
 // energy demand [MJ/kg]
-    const double m_target = 1.0e-3 * n_target_specie * par->W[cpar.target_specie];  // [kg]
+    const double m_target = n_target_specie * par->W[cpar.target_specie];  // [kg]
     energy_demand = 1.0e-6 * (dissipated_energy + expansion_work) / m_target;  // [MJ/kg]
 
     if (
@@ -407,8 +407,8 @@ std::string SimulationData::to_small_string(const ParameterCombinator &ps, const
         ss << "P_amb=" << format_double << this->cpar.P_amb << " Pa; ";
     if (ps.T_inf->get_num_steps() > 1)
         ss << "T_inf=" << format_double << this->cpar.T_inf << " K; ";
-    if (ps.alfa_M->get_num_steps() > 1)
-        ss << "alfa_M=" << format_double << this->cpar.alfa_M << "; ";
+    if (ps.alpha_M->get_num_steps() > 1)
+        ss << "alpha_M=" << format_double << this->cpar.alpha_M << "; ";
     if (ps.P_v->get_num_steps() > 1)
         ss << "P_v=" << format_double << this->cpar.P_v << " Pa; ";
     if (ps.mu_L->get_num_steps() > 1)
@@ -419,6 +419,10 @@ std::string SimulationData::to_small_string(const ParameterCombinator &ps, const
         ss << "c_L=" << format_double << this->cpar.c_L << " m/s; ";
     if (ps.surfactant->get_num_steps() > 1)
         ss << "surfactant=" << format_double << this->cpar.surfactant << "; ";
+    if (ps.excitation_cycles->get_num_steps() > 1)
+        ss << "excitation_cycles=" << format_double << this->cpar.excitation_cycles << "; ";
+    if (ps.ramp_up_cycles->get_num_steps() > 1)
+        ss << "ramp_up_cycles=" << format_double << this->cpar.ramp_up_cycles << "; ";
 
     std::string excitation_arg_names = Parameters::excitation_arg_names.at(ps.excitation_type);
     std::string excitation_arg_units = Parameters::excitation_arg_units.at(ps.excitation_type);
@@ -491,14 +495,10 @@ nlohmann::ordered_json SimulationData::to_json() const
         }
     });
 
-    const Parameters* par = Parameters::get_parameters(this->cpar.mechanism);
-    if (par == nullptr)
-    {
-        LOG_ERROR("Mechanism " + std::to_string(this->cpar.mechanism) + " is not found.");
-        return j;
-    }
+    const Parameters* par = cpar.par;
+    if (par == nullptr) return j;
     j["mechanism"] = nlohmann::ordered_json::object({
-        {"model", par->model},
+        {"model", par->mechanism_name},
         {"num_species", par->num_species},
         {"num_reactions", par->num_reactions},
         {"species_names", par->species_names}

@@ -12,14 +12,14 @@ const double timeout = 60.0;
 const size_t num_threads = std::thread::hardware_concurrency();
 
 ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinator::Builder{
-    .mechanism                   = Parameters::mechanism::chemkin_ar_he,
+    .mechanism                   = "chemkin_elte2016_hydrogen",
     .R_E                         = LinearRange(0.000005, 0.000125, 20),                // {5e-06, 1.13158e-05, 1.76316e-05, 2.39474e-05, 3.02632e-05, 3.65789e-05, 4.28947e-05, ..., 0.000118684, 0.000125}
     .ratio                       = Const(1.0),                                         // {1}
     .species                     = {"AR"},
     .fractions                   = {1.00000000000000000e+00},
     .P_amb                       = Const(101325.000000),                               // {101325}
     .T_inf                       = Const(293.150000),                                  // {293.15}
-    .alfa_M                      = Const(0.350000),                                    // {0.35}
+    .alpha_M                     = Const(0.350000),                                    // {0.35}
     .P_v                         = Const(2338.100000),                                 // {2338.1}
     .mu_L                        = Const(0.001000),                                    // {0.001}
     .rho_L                       = Const(998.200000),                                  // {998.2}
@@ -29,13 +29,16 @@ ParameterCombinator parameter_combinator = ParameterCombinator{ParameterCombinat
     .enable_evaporation          = true,
     .enable_reactions            = true,
     .enable_dissipated_energy    = true,
+    .enable_van_der_waals        = true,
+    .enable_rate_thresholding    = true,
     .target_specie               = "H2",
+    .excitation_type             = Parameters::excitation::sinusoid,
     .excitation_params           = {
         LinearRange(-100000.000000, -300000.000000, 20),    // {-100000, -110526, -121053, -131579, -142105, -152632, -163158, ..., -289474, -300000}
-        Const(20000.000000),                                // {20000}
-        Const(1.000000)                                     // {1}
+        Const(20000.000000)                                 // {20000}
     },
-    .excitation_type             = Parameters::excitation::sin_impulse
+    .excitation_cycles          = Const(1.000000),                                   // {1}
+    .ramp_up_cycles             = Const(0.000000)                                    // {0}
 }};
 
 

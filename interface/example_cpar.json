@@ -1,7 +1,7 @@
 {    
     "cpar": {
         "ID": 0,
-        "mechanism": "chemkin_ar_he",
+        "mechanism": "chemkin_elte2016_hydrogen",
         "R_E": 10.0e-6,
         "ratio": 1.0,
         "species": [
@@ -12,7 +12,7 @@
         ],
         "P_amb": 101325.0,
         "T_inf": 293.15,
-        "alfa_M": 0.35,
+        "alpha_M": 0.35,
         "P_v": 2338.1,
         "mu_L": 0.001,
         "rho_L": 998.2,
@@ -22,12 +22,15 @@
         "enable_evaporation": true,
         "enable_reactions": true,
         "enable_dissipated_energy": true,
+        "enable_van_der_waals": true,
+        "enable_rate_thresholding": true,
         "target_specie": "H2",
+        "excitation_type": "sinusoid",
         "excitation_params": [
             -200000.0,
-            30000.0,
-            1.0
+            30000.0
         ],
-        "excitation_type": "sin_impulse"
+        "excitation_cycles": 1.0,
+        "ramp_up_cycles": 0.0
     }
 }

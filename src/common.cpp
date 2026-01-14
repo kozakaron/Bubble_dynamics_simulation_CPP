@@ -3,6 +3,7 @@
 #include <sstream>
 #include <type_traits>
 #include <iomanip>
+#include <stdint.h>
 
 #include "common.h"
 
@@ -13,10 +14,13 @@ std::string to_string(T* arr, size_t len)
     ss << "{";
     using ElementType = typename std::decay<decltype(arr[0])>::type;
     bool is_float = std::is_floating_point<ElementType>::value;
+    bool is_bool = std::is_same_v<T, bool>;
     for (size_t i = 0; i < len; ++i)
     {
         if (is_float)
             ss << std::scientific << std::setprecision(std::numeric_limits<ElementType>::max_digits10);
+        if (is_bool)
+            ss << std::boolalpha;
         ss << arr[i];
         if (i < len - 1)
             ss << ", ";
@@ -25,17 +29,17 @@ std::string to_string(T* arr, size_t len)
     return ss.str();
 }
 
+template std::string to_string(bool* arr, size_t len);
 template std::string to_string(float* arr, size_t len);
 template std::string to_string(double* arr, size_t len);
-template std::string to_string(char* arr, size_t len);
-template std::string to_string(short* arr, size_t len);
-template std::string to_string(int* arr, size_t len);
-template std::string to_string(long* arr, size_t len);
-template std::string to_string(long long* arr, size_t len);
-template std::string to_string(unsigned short* arr, size_t len);
-template std::string to_string(unsigned* arr, size_t len);
-template std::string to_string(unsigned long* arr, size_t len);
-template std::string to_string(unsigned long long* arr, size_t len);
+template std::string to_string(int8_t* arr, size_t len);
+template std::string to_string(int16_t* arr, size_t len);
+template std::string to_string(int32_t* arr, size_t len);
+template std::string to_string(int64_t* arr, size_t len);
+template std::string to_string(uint8_t* arr, size_t len);
+template std::string to_string(uint16_t* arr, size_t len);
+template std::string to_string(uint32_t* arr, size_t len);
+template std::string to_string(uint64_t* arr, size_t len);
 template std::string to_string(std::string* arr, size_t len);
 template std::string to_string(char** arr, size_t len);
 
@@ -57,17 +61,17 @@ std::string to_string(T** arr, size_t len1, size_t len2)
     return ss.str();
 }
 
+template std::string to_string(bool** arr, size_t len1, size_t len2);
 template std::string to_string(float** arr, size_t len1, size_t len2);
 template std::string to_string(double** arr, size_t len1, size_t len2);
-template std::string to_string(char** arr, size_t len1, size_t len2);
-template std::string to_string(short** arr, size_t len1, size_t len2);
-template std::string to_string(int** arr, size_t len1, size_t len2);
-template std::string to_string(long** arr, size_t len1, size_t len2);
-template std::string to_string(long long** arr, size_t len1, size_t len2);
-template std::string to_string(unsigned short** arr, size_t len1, size_t len2);
-template std::string to_string(unsigned** arr, size_t len1, size_t len2);
-template std::string to_string(unsigned long** arr, size_t len1, size_t len2);
-template std::string to_string(unsigned long long** arr, size_t len1, size_t len2);
+template std::string to_string(int8_t** arr, size_t len1, size_t len2);
+template std::string to_string(int16_t** arr, size_t len1, size_t len2);
+template std::string to_string(int32_t** arr, size_t len1, size_t len2);
+template std::string to_string(int64_t** arr, size_t len1, size_t len2);
+template std::string to_string(uint8_t** arr, size_t len1, size_t len2);
+template std::string to_string(uint16_t** arr, size_t len1, size_t len2);
+template std::string to_string(uint32_t** arr, size_t len1, size_t len2);
+template std::string to_string(uint64_t** arr, size_t len1, size_t len2);
 template std::string to_string(std::string** arr, size_t len1, size_t len2);
 
 
@@ -98,6 +102,9 @@ std::string Timer::current_time()
     buf = localtime(&in_time_t);
 #endif
     ss << std::put_time(buf, "%Y.%m.%d %X");
+#ifdef _WIN32
+    delete buf;
+#endif
     return ss.str();
 }
 
@@ -242,8 +249,10 @@ size_t ErrorHandler::log_error(const Error &err)
     {
         ErrorHandler::log_file << err.to_string(false) << std::endl;
     }
+    if (err.error_severity != Error::severity::error)
+        return ErrorHandler::no_error;
+
     ErrorHandler::errors.push_back(err);
-    
     return ErrorHandler::errors.size() - 1;
 }
 

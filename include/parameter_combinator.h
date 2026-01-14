@@ -36,7 +36,7 @@ public:
 };
 
 // Represents a constant value. f(x) = c
-// E.g.: .alfa =  Const(0.35);   // alfa = {0.35}
+// E.g.: .alpha =  Const(0.35);   // alpha = {0.35}
 class Const: public Range
 {
 public:
@@ -95,14 +95,14 @@ private:
     std::atomic<size_t> combination_ID;
     size_t total_combination_count;
 
-    Parameters::mechanism mechanism;
+    std::string mechanism;
     std::unique_ptr<Range> R_E;
     std::unique_ptr<Range> ratio;
     std::vector<std::string> species;
     std::vector<double> fractions;
     std::unique_ptr<Range> P_amb;
     std::unique_ptr<Range> T_inf;
-    std::unique_ptr<Range> alfa_M;
+    std::unique_ptr<Range> alpha_M;
     std::unique_ptr<Range> P_v;
     std::unique_ptr<Range> mu_L;
     std::unique_ptr<Range> rho_L;
@@ -112,20 +112,24 @@ private:
     bool enable_evaporation;
     bool enable_reactions;
     bool enable_dissipated_energy;
+    bool enable_van_der_waals;
+    bool enable_rate_thresholding;
     std::string target_specie;
-    std::vector<std::unique_ptr<Range>> excitation_params;
     Parameters::excitation excitation_type;
+    std::vector<std::unique_ptr<Range>> excitation_params;
+    std::unique_ptr<Range> excitation_cycles;
+    std::unique_ptr<Range> ramp_up_cycles;
 public:
     typedef std::variant<Const, LinearRange, LogRange, GeomRange> AnyRange;
     struct Builder {
-        Parameters::mechanism mechanism         = Parameters::mechanism::chemkin_ar_he;
+        std::string mechanism                   = "chemkin_elte2016_hydrogen";
         AnyRange R_E                            = Const(10.0e-6);
         AnyRange ratio                          = Const(1.0);
         std::vector<std::string> species        = {"O2"};
         std::vector<double> fractions           = {1.0};
         AnyRange P_amb                          = Const(101325.0);
         AnyRange T_inf                          = Const(293.15);
-        AnyRange alfa_M                         = Const(0.35);
+        AnyRange alpha_M                        = Const(0.35);
         AnyRange P_v                            = Const(2338.1);
         AnyRange mu_L                           = Const(0.001);
         AnyRange rho_L                          = Const(998.2);
@@ -135,9 +139,13 @@ public:
         bool enable_evaporation                 = true;
         bool enable_reactions                   = true;
         bool enable_dissipated_energy           = true;
+        bool enable_van_der_waals               = true;
+        bool enable_rate_thresholding           = true;
         std::string target_specie               = "H2";
-        std::vector<AnyRange> excitation_params = {Const(-2.0e5), Const(30000.0), Const(1.0)};
-        Parameters::excitation excitation_type  = Parameters::excitation::sin_impulse;
+        Parameters::excitation excitation_type  = Parameters::excitation::sinusoid;
+        std::vector<AnyRange> excitation_params = {Const(-2.0e5), Const(30000.0)};
+        AnyRange excitation_cycles              = Const(1.0);
+        AnyRange ramp_up_cycles                 = Const(0.0);
     };
 
     ParameterCombinator(const Builder &builder);

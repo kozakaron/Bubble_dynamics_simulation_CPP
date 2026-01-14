@@ -22,7 +22,7 @@ function text = print_data(data, print_it)
     text = text + sprintf("  Fractions: %s\n", mat2str(getfield_or_default(cpar, 'fractions', [])));
     text = text + sprintf("  P_amb: %.2f [Pa]\n", getfield_or_default(cpar, 'P_amb', NaN));
     text = text + sprintf("  T_inf: %.2f [K]\n", getfield_or_default(cpar, 'T_inf', NaN));
-    text = text + sprintf("  alfa_M: %.2f [-]\n", getfield_or_default(cpar, 'alfa_M', NaN));
+    text = text + sprintf("  alpha_M: %.2f [-]\n", getfield_or_default(cpar, 'alpha_M', NaN));
     text = text + sprintf("  P_v: %.2f [Pa]\n", getfield_or_default(cpar, 'P_v', NaN));
     text = text + sprintf("  mu_L: %.4f [Pa·s]\n", getfield_or_default(cpar, 'mu_L', NaN));
     text = text + sprintf("  rho_L: %.2f [kg/m³]\n", getfield_or_default(cpar, 'rho_L', NaN));
@@ -32,9 +32,13 @@ function text = print_data(data, print_it)
     text = text + sprintf("  Enable Evaporation: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_evaporation', false)));
     text = text + sprintf("  Enable Reactions: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_reactions', false)));
     text = text + sprintf("  Enable Dissipated Energy: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_dissipated_energy', false)));
+    text = text + sprintf("  Enable Van der Waals: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_van_der_waals', false)));
+    text = text + sprintf("  Enable Rate Thresholding: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_rate_thresholding', false)));
     text = text + sprintf("  Target Specie: %s\n", getfield_or_default(cpar, 'target_specie', 'N/A'));
-    text = text + sprintf("  Excitation Params: %s\n", mat2str(getfield_or_default(cpar, 'excitation_params', [])));
     text = text + sprintf("  Excitation Type: %s\n", getfield_or_default(cpar, 'excitation_type', 'N/A'));
+    text = text + sprintf("  Excitation Params: %s\n", mat2str(getfield_or_default(cpar, 'excitation_params', [])));
+    text = text + sprintf("  Excitation Cycles: %d [-]\n", getfield_or_default(cpar, 'excitation_cycles', NaN));
+    text = text + sprintf("  Ramp Up Cycles: %d [-]\n", getfield_or_default(cpar, 'ramp_up_cycles', NaN));
 
     % Simulation Info
     text = text + sprintf("\nSimulation Info:\n");

@@ -274,7 +274,7 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
     this->fractions =                   builder.fractions;
     this->P_amb =                       get_unique_ptr(builder.P_amb);
     this->T_inf =                       get_unique_ptr(builder.T_inf);
-    this->alfa_M =                      get_unique_ptr(builder.alfa_M);
+    this->alpha_M =                     get_unique_ptr(builder.alpha_M);
     this->P_v =                         get_unique_ptr(builder.P_v);
     this->mu_L =                        get_unique_ptr(builder.mu_L);
     this->rho_L =                       get_unique_ptr(builder.rho_L);
@@ -284,8 +284,12 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
     this->enable_evaporation =          builder.enable_evaporation;
     this->enable_reactions =            builder.enable_reactions;
     this->enable_dissipated_energy =    builder.enable_dissipated_energy;
+    this->enable_van_der_waals =        builder.enable_van_der_waals;
+    this->enable_rate_thresholding =    builder.enable_rate_thresholding;
     this->target_specie =               builder.target_specie;
     this->excitation_type =             builder.excitation_type;
+    this->excitation_cycles =           get_unique_ptr(builder.excitation_cycles);
+    this->ramp_up_cycles =              get_unique_ptr(builder.ramp_up_cycles);
 
     this->excitation_params.reserve(builder.excitation_params.size());
     for (const auto &excitation_param : builder.excitation_params)
@@ -297,12 +301,14 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
     this->total_combination_count *= this->ratio->get_num_steps();
     this->total_combination_count *= this->P_amb->get_num_steps();
     this->total_combination_count *= this->T_inf->get_num_steps();
-    this->total_combination_count *= this->alfa_M->get_num_steps();
+    this->total_combination_count *= this->alpha_M->get_num_steps();
     this->total_combination_count *= this->P_v->get_num_steps();
     this->total_combination_count *= this->mu_L->get_num_steps();
     this->total_combination_count *= this->rho_L->get_num_steps();
     this->total_combination_count *= this->c_L->get_num_steps();
     this->total_combination_count *= this->surfactant->get_num_steps();
+    this->total_combination_count *= this->excitation_cycles->get_num_steps();
+    this->total_combination_count *= this->ramp_up_cycles->get_num_steps();
     for (const auto &excitation_param : this->excitation_params)
     {
         this->total_combination_count *= excitation_param->get_num_steps();
@@ -316,6 +322,7 @@ ParameterCombinator::ParameterCombinator(const ParameterCombinator::Builder &bui
 }
 
 
+// Helper function to parse AnyRange from JSON
 ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinator::AnyRange default_range)
 {
     if (!j.is_object())
@@ -426,6 +433,7 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, ParameterCombinat
 }
 
 
+// Helper function to parse AnyRange from JSON with key
 ParameterCombinator::AnyRange get_range(const ordered_json& j, const std::string &key, ParameterCombinator::AnyRange default_range)
 {
     if (!j.contains(key))
@@ -433,8 +441,7 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, const std::string
         LOG_ERROR(
             Error::severity::warning,
             Error::type::preprocess,
-            "Key \"" + key + "\" not found in JSON object. " + \
-            "Using default value. "
+            "Key \"" + key + "\" not found in JSON object. Using default value."
         );
         return default_range;
     }
@@ -445,33 +452,76 @@ ParameterCombinator::AnyRange get_range(const ordered_json& j, const std::string
 }
 
 
+// Helper function to get value from JSON with type checking
 template<typename T>
 T get_value(const ordered_json& j, const std::string& key, const T& default_value)
 {
-    if constexpr (std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<std::string>>)
+    constexpr bool is_string = std::is_same_v<T, std::string>;
+    constexpr bool is_bool = std::is_same_v<T, bool>;
+    constexpr bool is_float_vector = std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<float>>;
+    constexpr bool is_string_vector = std::is_same_v<T, std::vector<std::string>>;
+
+    // Check if key exists
+    if (!j.contains(key))
     {
-        if (j.contains(key) && !j.at(key).is_array())
+        LOG_ERROR(
+            Error::severity::warning,
+            Error::type::preprocess,
+            "Key \"" + key + "\" not found in JSON object. Using default value. "
+        );
+        return default_value;
+    }
+
+    // Array type checks
+    if ((is_float_vector || is_string_vector) && !j.at(key).is_array())
+    {
+        LOG_ERROR(
+            Error::severity::warning,
+            Error::type::preprocess,
+            "Expected JSON array for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+        );
+        return default_value;
+    }
+
+    for (const auto& element : j.at(key))
+    {
+        std::string message = "";
+        if (is_float_vector && !(element.is_number_float() || element.is_number_integer()))
         {
-            LOG_ERROR(
-                Error::severity::warning,
-                Error::type::preprocess,
-                "Expected JSON array for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
-            );
+            message = "Expected floating point number in array for key \"" + key + "\", instead found " + element.dump() + ". Using default value.";
+        }
+        else if (is_string_vector && !element.is_string())
+        {
+            message = "Expected string in array for key \"" + key + "\", instead found " + element.dump() + ". Using default value.";
+        }
+
+        if (!message.empty())
+        {
+            LOG_ERROR(Error::severity::warning, Error::type::preprocess,message);
             return default_value;
         }
     }
-    
-    if (j.contains(key))
+
+    // Type checks
+    if (is_string && !j.at(key).is_string())
     {
-        return j.at(key).get<T>();
+        LOG_ERROR(
+            Error::severity::warning, Error::type::preprocess,
+            "Expected string for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+        );
+        return default_value;
+    }
+    else if (is_bool && !j.at(key).is_boolean())
+    {
+        LOG_ERROR(
+            Error::severity::warning, Error::type::preprocess,
+            "Expected boolean for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
+        );
+        return default_value;
     }
 
-    LOG_ERROR(
-        Error::severity::warning,
-        Error::type::preprocess,
-        "Key \"" + key + "\" not found in JSON object. Using default value. "
-    );
-    return default_value;
+
+    return j.at(key).get<T>();
 }
 
 
@@ -480,16 +530,14 @@ void ParameterCombinator::init(const ordered_json& j)
     auto builder = ParameterCombinator::Builder{};
     try
     {
-        builder.mechanism = Parameters::string_to_mechanism(
-                                            get_value<std::string>              (j, "mechanism",                Parameters::mechanism_names.at(builder.mechanism))
-        );
+        builder.mechanism =                 get_value<std::string>              (j, "mechanism",                builder.mechanism);
         builder.R_E =                       get_range                           (j, "R_E",                      builder.R_E);
         builder.ratio =                     get_range                           (j, "ratio",                    builder.ratio);
         builder.species =                   get_value<std::vector<std::string>> (j, "species",                  builder.species);
         builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
         builder.P_amb =                     get_range                           (j, "P_amb",                    builder.P_amb);
         builder.T_inf =                     get_range                           (j, "T_inf",                    builder.T_inf);
-        builder.alfa_M =                    get_range                           (j, "alfa_M",                   builder.alfa_M);
+        builder.alpha_M =                   get_range                           (j, "alpha_M",                   builder.alpha_M);
         builder.P_v =                       get_range                           (j, "P_v",                      builder.P_v);
         builder.mu_L =                      get_range                           (j, "mu_L",                     builder.mu_L);
         builder.rho_L =                     get_range                           (j, "rho_L",                    builder.rho_L);
@@ -499,10 +547,14 @@ void ParameterCombinator::init(const ordered_json& j)
         builder.enable_evaporation =        get_value<bool>                     (j, "enable_evaporation",       builder.enable_evaporation);
         builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
         builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
+        builder.enable_van_der_waals =      get_value<bool>                     (j, "enable_van_der_waals",     builder.enable_van_der_waals);
+        builder.enable_rate_thresholding =  get_value<bool>                     (j, "enable_rate_thresholding", builder.enable_rate_thresholding);
         builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
         builder.excitation_type = Parameters::string_to_excitation(
                                             get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
         );
+        builder.excitation_cycles =         get_range                           (j, "excitation_cycles",        builder.excitation_cycles);
+        builder.ramp_up_cycles =            get_range                           (j, "ramp_up_cycles",           builder.ramp_up_cycles);
 
         if (j.contains("excitation_params"))
         {
@@ -636,14 +688,14 @@ std::string ParameterCombinator::to_string(const bool with_code) const
     if (with_code) ss << "ParameterCombinator::Builder{\n";
     ss << std::left;
 
-    ss << format_field_name << ".mechanism" << " = " << ((with_code ? "Parameters::mechanism::" : "") + par->model) << ",\n";
+    ss << format_field_name << ".mechanism" << " = " << ((with_code ? "Parameters::mechanism::" : "") + par->mechanism_name) << ",\n";
     ss << format_field_name << ".R_E" << " = " << format_range(this->R_E.get()) << "\n";
     ss << format_field_name << ".ratio" << " = " << format_range(this->ratio.get()) << "\n";
     ss << format_field_name << ".species" << " = " << ::to_string((std::string*)species_names.data(), species_names.size()) << ",\n";
     ss << format_field_name << ".fractions" << " = " << ::to_string((double*)this->fractions.data(), this->fractions.size()) << ",\n";
     ss << format_field_name << ".P_amb" << " = " << format_range(this->P_amb.get()) << "\n";
     ss << format_field_name << ".T_inf" << " = " << format_range(this->T_inf.get()) << "\n";
-    ss << format_field_name << ".alfa_M" << " = " << format_range(this->alfa_M.get()) << "\n";
+    ss << format_field_name << ".alpha_M" << " = " << format_range(this->alpha_M.get()) << "\n";
     ss << format_field_name << ".P_v" << " = " << format_range(this->P_v.get()) << "\n";
     ss << format_field_name << ".mu_L" << " = " << format_range(this->mu_L.get()) << "\n";
     ss << format_field_name << ".rho_L" << " = " << format_range(this->rho_L.get()) << "\n";
@@ -653,18 +705,19 @@ std::string ParameterCombinator::to_string(const bool with_code) const
     ss << format_field_name << ".enable_evaporation" << " = " << std::boolalpha << this->enable_evaporation << ",\n";
     ss << format_field_name << ".enable_reactions" << " = " << std::boolalpha << this->enable_reactions << ",\n";
     ss << format_field_name << ".enable_dissipated_energy" << " = " << std::boolalpha << this->enable_dissipated_energy << ",\n";
+    ss << format_field_name << ".enable_van_der_waals" << " = " << std::boolalpha << this->enable_van_der_waals << ",\n";
+    ss << format_field_name << ".enable_rate_thresholding" << " = " << std::boolalpha << this->enable_rate_thresholding << ",\n";
     ss << format_field_name << ".target_specie" << " = " << species_to_string(this->target_specie) << ",\n";
-    ss << format_field_name << ".excitation_params" << " = {";
+    ss << format_field_name << ".excitation_type"            << " = " << (with_code ? "Parameters::excitation::" : "") << Parameters::excitation_names[this->excitation_type] << "\n";
+    ss << format_field_name << ".excitation_params" << " = {\n";
     for (size_t i = 0; i < this->excitation_params.size(); ++i)
     {
-        if (i == 0)
-            ss << "\n";
         ss << "        " << format_range(this->excitation_params.at(i).get(), i == this->excitation_params.size() - 1);
         ss << "\n";
     }
-
     ss << "    },\n";
-    ss << format_field_name << ".excitation_type"            << " = " << (with_code ? "Parameters::excitation::" : "") << Parameters::excitation_names[this->excitation_type] << "\n";
+    ss << format_field_name << ".excitation_cycles" << " = " << format_range(this->excitation_cycles.get()) << "\n";
+    ss << format_field_name << ".ramp_up_cycles" << " = " << format_range(this->ramp_up_cycles.get(), true) << "\n";
 
     if (with_code) ss << "}";
     ss << std::right;
@@ -676,14 +729,14 @@ ordered_json ParameterCombinator::to_json() const
 {
     ordered_json j;
 
-    j["mechanism"] = Parameters::mechanism_names.at(this->mechanism);
+    j["mechanism"] = this->mechanism;
     j["R_E"] = this->R_E->to_json();
     j["ratio"] = this->ratio->to_json();
     j["species"] = this->species;
     j["fractions"] = this->fractions;
     j["P_amb"] = this->P_amb->to_json();
     j["T_inf"] = this->T_inf->to_json();
-    j["alfa_M"] = this->alfa_M->to_json();
+    j["alpha_M"] = this->alpha_M->to_json();
     j["P_v"] = this->P_v->to_json();
     j["mu_L"] = this->mu_L->to_json();
     j["rho_L"] = this->rho_L->to_json();
@@ -693,13 +746,17 @@ ordered_json ParameterCombinator::to_json() const
     j["enable_evaporation"] = this->enable_evaporation;
     j["enable_reactions"] = this->enable_reactions;
     j["enable_dissipated_energy"] = this->enable_dissipated_energy;
+    j["enable_van_der_waals"] = this->enable_van_der_waals;
+    j["enable_rate_thresholding"] = this->enable_rate_thresholding;
     j["target_specie"] = this->target_specie;
+    j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
     j["excitation_params"] = ordered_json::array();
     for (const auto& excitation_param : this->excitation_params)
     {
         j["excitation_params"].push_back(excitation_param->to_json());
     }
-    j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
+    j["excitation_cycles"] = this->excitation_cycles->to_json();
+    j["ramp_up_cycles"] = this->ramp_up_cycles->to_json();
 
     return {{"parameter_study", j}};
 }
@@ -750,7 +807,7 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         .fractions = this->fractions,
         .P_amb = get_value(this->P_amb),
         .T_inf = get_value(this->T_inf),
-        .alfa_M = get_value(this->alfa_M),
+        .alpha_M = get_value(this->alpha_M),
         .P_v = get_value(this->P_v),
         .mu_L = get_value(this->mu_L),
         .rho_L = get_value(this->rho_L),
@@ -760,9 +817,13 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         .enable_evaporation = this->enable_evaporation,
         .enable_reactions = this->enable_reactions,
         .enable_dissipated_energy = this->enable_dissipated_energy,
+        .enable_van_der_waals = this->enable_van_der_waals,
+        .enable_rate_thresholding = this->enable_rate_thresholding,
         .target_specie = this->target_specie,
+        .excitation_type = this->excitation_type,
         .excitation_params = excitation_values,
-        .excitation_type = this->excitation_type
+        .excitation_cycles = get_value(this->excitation_cycles),
+        .ramp_up_cycles = get_value(this->ramp_up_cycles)
     }};
 
     is_success success = combination_ID < this->total_combination_count;
@@ -776,7 +837,7 @@ const Parameters* ParameterCombinator::get_mechanism_parameters() const
     const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
     {
-        LOG_ERROR("Mechanism " + std::to_string(this->mechanism) + " is not found.");
+        LOG_ERROR("Mechanism " + this->mechanism + " is not found.");
     }
     return par;
 }

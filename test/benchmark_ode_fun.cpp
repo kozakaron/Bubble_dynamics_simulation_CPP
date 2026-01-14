@@ -6,6 +6,8 @@
 #include "ode_fun.h"
 #include "test_list.h"
 
+NO_OPTIMIZATION
+
 // WARNING: THe correctness of the input values are not guaranteed.
 void benchmark_ode_fun()
 {
@@ -13,18 +15,18 @@ void benchmark_ode_fun()
     {
     // Set up control parameters
         OdeFun ode = OdeFun();
-        const Parameters *par = Parameters::get_parameters(Parameters::mechanism::chemkin_otomo2018);
+        const Parameters *par = Parameters::get_parameters("chemkin_otomo2018_ammonia");
         (void)par;
         ControlParameters cpar{ControlParameters::Builder{
             .ID                          = 0,
-            .mechanism                   = Parameters::mechanism::chemkin_otomo2018,
+            .mechanism                   = "chemkin_otomo2018_ammonia",
             .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
             .ratio                       = 1.50000000000000000e+00,    // R_0/R_E for unforced oscillations [-]
             .species                     = {"H2", "N2"},
             .fractions                   = {7.50000000000000000e-01, 2.50000000000000000e-01},
             .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]
             .T_inf                       = 2.93149999999999977e+02,    // ambient temperature [K]
-            .alfa_M                      = 3.49999999999999978e-01,    // water accommodation coefficient [-]
+            .alpha_M                     = 3.49999999999999978e-01,    // water accommodation coefficient [-]
             .P_v                         = 2.33809999999999991e+03,    // vapour pressure [Pa]
             .mu_L                        = 1.00000000000000002e-03,    // dynamic viscosity [Pa*s]
             .rho_L                       = 9.98200000000000045e+02,    // liquid density [kg/m^3]
@@ -34,15 +36,19 @@ void benchmark_ode_fun()
             .enable_evaporation          = true,
             .enable_reactions            = true,
             .enable_dissipated_energy    = true,
+            .enable_van_der_waals        = true,
+            .enable_rate_thresholding    = true,
             .target_specie               = "NH3",
-            .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04, 1.00000000000000000e+00},
-            .excitation_type             = Parameters::excitation::sin_impulse
+            .excitation_type             = Parameters::excitation::sinusoid,
+            .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04},
+            .excitation_cycles           = 1.00000000000000000e+00,
+            .ramp_up_cycles              = 0.00000000000000000e+00
         }};
 
         (void)ode.init(cpar);
 
-    // Setup inputs
-        const double t = 2.5275786980147761e-05;
+    // Setup inputs (dimensional)
+        double t = 2.5275786980147761e-05;
         std::array<double, 32+4> x = {
             4.35062207e-07, 4.87202821e+00, 4.06585821e+03, 3.04892226e-06,
             3.05074849e-04, 4.22341571e-01, 5.15008532e-07, 2.01019027e-03,
@@ -54,14 +60,13 @@ void benchmark_ode_fun()
             7.70016174e-06, 4.84341261e-05, 2.50989113e-05, 2.41829246e-06,
             0.00000000e+00, 0.00000000e+00, 1.40656155e-01, 1.14395306e-06
         };
-        std::array<double, 32+4> dxdt;
         const double T = x[2];
 
-    // pressure()
+    // pressures_excitation()
         const double p = 115718.99999999997;
         const double p_dot = 1.4057234685268682e-05;
         std::pair<double, double> result_pressure;
-        BENCHMARK_LINE(result_pressure = ode.pressures(t, x[0], x[1], p, p_dot);, 1000000);
+        BENCHMARK_LINE(result_pressure = ode.pressures_excitation(t, x[0], x[1], p, p_dot);, 1000000);
 
     // thermodynamic()
         BENCHMARK_LINE(ode.thermodynamic(T);, 100000);
@@ -71,25 +76,43 @@ void benchmark_ode_fun()
         const double X_H2O = 3.2315225982636570e-01;
         BENCHMARK_LINE(result_evap = ode.evaporation(p, T, X_H2O);, 1000000);
 
-    // forward_rate()
+    // internal_pressure()
         double M = 0.8363084533423445;
-        std::array<double, 23> M_eff = {4.44204225, 4.44204225, 4.44204225, 1.55048452, 4.77157568,
+        double result_p;
+        BENCHMARK_LINE(result_p = ode.internal_pressure(T, M, x.data()+3);, 100000);
+        (void)result_p;
+
+    // internal_pressure_derivative()
+        double result_p_dot;
+        std::array<double, 32+4> dxdt;
+        BENCHMARK_LINE(result_p_dot = ode.internal_pressure_derivative(T, 0.0, M, 0.0, x.data()+3, dxdt.data()+3);, 100000);
+        (void)result_p_dot;
+
+    // forward_rate()
+        std::array<double, 26> M_eff = {4.44204225, 4.44204225, 4.44204225, 1.55048452, 4.77157568,
         3.80254336, 0.83630845, 0.83630845, 3.26860315, 3.26860315,
         0.83630845, 3.26860315, 0.92062359, 0.83630845, 0.83630845,
         0.83630845, 0.83630845, 0.83630845, 0.83630845, 3.90748095,
-        0.83630845, 0.83630845, 0.83630845};
+        0.83630845, 0.83630845, 0.83630845, 0.83630845, 0.83630845,
+        0.83630845};
         std::copy(M_eff.begin(), M_eff.end(), ode.M_eff);
         
-        BENCHMARK_LINE(ode.forward_rate(T, M, p, 1e30);, 100000);
+        BENCHMARK_LINE(ode.forward_rate(T, M, p);, 100000);
 
     // backward_rate()
-        BENCHMARK_LINE(ode.backward_rate(T, 1e30);, 10000);
+        BENCHMARK_LINE(ode.backward_rate(T);, 10000);
 
     // production_rate()
-        BENCHMARK_LINE(ode.production_rate(T, p, M, x.data()+3);, 10000);
+        BENCHMARK_LINE(ode.production_rate(T, M, p, x.data()+3);, 10000);
 
-    // operator()
-        BENCHMARK_LINE(ode(t, x.data(), dxdt.data());, 10000);
+    // operator() - need to convert to dimensionless first
+        {
+            std::array<double, 32+4> x_dimless = x;
+            std::array<double, 32+4> dxdt_dimless;
+            double t_dimless = t;
+            cpar.nondimensionalize(t_dimless, x_dimless.data());
+            BENCHMARK_LINE(ode(t_dimless, x_dimless.data(), dxdt_dimless.data());, 10000);
+        }
     }
 
     std::cout << colors::bold << "OdeFun() with chemkin_ar_he (12 species, 30 reactions)" << colors::reset << std::endl;
@@ -97,19 +120,19 @@ void benchmark_ode_fun()
 // Set up control parameters
         OdeFun ode = OdeFun();
         ControlParameters cpar;
-        const Parameters *par = Parameters::get_parameters(Parameters::mechanism::chemkin_otomo2018);
-
+        const Parameters *par = Parameters::get_parameters("chemkin_elte2016_hydrogen");
+        
         cpar.ID = 0;
-        cpar.mechanism = Parameters::mechanism::chemkin_ar_he;
+        cpar.set_mechanism("chemkin_elte2016_hydrogen");
         // Initial conditions:
         cpar.R_E = 10e-6;
         cpar.ratio = 1.0;
-        cpar.set_species({par->get_species("O2")}, {1.0});
+        cpar.set_species({"O2"}, {1.0});
         // Ambient parameters:
         cpar.P_amb = 101325.0;
         cpar.T_inf = 293.15;
         // Liquid parameters:
-        cpar.alfa_M = 0.35;
+        cpar.alpha_M = 0.35;
         cpar.P_v = 2338.1;
         cpar.mu_L = 0.001;
         cpar.rho_L = 998.2;
@@ -120,15 +143,18 @@ void benchmark_ode_fun()
         cpar.enable_evaporation = true;
         cpar.enable_reactions = true;
         cpar.enable_dissipated_energy = true;
-        cpar.target_specie = par->get_species("NH3");
+        cpar.enable_van_der_waals = true;
+        cpar.enable_rate_thresholding = true;
+        cpar.target_specie = par->get_species("H2");
         // Excitation parameters:
-        cpar.set_excitation_params({-2.0e5, 30000.0, 1.0});
-        cpar.excitation_type = Parameters::excitation::sin_impulse;
-
+        cpar.excitation_type = Parameters::excitation::sinusoid;
+        cpar.set_excitation_params({-2.0e5, 30000.0});
+        cpar.excitation_cycles = 1.0;
+        cpar.ramp_up_cycles = 0.0;
         (void)ode.init(cpar);
 
-    // Setup inputs
-        const double t = 2.5255799280947053e-05;
+    // Setup inputs (dimensional)
+        double t = 2.5255799280947053e-05;
         std::array<double, 12+4> x = {
             4.1866326662121154e-07, -1.0806071026205871e-02,  3.7345808358390459e+03,  2.6193400419650303e-05,  2.2272784074252325e-04,
             1.2216575395711056e-03,  6.1721264294022393e-01,  1.9348243023154722e-02,  2.9559164582684627e-01,  0.0000000000000000e+00,
@@ -138,11 +164,11 @@ void benchmark_ode_fun()
         std::array<double, 12+4> dxdt;
         const double T = x[2];
 
-    // pressure()
+    // pressures_excitation()
         const double p = 115718.99999999997;
         const double p_dot = 1.4057234685268682e-05;
         std::pair<double, double> result_pressure;
-        BENCHMARK_LINE(result_pressure = ode.pressures(t, x[0], x[1], p, p_dot);, 1000000);
+        BENCHMARK_LINE(result_pressure = ode.pressures_excitation(t, x[0], x[1], p, p_dot);, 1000000);
 
     // thermodynamic()
         BENCHMARK_LINE(ode.thermodynamic(T);, 100000);
@@ -152,24 +178,40 @@ void benchmark_ode_fun()
         const double X_H2O = 3.2315225982636570e-01;
         BENCHMARK_LINE(result_evap = ode.evaporation(p, T, X_H2O);, 1000000);
 
-    // forward_rate()
+    // internal_pressure()
         double M = 0.8363084533423445;
+        double result_p;
+        BENCHMARK_LINE(result_p = ode.internal_pressure(T, M, x.data()+3);, 100000);
+        (void)result_p;
+
+    // internal_pressure_derivative()
+        double result_p_dot;
+        BENCHMARK_LINE(result_p_dot = ode.internal_pressure_derivative(T, 0.0, M, 0.0, x.data()+3, dxdt.data()+3);, 100000);
+        (void)result_p_dot;
+
+    // forward_rate()
         std::array<double, 7> M_eff = {
             4.202460954083506 , 4.202460954083506 , 4.202460954083506 , 4.202460954083506 , 4.016609122669752,
             2.0327918805035803, 2.2060452245106026
         };
         std::copy(M_eff.begin(), M_eff.end(), ode.M_eff);
         
-        BENCHMARK_LINE(ode.forward_rate(T, M, p, 1e30);, 100000);
+        BENCHMARK_LINE(ode.forward_rate(T, M, p);, 100000);
 
     // backward_rate()
-        BENCHMARK_LINE(ode.backward_rate(T, 1e30);, 10000);
+        BENCHMARK_LINE(ode.backward_rate(T);, 10000);
 
     // production_rate()
-        BENCHMARK_LINE(ode.production_rate(T, p, M, x.data()+3);, 10000);
+        BENCHMARK_LINE(ode.production_rate(T, M, p, x.data()+3);, 10000);
 
-    // operator()
-        BENCHMARK_LINE(ode(t, x.data(), dxdt.data());, 10000);
+    // operator() - need to convert to dimensionless first
+        {
+            std::array<double, 12+4> x_dimless = x;
+            std::array<double, 12+4> dxdt_dimless;
+            double t_dimless = t;
+            cpar.nondimensionalize(t_dimless, x_dimless.data());
+            BENCHMARK_LINE(ode(t_dimless, x_dimless.data(), dxdt_dimless.data());, 10000);
+        }
     }
 }
 

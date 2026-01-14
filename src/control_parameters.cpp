@@ -2,7 +2,9 @@
 #include <sstream>
 #include <fstream>
 #include <numeric>
+#include <numbers>
 #include <iomanip>
+#include <stdint.h>
 
 #include "nlohmann/json.hpp"
 #include "common.h"
@@ -14,8 +16,8 @@ using ordered_json = nlohmann::ordered_json;
 
 ControlParameters::ControlParameters()
 {
-    ControlParameters::Builder builder; // with default values
-    this->init(builder);
+    this->par = nullptr;
+    this->excitation_type = Parameters::excitation::no_excitation;
 }
 
 
@@ -25,33 +27,82 @@ ControlParameters::ControlParameters(const Builder& builder)
 }
 
 
+// Helper function to get value from JSON with type checking
 template<typename T>
 T get_value(const ordered_json& j, const std::string& key, const T& default_value)
 {
-    if constexpr (std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<std::string>>)
+    constexpr bool is_floating_point = std::is_same_v<T, double> || std::is_same_v<T, float>;
+    constexpr bool is_integer = std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
+                                std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t>;
+    constexpr bool is_string = std::is_same_v<T, std::string>;
+    constexpr bool is_bool = std::is_same_v<T, bool>;
+    constexpr bool is_float_vector = std::is_same_v<T, std::vector<double>> || std::is_same_v<T, std::vector<float>>;
+    constexpr bool is_string_vector = std::is_same_v<T, std::vector<std::string>>;
+
+    // check existence
+    if (!j.contains(key))
     {
-        if (j.contains(key) && !j.at(key).is_array())
+        LOG_ERROR(
+            Error::severity::warning, Error::type::preprocess,
+            "Key \"" + key + "\" not found in JSON object. Using default value. ");
+        return default_value;
+    }
+
+    // check type
+    std::string message = "";
+    if (is_floating_point && !(j.at(key).is_number_float() || j.at(key).is_number_integer()) )
+    {
+        message = "Expected floating point number for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value.";
+    }
+    else if (is_integer && !j.at(key).is_number_integer())
+    {
+        message = "Expected integer number for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value.";
+    }
+    else if (is_string && !j.at(key).is_string())
+    {
+        message = "Expected string for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value.";
+    }
+    else if (is_bool && !j.at(key).is_boolean())
+    {
+        message = "Expected boolean for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value.";
+    }
+    else if ((is_float_vector || is_string_vector) && !j.at(key).is_array())
+    {
+        message = "Expected JSON array for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value.";
+    }
+
+    if (!message.empty())
+    {
+        LOG_ERROR(Error::severity::warning, Error::type::preprocess,message);
+        return default_value;
+    }
+
+    // check element types for vectors
+    if (is_float_vector || is_string_vector)
+    {
+        for (const auto& element : j.at(key))
         {
-            LOG_ERROR(
-                Error::severity::warning,
-                Error::type::preprocess,
-                "Expected JSON array for key \"" + key + "\", instead found " + j.at(key).dump() + ". Using default value."
-            );
-            return default_value;
+            if (is_float_vector && !(element.is_number_float() || element.is_number_integer()))
+            {
+                LOG_ERROR(
+                    Error::severity::warning, Error::type::preprocess,
+                    "Expected floating point number in array for key \"" + key + "\", instead found " + element.dump() + ". Using default value."
+                );
+                return default_value;
+            }
+            else if (is_string_vector && !element.is_string())
+            {
+                LOG_ERROR(
+                    Error::severity::warning, Error::type::preprocess,
+                    "Expected string in array for key \"" + key + "\", instead found " + element.dump() + ". Using default value."
+                );
+                return default_value;
+            }
         }
     }
 
-    if (j.contains(key))
-    {
-        return j.at(key).get<T>();
-    }
-
-    LOG_ERROR(
-        Error::severity::warning,
-        Error::type::preprocess,
-        "Key \"" + key + "\" not found in JSON object. Using default value. "
-    );
-    return default_value;
+    // get element
+    return j.at(key).get<T>();
 }
 
 
@@ -61,16 +112,14 @@ ControlParameters::ControlParameters(const ordered_json& j)
     try
     {
         builder.ID =                        get_value<size_t>                   (j, "ID",                       builder.ID);
-        builder.mechanism = Parameters::string_to_mechanism(
-                                            get_value<std::string>              (j, "mechanism",                Parameters::mechanism_names.at(builder.mechanism))
-        );
+        builder.mechanism =                 get_value<std::string>              (j, "mechanism",                builder.mechanism);
         builder.R_E =                       get_value<double>                   (j, "R_E",                      builder.R_E);
         builder.ratio =                     get_value<double>                   (j, "ratio",                    builder.ratio);
         builder.species =                   get_value<std::vector<std::string>> (j, "species",                  builder.species);
         builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
         builder.P_amb =                     get_value<double>                   (j, "P_amb",                    builder.P_amb);
         builder.T_inf =                     get_value<double>                   (j, "T_inf",                    builder.T_inf);
-        builder.alfa_M =                    get_value<double>                   (j, "alfa_M",                   builder.alfa_M);
+        builder.alpha_M =                   get_value<double>                   (j, "alpha_M",                  builder.alpha_M);
         builder.P_v =                       get_value<double>                   (j, "P_v",                      builder.P_v);
         builder.mu_L =                      get_value<double>                   (j, "mu_L",                     builder.mu_L);
         builder.rho_L =                     get_value<double>                   (j, "rho_L",                    builder.rho_L);
@@ -80,11 +129,15 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.enable_evaporation =        get_value<bool>                     (j, "enable_evaporation",       builder.enable_evaporation);
         builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
         builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
+        builder.enable_van_der_waals =      get_value<bool>                     (j, "enable_van_der_waals",     builder.enable_van_der_waals);
+        builder.enable_rate_thresholding =  get_value<bool>                     (j, "enable_rate_thresholding", builder.enable_rate_thresholding);
         builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
-        builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params);
         builder.excitation_type = Parameters::string_to_excitation(
                                             get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
         );
+        builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params);
+        builder.excitation_cycles =         get_value<double>                   (j, "excitation_cycles",        builder.excitation_cycles);
+        builder.ramp_up_cycles =            get_value<double>                   (j, "ramp_up_cycles",           builder.ramp_up_cycles);
     }
     catch(const std::exception& e)
     {
@@ -150,21 +203,14 @@ ControlParameters::ControlParameters(const std::string& json_path)
 
 void ControlParameters::init(const ControlParameters::Builder& builder)
 {
-    const Parameters* par = Parameters::get_parameters(builder.mechanism);
-    if (par == nullptr)
-    {
-        std::string message = "Invalid mechanism: " + std::to_string(builder.mechanism);
-        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, builder.ID);
-        return;
-    }
     this->ID = builder.ID;
-    this->mechanism = builder.mechanism;
     this->error_ID = builder.error_ID;
+    this->set_mechanism(builder.mechanism);
     this->R_E = builder.R_E;
     this->ratio = builder.ratio;
     this->P_amb = builder.P_amb;
     this->T_inf = builder.T_inf;
-    this->alfa_M = builder.alfa_M;
+    this->alpha_M = builder.alpha_M;
     this->P_v = builder.P_v;
     this->mu_L = builder.mu_L;
     this->rho_L = builder.rho_L;
@@ -174,47 +220,61 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->enable_evaporation = builder.enable_evaporation;
     this->enable_reactions = builder.enable_reactions;
     this->enable_dissipated_energy = builder.enable_dissipated_energy;
+    this->enable_van_der_waals = builder.enable_van_der_waals;
+    this->enable_rate_thresholding = builder.enable_rate_thresholding;
     this->target_specie = par->get_species(builder.target_specie);
     this->excitation_type = builder.excitation_type;
+    this->excitation_cycles = builder.excitation_cycles;
+    this->ramp_up_cycles = builder.ramp_up_cycles;
 
     if (this->target_specie == par->invalid_index)
     {
-        std::string message = "Invalid target specie (" + builder.target_specie + ") for mechanism " + par->model;
+        std::string message = "Invalid target specie (" + builder.target_specie + ") for mechanism " + par->mechanism_name;
         this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
         return;
     }
     this->num_initial_species = 0;
     this->set_species(std::vector<std::string>(builder.species), std::vector<double>(builder.fractions));
     this->set_excitation_params(std::vector<double>(builder.excitation_params));
+
+    // Set reference values
+    const double p_E = this->P_amb + 2.0 * this->surfactant * par->sigma / this->R_E;   // [Pa]
+    const double V_E = 4.0 / 3.0 * std::numbers::pi * this->R_E * this->R_E * this->R_E;    // [m^3]
+    const double n_tot = p_E * V_E / (par->R_g * this->T_inf);    // [mol]
+
+    this->R_ref = this->R_E;
+    this->T_ref = this->T_inf;
+    this->E_diss_ref = 1.0;
+    this->n_ref = n_tot;
 }
 
 
 ControlParameters::~ControlParameters() { }
 
 
+void ControlParameters::set_mechanism(const std::string& mechanism_name)
+{
+    const Parameters* par = Parameters::get_parameters(mechanism_name);
+    if (par == nullptr) return;
+    this->par = par;
+}
+
+
 void ControlParameters::set_species(const std::vector<std::string> species_list, const std::vector<double> fractions_list)
 {
-    const Parameters* par = Parameters::get_parameters(this->mechanism);
-    if (par == nullptr)
-    {
-        std::string message = "Invalid mechanism: " + std::to_string(this->mechanism);
-        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
-        return;
-    }
-
     std::vector<index_t> species; species.reserve(species_list.size());
     for (const auto& species_name: species_list)
     {
         index_t index = par->get_species(species_name);
         if (index == par->invalid_index)
         {
-            std::string message = "Invalid species (" + species_name + ") for mechanism " + par->model;
+            std::string message = "Invalid species (" + species_name + ") for mechanism " + par->mechanism_name;
             this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
             return;
         }
         else if (index >= par->num_species)
         {
-            std::string message = "Species index " + std::to_string(index) + " out of bound for mechanism " + par->model;
+            std::string message = "Species index " + std::to_string(index) + " out of bound for mechanism " + par->mechanism_name;
             this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
             return;
         }
@@ -227,23 +287,16 @@ void ControlParameters::set_species(const std::vector<std::string> species_list,
 
 void ControlParameters::set_species(const std::vector<index_t>& species_list, const std::vector<double>& fractions_list)
 {
-    const Parameters* par = Parameters::get_parameters(this->mechanism);
-    if (par == nullptr)
-    {
-        std::string message = "Invalid mechanism: " + std::to_string(this->mechanism);
-        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
-        return;
-    }
     for (const auto& species: species_list)
         if (species == par->invalid_index)
         {
-            std::string message = "Invalid species (" + std::to_string(species) + ") for mechanism " + par->model;
+            std::string message = "Invalid species (" + std::to_string(species) + ") for mechanism " + par->mechanism_name;
             this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
             return;
         }
         else if (species >= par->num_species)
         {
-            std::string message = "Species index " + std::to_string(species) + " out of bound for mechanism " + par->model;
+            std::string message = "Species index " + std::to_string(species) + " out of bound for mechanism " + par->mechanism_name;
             this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, message, this->ID);
             return;
         }
@@ -289,6 +342,7 @@ void ControlParameters::set_species(const std::initializer_list<std::string>& sp
     this->set_species(std::vector<std::string>(species_list), std::vector<double>(fractions_list));
 }
 
+
 void ControlParameters::set_species(const std::initializer_list<index_t>& species_list, const std::initializer_list<double>& fractions_list)
 {
     this->set_species(std::vector<index_t>(species_list), std::vector<double>(fractions_list));
@@ -299,6 +353,7 @@ void ControlParameters::set_excitation_params(const std::initializer_list<double
 {
     this->set_excitation_params(std::vector<double>(params_list));
 }
+
 
 void ControlParameters::set_excitation_params(const std::vector<double>& params_list)
 {
@@ -323,28 +378,29 @@ std::string ControlParameters::to_csv() const
     auto format_double = [](std::ostream& os) -> std::ostream& {
         return os << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10);
     };
-    const Parameters* par = Parameters::get_parameters(this->mechanism);
     if (par == nullptr)
     {
-        return ",,,,,,,,,,,,,,,,,,,";
+        return ",,,,,,,,,,,,,,,,,,,,,,,,";
     }
 
-    ss << this->ID << "," << par->model << "," << format_double << this->R_E << "," << format_double << this->ratio << ",";
+    ss << this->ID << "," << par->mechanism_name << "," << format_double << this->R_E << "," << format_double << this->ratio << ",";
     for (size_t index = 0; index < this->num_initial_species; ++index)
         ss << par->species_names[this->species[index]] << ";";
     ss << ",";
     for (size_t index = 0; index < this->num_initial_species; ++index)
         ss << format_double << this->fractions[index] << ";";
     ss << "," << format_double << this->P_amb << "," << format_double << this->T_inf << ",";
-    ss << format_double << this->alfa_M << "," << format_double << this->P_v << ",";
+    ss << format_double << this->alpha_M << "," << format_double << this->P_v << ",";
     ss << format_double << this->mu_L << "," << format_double << this->rho_L << ",";
     ss << format_double << this->c_L << "," << format_double << this->surfactant << ",";
     ss << std::boolalpha << this->enable_heat_transfer << "," << std::boolalpha << this->enable_evaporation << ",";
     ss << std::boolalpha << this->enable_reactions << "," << std::boolalpha << this->enable_dissipated_energy << ",";
+    ss << std::boolalpha << this->enable_van_der_waals << "," << std::boolalpha << this->enable_rate_thresholding << ",";
     ss << par->species_names[this->target_specie] << ",";
+    ss << Parameters::excitation_names[this->excitation_type] << ",";
     for (size_t index = 0; index < Parameters::excitation_arg_nums[this->excitation_type]; ++index)
         ss << format_double << this->excitation_params[index] << ";";
-    ss << "," << Parameters::excitation_names[this->excitation_type];
+    ss << "," << format_double << this->excitation_cycles << "," << format_double << this->ramp_up_cycles;
 
     return ss.str();
 }
@@ -352,12 +408,7 @@ std::string ControlParameters::to_csv() const
 
 std::string ControlParameters::to_string(const bool with_code) const
 {
-    const Parameters* par = Parameters::get_parameters(this->mechanism);
-    if (par == nullptr)
-    {
-        LOG_ERROR(Error::severity::error, Error::type::preprocess, "Invalid mechanism: " + std::to_string((int)this->mechanism), this->ID);
-        return "";
-    }
+    if (par == nullptr) return "Invalid mechanism name. ";
 
     std::stringstream ss;
     const size_t strw = 28;
@@ -366,9 +417,15 @@ std::string ControlParameters::to_string(const bool with_code) const
     auto format_double = [](std::ostream& os) -> std::ostream& {
         return os << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10);
     };
-    auto species_to_string = [&par, &with_code](const index_t species) -> std::string {
-        if (with_code) return "\"" + par->species_names[species] + "\"";
-        else return par->species_names[species];
+    auto species_to_string = [this, &with_code](const index_t species) -> std::string {
+        if (species == this->par->invalid_index || species >= this->par->num_species)
+        {
+            if (with_code) return "\"X\"";
+            else return "X";
+        }
+
+        if (with_code) return "\"" + this->par->species_names[species] + "\"";
+        else return this->par->species_names[species];
     };
     std::vector<std::string> species_names;
     species_names.reserve(this->num_initial_species);
@@ -379,14 +436,14 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << std::left;
     
     ss << format_string << ".ID"                         << " = " << this->ID << ",\n";
-    ss << format_string << ".mechanism"                  << " = " << (with_code ? "Parameters::mechanism::" : "") << par->model << ",\n";
+    ss << format_string << ".mechanism"                  << " = " << "\"" << par->mechanism_name << "\",\n";
     ss << format_string << ".R_E"                        << " = " << format_double << this->R_E                       << ",    // bubble equilibrium radius [m]\n";
     ss << format_string << ".ratio"                      << " = " << format_double << this->ratio                     << ",    // R_0/R_E for unforced oscillations [-]\n";
     ss << format_string << ".species"                    << " = " << ::to_string((std::string*)species_names.data(), this->num_initial_species)   << ",\n";
     ss << format_string << ".fractions"                  << " = " << ::to_string((double*)this->fractions, this->num_initial_species) << ",\n";
     ss << format_string << ".P_amb"                      << " = " << format_double << this->P_amb                     << ",    // ambient pressure [Pa]\n";
     ss << format_string << ".T_inf"                      << " = " << format_double << this->T_inf                     << ",    // ambient temperature [K]\n";
-    ss << format_string << ".alfa_M"                     << " = " << format_double << this->alfa_M                    << ",    // water accommodation coefficient [-]\n";
+    ss << format_string << ".alpha_M"                    << " = " << format_double << this->alpha_M                   << ",    // water accommodation coefficient [-]\n";
     ss << format_string << ".P_v"                        << " = " << format_double << this->P_v                       << ",    // vapour pressure [Pa]\n";
     ss << format_string << ".mu_L"                       << " = " << format_double << this->mu_L                      << ",    // dynamic viscosity [Pa*s]\n";
     ss << format_string << ".rho_L"                      << " = " << format_double << this->rho_L                     << ",    // liquid density [kg/m^3]\n";
@@ -396,9 +453,13 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << format_string << ".enable_evaporation"         << " = " << format_bool   << this->enable_evaporation        << ",\n";
     ss << format_string << ".enable_reactions"           << " = " << format_bool   << this->enable_reactions          << ",\n";
     ss << format_string << ".enable_dissipated_energy"   << " = " << format_bool   << this->enable_dissipated_energy  << ",\n";
+    ss << format_string << ".enable_van_der_waals"       << " = " << format_bool   << this->enable_van_der_waals      << ",\n";
+    ss << format_string << ".enable_rate_thresholding"   << " = " << format_bool   << this->enable_rate_thresholding  << ",\n";
     ss << format_string << ".target_specie"              << " = " << species_to_string(this->target_specie)           << ",\n";
-    ss << format_string << ".excitation_params"          << " = " << ::to_string((double*)this->excitation_params, Parameters::excitation_arg_nums[this->excitation_type]) << ",\n";
     ss << format_string << ".excitation_type"            << " = " << (with_code ? "Parameters::excitation::" : "") << Parameters::excitation_names[this->excitation_type] << "\n";
+    ss << format_string << ".excitation_params"          << " = " << ::to_string((double*)this->excitation_params, Parameters::excitation_arg_nums[this->excitation_type]) << ",\n";
+    ss << format_string << ".excitation_cycles"          << " = " << format_double << this->excitation_cycles         << ",    // number of excitation cycles [-]\n";
+    ss << format_string << ".ramp_up_cycles"             << " = " << format_double << this->ramp_up_cycles            << "     // number of ramp-up cycles until full amplitude is reached [-]\n";
 
     if (with_code) ss << "}";
     ss << std::right;
@@ -409,12 +470,7 @@ std::string ControlParameters::to_string(const bool with_code) const
 ordered_json ControlParameters::to_json() const
 {
     ordered_json j;
-    const Parameters* par = Parameters::get_parameters(this->mechanism);
-    if (par == nullptr)
-    {
-        LOG_ERROR("Invalid mechanism: " + std::to_string((int)this->mechanism), this->ID);
-        return j;
-    }
+    if (par == nullptr) return j;
     std::vector<std::string> species_names;
     for (size_t index = 0; index < this->num_initial_species; ++index)
     {
@@ -427,14 +483,14 @@ ordered_json ControlParameters::to_json() const
     }
 
     j["ID"] = this->ID;
-    j["mechanism"] = Parameters::mechanism_names.at(this->mechanism);
+    j["mechanism"] = this->par->mechanism_name;
     j["R_E"] = this->R_E;
     j["ratio"] = this->ratio;
     j["species"] = species_names;
     j["fractions"] = std::vector<double>(this->fractions, this->fractions + this->num_initial_species);
     j["P_amb"] = this->P_amb;
     j["T_inf"] = this->T_inf;
-    j["alfa_M"] = this->alfa_M;
+    j["alpha_M"] = this->alpha_M;
     j["P_v"] = this->P_v;
     j["mu_L"] = this->mu_L;
     j["rho_L"] = this->rho_L;
@@ -444,15 +500,102 @@ ordered_json ControlParameters::to_json() const
     j["enable_evaporation"] = this->enable_evaporation;
     j["enable_reactions"] = this->enable_reactions;
     j["enable_dissipated_energy"] = this->enable_dissipated_energy;
+    j["enable_van_der_waals"] = this->enable_van_der_waals;
+    j["enable_rate_thresholding"] = this->enable_rate_thresholding;
     j["target_specie"] = par->species_names.at(this->target_specie);
-    j["excitation_params"] = std::vector<double>(this->excitation_params, this->excitation_params + Parameters::excitation_arg_nums.at(this->excitation_type));
     j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
-    
+    j["excitation_params"] = std::vector<double>(this->excitation_params, this->excitation_params + Parameters::excitation_arg_nums.at(this->excitation_type));
+    j["excitation_cycles"] = this->excitation_cycles;
+    j["ramp_up_cycles"] = this->ramp_up_cycles;
+
     return j;
 }
+
 
 std::ostream& operator<<(std::ostream& os, const ControlParameters& cpar)
 {
     os << cpar.to_string(true);
     return os;
+}
+
+
+void ControlParameters::nondimensionalize(double &t, double* x) const
+{
+    if (par == nullptr) return;
+    if (x == nullptr) 
+    {
+        LOG_ERROR("x is nullptr");
+        return;
+    }
+
+    t *= this->t_ref_inv;
+    const double R = x[0];
+    const double V = 4.0 / 3.0 * std::numbers::pi * R * R * R;
+    x[0] /= this->R_ref;
+    x[1] *= this->t_ref / this->R_ref;
+    x[2] /= this->T_ref;
+    for (size_t i = 0; i < par->num_species; ++i)
+    {
+        const double c_i = x[i + 3];
+        const double n_i = c_i * V;
+        const double n_dimless_i = n_i / this->n_ref;
+        x[i+3] = n_dimless_i;
+    }
+    x[par->num_species + 3] /= this->E_diss_ref;
+}
+
+
+void ControlParameters::dimensionalize(double &t, double* x) const
+{
+    if (par == nullptr) return;
+    if (x == nullptr) 
+    {
+        LOG_ERROR("x is nullptr");
+        return;
+    }
+
+    t *= this->t_ref;
+    const double R = x[0] * R_ref;
+    const double V = 4.0 / 3.0 * std::numbers::pi * R * R * R;
+    x[0] *= this->R_ref;
+    x[1] *= this->R_ref * this->t_ref_inv;
+    x[2] *= this->T_ref;
+    for (size_t i = 0; i < par->num_species; ++i)
+    {
+        const double n_dimless_i = x[i + 3];
+        const double n_i = n_dimless_i * this->n_ref;
+        const double c_i = n_i / V;
+        x[i + 3] = c_i;
+    }
+    x[par->num_species + 3] *= this->E_diss_ref;
+}
+
+
+void ControlParameters::nondimensionalize_dot(double* x_dot, const double* x) const
+{
+    if (par == nullptr) return;
+    if (x_dot == nullptr || x == nullptr) 
+    {
+        LOG_ERROR("x_dot or x is nullptr");
+        return;
+    }
+
+    const double R = x[0];          // [m]
+    const double R_dot = x[1];      // [m/s]
+    const double V = 4.0 / 3.0 * std::numbers::pi * R * R * R;      // [m^3]
+    const double V_dot = 4.0 * std::numbers::pi * R * R * R_dot;    // [m^3/s]
+    x_dot[0] *= this->t_ref / this->R_ref;
+    x_dot[1] *= this->t_ref * this->t_ref / this->R_ref;
+    x_dot[2] *= this->t_ref / this->T_ref;
+    for (index_t k = 0; k < par->num_species; ++k)
+    {
+        // x_dimless = f(x)
+        // dx_dimless/dt_dimless = df/dt * dt/dt_dimless
+            // f(x) = x * V / n_ref + epsilon
+            // df/dt = (dx/dt * V + x * dV/dt) / n_ref
+            // dt/dt_dimless = d/dt_dimless (t_dimless * t_ref) = t_ref
+        const double dfdt = (x_dot[k + 3] * V + x[k + 3] * V_dot) / this->n_ref;
+        x_dot[k + 3] = dfdt * this->t_ref;
+    }
+    x_dot[par->num_species + 3] *= this->t_ref / this->E_diss_ref;
 }

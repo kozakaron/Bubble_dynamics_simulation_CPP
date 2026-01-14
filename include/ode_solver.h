@@ -19,7 +19,7 @@ struct UserData
     double timeout       = 1.0e30;
     bool timed_out       = false;
 
-    // error_function function arguments
+    // error_handler function arguments
     size_t* error_ID_ptr = nullptr;
     size_t ID            = 0;
 };
@@ -32,13 +32,11 @@ public:
     double t;                         // simulation time
     N_Vector x;                       // simulation state vector
     N_Vector constraints;             // constraints vector
-    N_Vector abstol;                  // absolute tolerance vector
-    sunrealtype reltol;               // relative tolerance
     SUNMatrix A;                      // matrix for linear solver
     SUNLinearSolver linear_solver;    // linear solver
     void* cvode_mem;                  // CVODE memory block
     size_t init_error_ID;             // error ID from the initialization (solution.error_ID is used during simulation)
-    UserData user_data;               // to pass data to the right_hand_side function and error_function
+    UserData user_data;               // to pass data to the right_hand_side function and error_handler
 
     OdeSolver(const size_t num_dim);
     ~OdeSolver();

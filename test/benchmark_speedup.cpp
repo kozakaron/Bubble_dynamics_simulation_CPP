@@ -19,8 +19,8 @@ constexpr size_t task_per_thread = 8;
 
 void task()
 {
-    ControlParameters cpar = ControlParameters{{ 
-        .mechanism = Parameters::mechanism::chemkin_kaust2023_n2,
+    ControlParameters cpar{ControlParameters::Builder{ 
+        .mechanism = "chemkin_kaust2023_ammonia",
         .R_E = 20e-6,
         .species = {"H2", "N2"},
         .fractions = {0.75, 0.25},
