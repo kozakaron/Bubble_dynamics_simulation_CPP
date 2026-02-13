@@ -1011,12 +1011,24 @@ is_success OdeFun::operator()(
     x_dimensional_dot[2] = T_dot;
 
 // d/dt R_dot
-    const auto [delta, delta_dot] = this->pressures_excitation(t, R, R_dot, p, p_dot);  // delta = (p_L - p_Inf) / rho_L
-    const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
-    const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
+    double R_dot_dot = 0.0;
+    if (!cpar.radius_interpolator.x_data.empty())
+    {
+        // Use interpolated R_dot_dot
+        auto [R_interp, R_dot_interp, R_dot_dot_interp] = cpar.radius_interpolator.interpolate(t);
+        R_dot_dot = R_dot_dot_interp;
+        x_dimensional_dot[1] = R_dot_dot;
+    }
+    else
+    {
+        // Compute R_dot_dot from Keller-Miksis equation
+        const auto [delta, delta_dot] = this->pressures_excitation(t, R, R_dot, p, p_dot);  // delta = (p_L - p_Inf) / rho_L
+        const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
+        const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
 
-    const double R_dot_dot = nom / denom;
-    x_dimensional_dot[1] = R_dot_dot;
+        R_dot_dot = nom / denom;
+        x_dimensional_dot[1] = R_dot_dot;
+    }
 
 // Dissipated energy
     if (cpar.enable_dissipated_energy)

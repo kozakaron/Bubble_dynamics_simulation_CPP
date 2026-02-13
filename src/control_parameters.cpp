@@ -29,7 +29,7 @@ ControlParameters::ControlParameters(const Builder& builder)
 
 // Helper function to get value from JSON with type checking
 template<typename T>
-T get_value(const ordered_json& j, const std::string& key, const T& default_value)
+T get_value(const ordered_json& j, const std::string& key, const T& default_value, const bool warn_missing = true)
 {
     constexpr bool is_floating_point = std::is_same_v<T, double> || std::is_same_v<T, float>;
     constexpr bool is_integer = std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
@@ -42,9 +42,12 @@ T get_value(const ordered_json& j, const std::string& key, const T& default_valu
     // check existence
     if (!j.contains(key))
     {
-        LOG_ERROR(
-            Error::severity::warning, Error::type::preprocess,
-            "Key \"" + key + "\" not found in JSON object. Using default value. ");
+        if (warn_missing)
+        {
+            LOG_ERROR(
+                Error::severity::warning, Error::type::preprocess,
+                "Key \"" + key + "\" not found in JSON object. Using default value. ");
+        }
         return default_value;
     }
 
@@ -111,9 +114,10 @@ ControlParameters::ControlParameters(const ordered_json& j)
     auto builder = ControlParameters::Builder{};
     try
     {
-        builder.ID =                        get_value<size_t>                   (j, "ID",                       builder.ID);
+        builder.ID =                        get_value<size_t>                   (j, "ID",                       builder.ID, false);
         builder.mechanism =                 get_value<std::string>              (j, "mechanism",                builder.mechanism);
         builder.R_E =                       get_value<double>                   (j, "R_E",                      builder.R_E);
+        builder.radius_profile_file =       get_value<std::string>              (j, "radius_profile_file",      builder.radius_profile_file, false);
         builder.ratio =                     get_value<double>                   (j, "ratio",                    builder.ratio);
         builder.species =                   get_value<std::vector<std::string>> (j, "species",                  builder.species);
         builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
@@ -236,6 +240,23 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->num_initial_species = 0;
     this->set_species(std::vector<std::string>(builder.species), std::vector<double>(builder.fractions));
     this->set_excitation_params(std::vector<double>(builder.excitation_params));
+
+    // Initialize radius interpolator if radius_profile_file is provided
+    if (!builder.radius_profile_file.empty())
+    {
+        this->radius_interpolator = Interpolator(builder.radius_profile_file);
+        if (this->radius_interpolator.error_ID != ErrorHandler::no_error)
+        {
+            this->error_ID = this->radius_interpolator.error_ID;
+            return;
+        }
+        // Override R_E with first value in x_data
+        if (!this->radius_interpolator.x_data.empty())
+        {
+            this->R_E = this->radius_interpolator.x_data[0];
+            this->ratio = 1.0;
+        }
+    }
 
     // Set reference values
     const double p_E = this->P_amb + 2.0 * this->surfactant * par->sigma / this->R_E;   // [Pa]
@@ -438,6 +459,10 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << format_string << ".ID"                         << " = " << this->ID << ",\n";
     ss << format_string << ".mechanism"                  << " = " << "\"" << par->mechanism_name << "\",\n";
     ss << format_string << ".R_E"                        << " = " << format_double << this->R_E                       << ",    // bubble equilibrium radius [m]\n";
+    if (!this->radius_interpolator.filename.empty())
+    {
+        ss << format_string << ".radius_profile_file"    << " = " << "\"" << this->radius_interpolator.filename << "\",\n";
+    }
     ss << format_string << ".ratio"                      << " = " << format_double << this->ratio                     << ",    // R_0/R_E for unforced oscillations [-]\n";
     ss << format_string << ".species"                    << " = " << ::to_string((std::string*)species_names.data(), this->num_initial_species)   << ",\n";
     ss << format_string << ".fractions"                  << " = " << ::to_string((double*)this->fractions, this->num_initial_species) << ",\n";
@@ -485,6 +510,10 @@ ordered_json ControlParameters::to_json() const
     j["ID"] = this->ID;
     j["mechanism"] = this->par->mechanism_name;
     j["R_E"] = this->R_E;
+    if (!this->radius_interpolator.filename.empty())
+    {
+        j["radius_profile_file"] = this->radius_interpolator.filename;
+    }
     j["ratio"] = this->ratio;
     j["species"] = species_names;
     j["fractions"] = std::vector<double>(this->fractions, this->fractions + this->num_initial_species);
