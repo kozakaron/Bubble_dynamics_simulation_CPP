@@ -9,6 +9,7 @@
 #include "nlohmann/json_fwd.hpp"
 #include "common.h"
 #include "parameters.h"
+#include "interpolator.h"
 
 
 class ControlParameters {
@@ -59,6 +60,8 @@ public:
     double T_ref;                                       // reference temperature [K]
     double E_diss_ref;                                  // reference dissipated energy [J] (instead of R_ref^2 * t_ref_inv^2)
 
+    // Radius interpolator (if radius_profile is provided)
+    Interpolator radius_interpolator;
 
 
 // Builder struct, defaults
@@ -73,6 +76,7 @@ public:
         size_t error_ID                         = ErrorHandler::no_error;
         std::string mechanism                   = "chemkin_elte2016_hydrogen";
         double R_E                              = 10.0e-6;
+        std::string radius_profile_file         = "";
         double ratio                            = 1.0;
         std::vector<std::string> species        = {"O2"};
         std::vector<double> fractions           = {1.0};
