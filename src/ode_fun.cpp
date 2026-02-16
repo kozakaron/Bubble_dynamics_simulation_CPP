@@ -211,16 +211,19 @@ is_success OdeFun::init(const ControlParameters& cpar)
         this->C_v_inf = interval_values[0] + interval_derivatives[0] * (this->cpar.T_inf - T_high) - par->R_g;
     }
 
-    // Check excitation parameters
-    if (this->cpar.excitation_cycles <= 0.0)
+    // Check excitation parameters (skip if using excitation interpolator)
+    if (this->cpar.excitation_interpolator.x_data.empty() && this->cpar.radius_interpolator.x_data.empty())
     {
-        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Number of excitation cycles must be positive, instead it is " + std::to_string(this->cpar.excitation_cycles), this->cpar.ID);
-        return false;
-    }
-    if (this->cpar.ramp_up_cycles < 0.0 || this->cpar.ramp_up_cycles > this->cpar.excitation_cycles / 2.0)
-    {
-        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Number of ramp-up cycles must be in the range [0, " + std::to_string(this->cpar.excitation_cycles / 2.0) + "], instead it is " + std::to_string(this->cpar.ramp_up_cycles), this->cpar.ID);
-        return false;
+        if (this->cpar.excitation_cycles <= 0.0)
+        {
+            this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Number of excitation cycles must be positive, instead it is " + std::to_string(this->cpar.excitation_cycles), this->cpar.ID);
+            return false;
+        }
+        if (this->cpar.ramp_up_cycles < 0.0 || this->cpar.ramp_up_cycles > this->cpar.excitation_cycles / 2.0)
+        {
+            this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Number of ramp-up cycles must be in the range [0, " + std::to_string(this->cpar.excitation_cycles / 2.0) + "], instead it is " + std::to_string(this->cpar.ramp_up_cycles), this->cpar.ID);
+            return false;
+        }
     }
     switch (this->cpar.excitation_type)
     {
@@ -494,6 +497,7 @@ std::pair<double, double> OdeFun::pressures_excitation(
 )
 {
     double p_Inf, p_Inf_dot;
+       
     switch (cpar.excitation_type)
     {
     case Parameters::excitation::sinusoid:
@@ -549,6 +553,14 @@ std::pair<double, double> OdeFun::pressures_excitation(
             p_Inf_dot = 0.0;
             break;
         }
+    }
+
+    // Use excitation interpolator if available
+    if (!cpar.excitation_interpolator.x_data.empty())
+    {
+        auto [p_interp, p_dot_interp, p_dot_dot_interp] = cpar.excitation_interpolator.interpolate(t);
+        p_Inf = p_interp;
+        p_Inf_dot = p_dot_interp;
     }
     
     const double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;

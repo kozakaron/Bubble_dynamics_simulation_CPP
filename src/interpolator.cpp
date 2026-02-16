@@ -5,9 +5,28 @@
 #include <algorithm>
 #include <cmath>
 #include <span>
+#include <filesystem>
 
 #include "common.h"
 #include "interpolator.h"
+
+
+// Helper function to print expected CSV format
+static void print_interpolator_format_help()
+{
+    std::cout << colors::bold << "Expected CSV format:" << colors::reset << "\n"
+              << " * Header: 1 line (e.g., 't [s], R [m]' or 't [s], p [Pa]')\n"
+              << " * Seperator: comma (',')\n"
+              << " * First column: time values in seconds (strictly monotonically increasing)\n"
+              << " * Second column: corresponding data values (bubble radius in meters or ambient pressure in pascals)\n"
+              << " * At least 10 data points required\n"
+              << " * Example:\n"
+              << "      t [s],R [m]\n"
+              << "      0.0,1.0e-5\n"
+              << "      1.0e-6,1.001e-5\n"
+              << "      2.0e-6,1.002e-5\n"
+              << "      ...\n" << std::endl;
+}
 
 
 Interpolator::Interpolator()
@@ -21,8 +40,11 @@ Interpolator::Interpolator(std::string csv_path)
     Timer timer; timer.start();
     this->error_ID = ErrorHandler::no_error;
     
-    // Save filename (replace \ and // with /)
-    this->filename = csv_path;
+    // Convert to absolute path
+    std::filesystem::path abs_path = std::filesystem::absolute(csv_path);
+    this->filename = abs_path.string();
+    
+    // Replace \ and \\ with / for consistent path representation
     for (size_t i = 0; i < this->filename.length(); ++i)
     {
         if (this->filename[i] == '\\')
@@ -50,7 +72,8 @@ Interpolator::Interpolator(std::string csv_path)
     // Skip header row
     if (!std::getline(file, line))
     {
-        this->error_ID = LOG_ERROR("CSV file is empty: " + csv_path);
+        print_interpolator_format_help();
+        this->error_ID = LOG_ERROR("CSV file is empty: " + this->filename);
         file.close();
         return;
     }
@@ -65,8 +88,9 @@ Interpolator::Interpolator(std::string csv_path)
         // Read columns
         if (!std::getline(ss, col1, ',') || !std::getline(ss, col2))
         {
+            print_interpolator_format_help();
             this->error_ID = LOG_ERROR(
-                "Not enough columns in row " + std::to_string(row_count) + " (\"" + line + "\") in \"" + csv_path + "\"" 
+                "Not enough columns in row " + std::to_string(row_count) + " (\"" + line + "\") in \"" + this->filename + "\""
             );
             file.close();
             return;
@@ -81,8 +105,9 @@ Interpolator::Interpolator(std::string csv_path)
         }
         catch (const std::exception& e)
         {
+            print_interpolator_format_help();
             this->error_ID = LOG_ERROR(
-                "Failed to parse doubles in row " + std::to_string(row_count) + " (\"" + line + "\") in \"" + csv_path + "\"" 
+                "Failed to parse doubles in row " + std::to_string(row_count) + " (\"" + line + "\") in \"" + this->filename + "\""
             );
             file.close();
             return;
@@ -97,8 +122,9 @@ Interpolator::Interpolator(std::string csv_path)
     // Check minimum data points
     if (t_temp.size() < 10)
     {
+        print_interpolator_format_help();
         this->error_ID = LOG_ERROR(
-            "At least 10 data points are required, but only got " + std::to_string(t_temp.size()) + " in \"" + csv_path + "\"" 
+            "At least 10 data points are required, but only got " + std::to_string(t_temp.size()) + " in \"" + this->filename + "\""
         );
         return;
     }
@@ -145,7 +171,7 @@ Interpolator::Interpolator(std::string csv_path)
         LOG_ERROR(
             Error::severity::info,
             Error::type::preprocess,
-            "Removed " + std::to_string(first_good) + " ill-conditioned startup points from \"" + csv_path + "\"" 
+            "Removed " + std::to_string(first_good) + " ill-conditioned startup points from \"" + this->filename + "\"" 
         );
         
         // Shift data to remove startup points
@@ -180,7 +206,7 @@ Interpolator::Interpolator(std::string csv_path)
         LOG_ERROR(
             Error::severity::info,
             Error::type::preprocess,
-            "Removed " + std::to_string(removed_count) + " not strictly monotonious points from \"" + csv_path + "\"" 
+            "Removed " + std::to_string(removed_count) + " not strictly monotonious points from \"" + this->filename + "\"" 
         );
     }
     
@@ -189,7 +215,7 @@ Interpolator::Interpolator(std::string csv_path)
     LOG_ERROR(
         Error::severity::info,
         Error::type::preprocess,
-        "Loaded " + std::to_string(this->t_data.size()) + " data points from \"" + csv_path + "\" in " + Timer::format_time(runtime)
+        "Loaded " + std::to_string(this->t_data.size()) + " data points from \"" + this->filename + "\" in " + Timer::format_time(runtime)
     );
 }
 

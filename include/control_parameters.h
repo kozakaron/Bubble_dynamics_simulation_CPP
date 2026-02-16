@@ -62,6 +62,9 @@ public:
 
     // Radius interpolator (if radius_profile is provided)
     Interpolator radius_interpolator;
+    
+    // Excitation interpolator (if excitation_profile is provided)
+    Interpolator excitation_interpolator;
 
 
 // Builder struct, defaults
@@ -75,8 +78,9 @@ public:
         size_t ID                               = 0;
         size_t error_ID                         = ErrorHandler::no_error;
         std::string mechanism                   = "chemkin_elte2016_hydrogen";
-        double R_E                              = 10.0e-6;
         std::string radius_profile_file         = "";
+        std::string excitation_profile_file     = "";
+        double R_E                              = 10.0e-6;
         double ratio                            = 1.0;
         std::vector<std::string> species        = {"O2"};
         std::vector<double> fractions           = {1.0};
