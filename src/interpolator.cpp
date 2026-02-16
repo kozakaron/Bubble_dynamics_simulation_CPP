@@ -251,6 +251,7 @@ inline double lagrange_basis_ddL(const double t, const double ti, const double t
 // Quartic Lagrange polynomial evaluation at point t using 5-point stencil
 // Returns interpolated value P(t), first derivative P'(t), and second derivative P''(t)
 // Uses explicit formulation of Lagrange basis polynomials for clarity and performance
+// Implements local time normalization to [0,1] for improved numerical conditioning
 inline std::tuple<double, double, double> lagrange_quartic_raw(
     const double t,
     const std::span<const double> t_pts,
@@ -260,26 +261,45 @@ inline std::tuple<double, double, double> lagrange_quartic_raw(
     const double t0 = t_pts[0], t1 = t_pts[1], t2 = t_pts[2], t3 = t_pts[3], t4 = t_pts[4];
     const double y0 = x_pts[0], y1 = x_pts[1], y2 = x_pts[2], y3 = x_pts[3], y4 = x_pts[4];
     
+    // Local time normalization: map [t_min, t_max] → [0, 1]
+    // This dramatically improves numerical conditioning when timesteps vary by orders of magnitude
+    const double t_min = t0;  // First point in stencil
+    const double t_max = t4;  // Last point in stencil
+    const double dt_range = t_max - t_min;
+    
+    // Normalize query point and stencil points to [0, 1]
+    const double t_norm = (t - t_min) / dt_range;
+    const double t0_norm = 0.0;  // (t0 - t_min) / dt_range = 0
+    const double t4_norm = 1.0;  // (t4 - t_min) / dt_range = 1
+    const double t1_norm = (t1 - t_min) / dt_range;
+    const double t2_norm = (t2 - t_min) / dt_range;
+    const double t3_norm = (t3 - t_min) / dt_range;
+    
     // Interpolated value: P(t) = Σ y_i * L_i(t)
-    const double d0  = y0 * lagrange_basis_L(t, t0, t1, t2, t3, t4) + 
-                       y1 * lagrange_basis_L(t, t1, t0, t2, t3, t4) +
-                       y2 * lagrange_basis_L(t, t2, t0, t1, t3, t4) + 
-                       y3 * lagrange_basis_L(t, t3, t0, t1, t2, t4) +
-                       y4 * lagrange_basis_L(t, t4, t0, t1, t2, t3);
+    // Value is scale-invariant, so no adjustment needed
+    const double d0  = y0 * lagrange_basis_L(t_norm, t0_norm, t1_norm, t2_norm, t3_norm, t4_norm) + 
+                       y1 * lagrange_basis_L(t_norm, t1_norm, t0_norm, t2_norm, t3_norm, t4_norm) +
+                       y2 * lagrange_basis_L(t_norm, t2_norm, t0_norm, t1_norm, t3_norm, t4_norm) + 
+                       y3 * lagrange_basis_L(t_norm, t3_norm, t0_norm, t1_norm, t2_norm, t4_norm) +
+                       y4 * lagrange_basis_L(t_norm, t4_norm, t0_norm, t1_norm, t2_norm, t3_norm);
     
     // First derivative: P'(t) = Σ y_i * L_i'(t)
-    const double d1 = y0 * lagrange_basis_dL(t, t0, t1, t2, t3, t4) + 
-                      y1 * lagrange_basis_dL(t, t1, t0, t2, t3, t4) +
-                      y2 * lagrange_basis_dL(t, t2, t0, t1, t3, t4) + 
-                      y3 * lagrange_basis_dL(t, t3, t0, t1, t2, t4) +
-                      y4 * lagrange_basis_dL(t, t4, t0, t1, t2, t3);
+    // Chain rule: dP/dt_actual = dP/dt_norm × dt_norm/dt_actual = dP/dt_norm / dt_range
+    const double d1_norm = y0 * lagrange_basis_dL(t_norm, t0_norm, t1_norm, t2_norm, t3_norm, t4_norm) + 
+                           y1 * lagrange_basis_dL(t_norm, t1_norm, t0_norm, t2_norm, t3_norm, t4_norm) +
+                           y2 * lagrange_basis_dL(t_norm, t2_norm, t0_norm, t1_norm, t3_norm, t4_norm) + 
+                           y3 * lagrange_basis_dL(t_norm, t3_norm, t0_norm, t1_norm, t2_norm, t4_norm) +
+                           y4 * lagrange_basis_dL(t_norm, t4_norm, t0_norm, t1_norm, t2_norm, t3_norm);
+    const double d1 = d1_norm / dt_range;
     
     // Second derivative: P''(t) = Σ y_i * L_i''(t)
-    const double d2 = y0 * lagrange_basis_ddL(t, t0, t1, t2, t3, t4) + 
-                      y1 * lagrange_basis_ddL(t, t1, t0, t2, t3, t4) +
-                      y2 * lagrange_basis_ddL(t, t2, t0, t1, t3, t4) + 
-                      y3 * lagrange_basis_ddL(t, t3, t0, t1, t2, t4) +
-                      y4 * lagrange_basis_ddL(t, t4, t0, t1, t2, t3);
+    // Chain rule: d²P/dt_actual² = d²P/dt_norm² × (dt_norm/dt_actual)² = d²P/dt_norm² / dt_range²
+    const double d2_norm = y0 * lagrange_basis_ddL(t_norm, t0_norm, t1_norm, t2_norm, t3_norm, t4_norm) + 
+                           y1 * lagrange_basis_ddL(t_norm, t1_norm, t0_norm, t2_norm, t3_norm, t4_norm) +
+                           y2 * lagrange_basis_ddL(t_norm, t2_norm, t0_norm, t1_norm, t3_norm, t4_norm) + 
+                           y3 * lagrange_basis_ddL(t_norm, t3_norm, t0_norm, t1_norm, t2_norm, t4_norm) +
+                           y4 * lagrange_basis_ddL(t_norm, t4_norm, t0_norm, t1_norm, t2_norm, t3_norm);
+    const double d2 = d2_norm / (dt_range * dt_range);
     
     return std::make_tuple(d0, d1, d2);
 }

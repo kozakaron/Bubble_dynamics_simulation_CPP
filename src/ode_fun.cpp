@@ -1026,9 +1026,10 @@ is_success OdeFun::operator()(
     double R_dot_dot = 0.0;
     if (!cpar.radius_interpolator.x_data.empty())
     {
-        // Use interpolated R_dot_dot
+        // Use interpolated R_dot_dot with damping correction
         auto [R_interp, R_dot_interp, R_dot_dot_interp] = cpar.radius_interpolator.interpolate(t);
-        R_dot_dot = R_dot_dot_interp;
+        const double damping_coefficient = 1.0e8;    // adjustable [1/s]
+        R_dot_dot = R_dot_dot_interp - damping_coefficient * (R_dot - R_dot_interp);
         x_dimensional_dot[1] = R_dot_dot;
     }
     else
