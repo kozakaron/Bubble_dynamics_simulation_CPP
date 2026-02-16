@@ -116,8 +116,9 @@ ControlParameters::ControlParameters(const ordered_json& j)
     {
         builder.ID =                        get_value<size_t>                   (j, "ID",                       builder.ID, false);
         builder.mechanism =                 get_value<std::string>              (j, "mechanism",                builder.mechanism);
-        builder.R_E =                       get_value<double>                   (j, "R_E",                      builder.R_E);
         builder.radius_profile_file =       get_value<std::string>              (j, "radius_profile_file",      builder.radius_profile_file, false);
+        builder.excitation_profile_file =   get_value<std::string>              (j, "excitation_profile_file",  builder.excitation_profile_file, false);
+        builder.R_E =                       get_value<double>                   (j, "R_E",                      builder.R_E);
         builder.ratio =                     get_value<double>                   (j, "ratio",                    builder.ratio);
         builder.species =                   get_value<std::vector<std::string>> (j, "species",                  builder.species);
         builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
@@ -241,6 +242,12 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->set_species(std::vector<std::string>(builder.species), std::vector<double>(builder.fractions));
     this->set_excitation_params(std::vector<double>(builder.excitation_params));
 
+    if (!builder.radius_profile_file.empty() && !builder.excitation_profile_file.empty())
+    {
+        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, "Cannot use both radius_profile_file and excitation_profile_file simultaneously", this->ID);
+        return;
+    }
+
     // Initialize radius interpolator if radius_profile_file is provided
     if (!builder.radius_profile_file.empty())
     {
@@ -250,12 +257,30 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
             this->error_ID = this->radius_interpolator.error_ID;
             return;
         }
-        // Override R_E with first value in x_data
+        // Override R_E with first value in x_data, disable excitation
         if (!this->radius_interpolator.x_data.empty())
         {
             this->R_E = this->radius_interpolator.x_data[0];
             this->ratio = 1.0;
+            this->excitation_type = Parameters::excitation::no_excitation;
+            this->excitation_cycles = 0.0;
+            this->ramp_up_cycles = 0.0;
         }
+    }
+    
+    // Initialize excitation interpolator if excitation_profile_file is provided
+    if (!builder.excitation_profile_file.empty())
+    {
+        this->excitation_interpolator = Interpolator(builder.excitation_profile_file);
+        if (this->excitation_interpolator.error_ID != ErrorHandler::no_error)
+        {
+            this->error_ID = this->excitation_interpolator.error_ID;
+            return;
+        }
+        // Disable excitation parameters
+        this->excitation_type = Parameters::excitation::no_excitation;
+        this->excitation_cycles = 0.0;
+        this->ramp_up_cycles = 0.0;
     }
 
     // Set reference values
@@ -458,11 +483,15 @@ std::string ControlParameters::to_string(const bool with_code) const
     
     ss << format_string << ".ID"                         << " = " << this->ID << ",\n";
     ss << format_string << ".mechanism"                  << " = " << "\"" << par->mechanism_name << "\",\n";
-    ss << format_string << ".R_E"                        << " = " << format_double << this->R_E                       << ",    // bubble equilibrium radius [m]\n";
     if (!this->radius_interpolator.filename.empty())
     {
         ss << format_string << ".radius_profile_file"    << " = " << "\"" << this->radius_interpolator.filename << "\",\n";
     }
+    if (!this->excitation_interpolator.filename.empty())
+    {
+        ss << format_string << ".excitation_profile_file" << " = " << "\"" << this->excitation_interpolator.filename << "\",\n";
+    }
+    ss << format_string << ".R_E"                        << " = " << format_double << this->R_E                       << ",    // bubble equilibrium radius [m]\n";
     ss << format_string << ".ratio"                      << " = " << format_double << this->ratio                     << ",    // R_0/R_E for unforced oscillations [-]\n";
     ss << format_string << ".species"                    << " = " << ::to_string((std::string*)species_names.data(), this->num_initial_species)   << ",\n";
     ss << format_string << ".fractions"                  << " = " << ::to_string((double*)this->fractions, this->num_initial_species) << ",\n";
@@ -509,11 +538,15 @@ ordered_json ControlParameters::to_json() const
 
     j["ID"] = this->ID;
     j["mechanism"] = this->par->mechanism_name;
-    j["R_E"] = this->R_E;
     if (!this->radius_interpolator.filename.empty())
     {
         j["radius_profile_file"] = this->radius_interpolator.filename;
     }
+    if (!this->excitation_interpolator.filename.empty())
+    {
+        j["excitation_profile_file"] = this->excitation_interpolator.filename;
+    }
+    j["R_E"] = this->R_E;
     j["ratio"] = this->ratio;
     j["species"] = species_names;
     j["fractions"] = std::vector<double>(this->fractions, this->fractions + this->num_initial_species);
