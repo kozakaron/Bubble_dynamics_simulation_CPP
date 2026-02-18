@@ -21,37 +21,41 @@ public:
 // EXCITATION AND REACTION TYPES
 
     enum reac_type: index_t {lindemann, troe, sri};
-    enum excitation: index_t {no_excitation=0, sinusoid=1, two_sinusoids=2, square=3};
-    static constexpr std::array<index_t, 4> excitation_arg_nums = {
+    enum excitation: index_t {no_excitation=0, sinusoid=1, two_sinusoids=2, square=3, sin_impulse=4};
+    static constexpr std::array<index_t, 5> excitation_arg_nums = {
         0, // no_excitation
         2, // sinusoid
         5, // two_sinusoids
-        3  // square
+        3, // square
+		3  // sin_impulse
     };
-    static constexpr std::array<const char*, 4> excitation_names = {
+    static constexpr std::array<const char*, 5> excitation_names = {
         "no_excitation",
         "sinusoid",
         "two_sinusoids",
-        "square"
+        "square",
+		"sin_impulse"
     };
-    static constexpr std::array<const char*, 4> excitation_arg_names = {
+    static constexpr std::array<const char*, 5> excitation_arg_names = {
         "",                                            // no_excitation
         "p_A freq",                                    // sinusoid
         "p_A1 p_A2 freq1 freq2 phase_shift",           // two_sinusoids
-        "p_A freq harmonics"                           // square
+        "p_A freq harmonics",                          // square
+		"p_A freq n"                                   // sin_impulse
     };
-    static constexpr std::array<const char*, 4> excitation_arg_units = {
+    static constexpr std::array<const char*, 5> excitation_arg_units = {
         "",                                            // no_excitation
         "Pa Hz",                                       // sinusoid
         "Pa Pa Hz Hz rad",                             // two_sinusoids
-        "Pa Hz -"                                      // square
+        "Pa Hz -",	                                   // square
+		"Pa Hz -"									   // sin_impulse
     };
 
 // PHYSICAL CONSTANTS
 
     static constexpr double c_L           = 1483.0;             // Liquid sound speed at 30 °C [m/s]
     static constexpr double rho_L         = 998.2;              // Liquid density [kg/m^3]
-    static constexpr double sigma         = 0.07197;            // Surface tension [N/m]
+    static constexpr double sigma         = 0.0728;            // Surface tension [N/m]
     static constexpr double mu_L          = 0.001;              // Dynamic viscosity at 30 °C and 1 atm [Pa*s]
     static constexpr double P_v           = 2338.1;             // Saturated vapour pressure at 30 °C [Pa]
     static constexpr double alpha_M       = 0.35;               // Water accommodation coefficient [-]
@@ -69,6 +73,19 @@ public:
     static constexpr double atm2Pa        = 101325.0;           // Conversion factor from atm to Pa
     static constexpr double bar2Pa        = 100000.0;           // Conversion factor from bar to Pa
     static constexpr double absolute_zero = 273.15;             // Zero °C in Kelvin
+	
+	
+	static constexpr double surfactant    = 1.0;            	// Surface tension factor [-]
+	//Reference values for Gilmore:
+	static constexpr double Gamma_L		  = 1.19;
+	static constexpr double c_L_ref		  = 1496.0;
+	static constexpr double kappa		  = 1.4;
+	static constexpr double r_hc		  = 3.537973231411522e-06;//hardcore radius (maybe not needed) [m]
+	static constexpr double B_L			  = 616640000.0;
+	static constexpr double b_L			  = 6.72e-4;
+	static constexpr double cV_L		  = 3657.19;
+	static constexpr double rho_L_ref	  = 998.2;
+	static constexpr double p_L_ref		  = 1.0e5;
 
 // MECHANISM DEPENDENT PARAMETERS
 

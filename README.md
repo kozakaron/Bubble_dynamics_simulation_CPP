@@ -293,110 +293,46 @@ This code is object oriented. Most classes include some of the following methods
 ### High level overwiev
 
 ```
-                                                  ┌─────────────────────────────────────┐
-             ┌────────────────────────────────┐   │JSON Mechanism                       │
-             │Parameters                      │   ├─────────────────────────────────────┤
-             ├────────────────────────────────┤   │Constants and coefficients describing│
-             │Holds constants and coefficients│   │reaction mechanisms, like:           │
-             │describing reaction mechanisms. │---│∘ chemkin_elte2016_hydrogen          │
-             │                                │   │∘ chemkin_kaust2023_ammonia          │
-             │Parsed from JSON files.         │   │∘ chemkin_otomo2018_ammonia          │
-             └────────────────────────────────┘   │∘ ...                                │
-                              |                   └─────────────────────────────────────┘
-                              |                                                          
-                              |                                                          
-              ┌──────────────────────────────┐                                           
-┌──────────┐  │ControlParameters             │                                           
-│JSON      │  ├──────────────────────────────┤                                           
-├──────────┤--│Holds all settings influencing│                                           
-│Input file│  │the simulation: R_E, P_amb,   │                                           
-└──────────┘  │excitation parameters, ...    │                                           
-              └──────────────────────────────┘                                           
-                              |                                                          
-   ┌─────────────────────────────────────────────────────┐                               
-   │OdeFun                                               │                               
-   ├─────────────────────────────────────────────────────┤                               
-   │Computes the right-hand-side function: dxdt = f(x, t)│                               
-   │--                                                   │                               
-   │+ init(ControlParameters& cpar)                      │                               
-   │+ initial_conditions(double* x)                      │                               
-   │+ operator(double t, double* x, double* dxdt)        │                               
-   └─────────────────────────────────────────────────────┘                               
-                              |                                                          
-                                                                                         
-            ┌──────────────────────────────────┐                                         
-            │OdeSolver                         │                                         
-            ├──────────────────────────────────┤                                         
-            │Uses SUNDIALS CVODE to compute the│                                         
-            │numerical solution.               │                                         
-            │--                                │                                         
-            │+ solve(OdeFun* ode_ptr, ...)     │                                         
-            └──────────────────────────────────┘                                         
-                              |                                                          
-          ┌───────────────────────────────────────┐                                      
-          │SimulationData                         │                                      
-          ├───────────────────────────────────────┤   ┌───────────┐                      
-          │Contains the results of the simulation:│   │JSON       │                      
-          │∘ ControlParameters: inputs            │   ├───────────┤                      
-          │∘ OdeSolution: numerical solution      │---│Output file│                      
-          │∘ post-processing data: output         │   └───────────┘                      
-          │--                                     │                                      
-          │+ postprocess()                        │                                      
-          └───────────────────────────────────────┘                                               
-```
-
-```
-                                    ┌──────────┐                                    
-                                    │JSON      │                                    
-                                    ├──────────┤                                    
-                                    │Input file│                                    
-                                    └──────────┘                                    
-                                          |                                         
-                                          |                                         
-                      ┌─────────────────────────────────────┐                       
-                      │ParameterCombinator                  │                       
-                      ├─────────────────────────────────────┤                       
-                      │Generates parameter combinations.    │                       
-                      │--                                   │                       
-                      │+ get_total_combination_count() const│                       
-                      │+ get_next_combination()             │                       
-                      └─────────────────────────────────────┘                       
-                                          |                                         
-       ┌────────────────────────────────────────────────────────────────────┐       
-       │ParameterStudy                                                      │       
-       ├────────────────────────────────────────────────────────────────────┤       
-       │Runs parameter studies, distributing tasks across available threads.│       
-       │--                                                                  │       
-       │+ run()                                                             │       
-       └────────────────────────────────────────────────────────────────────┘       
-         |                    |                    |                    |            
-         |                    |                    |                    |           
-┌─────────────────┐  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
-│ControlParameters│  │ControlParameters│   │ControlParameters│   │ControlParameters│
-├─────────────────┤  ├─────────────────┤   ├─────────────────┤   ├─────────────────┤
-└─────────────────┘  └─────────────────┘   └─────────────────┘   └─────────────────┘
-         |                     |                     |                    |         
-     ┌──────┐              ┌──────┐              ┌──────┐             ┌──────┐      
-     │OdeFun│              │OdeFun│              │OdeFun│             │OdeFun│      
-     ├──────┤              ├──────┤              ├──────┤             ├──────┤      
-     └──────┘              └──────┘              └──────┘             └──────┘      
-         |                     |                     |                    |         
-    ┌─────────┐          ┌─────────┐           ┌─────────┐           ┌─────────┐    
-    │OdeSolver│          │OdeSolver│           │OdeSolver│           │OdeSolver│    
-    ├─────────┤          ├─────────┤           ├─────────┤           ├─────────┤    
-    └─────────┘          └─────────┘           └─────────┘           └─────────┘    
-         |                     |                     |                    |         
-         |                     |                     |                    |         
-   ┌───────────┐        ┌───────────┐         ┌───────────┐         ┌───────────┐   
-   │OdeSolution│        │OdeSolution│         │OdeSolution│         │OdeSolution│   
-   ├───────────┤        ├───────────┤         ├───────────┤         ├───────────┤   
-   └───────────┘        └───────────┘         └───────────┘         └───────────┘   
-         |                     |                     |                    |         
-┌────────────────┐    ┌────────────────┐    ┌────────────────┐   ┌────────────────┐ 
-│CSV             │    │CSV             │    │CSV             │   │CSV             │ 
-├────────────────┤    ├────────────────┤    ├────────────────┤   ├────────────────┤ 
-│Thread 1 results│    │Thread 2 results│    │Thread 3 results│   │Thread 4 results│ 
-└────────────────┘    └────────────────┘    └────────────────┘   └────────────────┘ 
+                                                 ┌────────────────────────────────────────┐
+                                                 │Parameters                              │
+              ┌──────────────────────────────┐   ├────────────────────────────────────────┤
+              │ControlParameters             │   │Holds constants and coefficients        │
+┌──────────┐  ├──────────────────────────────┤   │describing reaction mechanisms, like:   │
+│JSON input│  │Holds all settings influencing│   │ ∘ chemkin_elte2016_hydrogen            │
+├──────────┤--│the simulation: R_E, P_amb,   │---│ ∘ chemkin_kaust2023_ammonia            │
+└──────────┘  │excitation parameters, ...    │   │ ∘ chemkin_kaust2023_ammonia_oxygenless │
+              └──────────────────────────────┘   │ ∘ chemkin_otomo2018_ammonia_oxygenless │
+                              |                  │ ∘ chemkin_otomo2018_ammonia            │
+                              |                  └────────────────────────────────────────┘
+                              |                                                     
+                              |                                                     
+   ┌─────────────────────────────────────────────────────┐                          
+   │OdeFun                                               │                          
+   ├─────────────────────────────────────────────────────┤                          
+   │Computes the right-hand-side function: dxdt = f[x, t]│                          
+   │+ init(ControlParameters& cpar)                      │                          
+   │+ initial_conditions(double* x)                      │                          
+   │+ operator(double t, double* x, double* dxdt)        │                          
+   └─────────────────────────────────────────────────────┘                          
+                              |                                                     
+            ┌──────────────────────────────────┐                                    
+            │OdeSolver                         │                                    
+            ├──────────────────────────────────┤                                    
+            │Uses SUNDIALS CVODE to compute the│                                    
+            │numerical solution.               │                                    
+            │ + solve(OdeFun* ode_ptr, ...)    │                                    
+            └──────────────────────────────────┘                                    
+                              |                                                     
+                              |                                                     
+          ┌───────────────────────────────────────┐                                 
+          │SimulationData                         │                                 
+          ├───────────────────────────────────────┤   ┌───────────┐                 
+          │Contains the results of the simulation:│   │JSON output│                 
+          │ ∘ ControlParameters: inputs           │---├───────────┤                 
+          │ ∘ OdeSolution: numerical solution     │   └───────────┘                 
+          │ ∘ post-processing data: output        │                                 
+          │ + postprocess()                       │                                 
+          └───────────────────────────────────────┘                                 
 ```
 
 ### Error handling

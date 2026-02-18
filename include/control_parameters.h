@@ -15,7 +15,7 @@ class ControlParameters {
 public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
-    static constexpr size_t max_species = 5;
+    static constexpr size_t max_species = 10;
     static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,enable_van_der_waals,enable_rate_thresholding,target_specie,excitation_type,excitation_params,excitation_cycles,ramp_up_cycles";
 // Members
     size_t ID;                          // ID of control parameter
@@ -45,6 +45,13 @@ public:
     bool enable_van_der_waals;
     bool enable_rate_thresholding;
     index_t target_specie;
+    
+    size_t extra_data_from_here;
+    size_t rows;
+    size_t cols;
+	std::string file_name;
+	std::vector<double> importdata;
+    
     // Excitation parameters:
     Parameters::excitation excitation_type;             // type of excitation
     double excitation_params[max_excitation_params];    // parameters for excitation (pointer to array of doubles)
@@ -58,8 +65,17 @@ public:
     double R_ref;                                       // reference radius [m]
     double T_ref;                                       // reference temperature [K]
     double E_diss_ref;                                  // reference dissipated energy [J] (instead of R_ref^2 * t_ref_inv^2)
-
-
+	
+	//Reference values for Gilmore:
+	/*double Gamma_L;
+	double c_L_ref;    
+	double kappa;
+	double r_hc;
+	double B_L;
+	double b_L;
+	double cV_L;
+	double rho_L_ref;
+	double p_L_ref;*/
 
 // Builder struct, defaults
     /* Usage in initialization: ControlParameters cpar{ControlParameters::Builder{
@@ -84,12 +100,28 @@ public:
         double rho_L                            = 998.2;
         double c_L                              = 1483.0;
         double surfactant                       = 1.0;
+		/*double Gamma_L							= 1.19;
+		double c_L_ref							= 1496.0;
+		double kappa							= 1.4;
+		double r_hc								= 3.537973231411522e-06;
+		double B_L								= 616640000.0;
+		double b_L								= 6.72e-4;
+		double cV_L								= 3657.19;
+		double rho_L_ref						= 998.2;
+		double p_L_ref							= 1.0e5;		*/
         bool enable_heat_transfer               = true;
         bool enable_evaporation                 = true;
         bool enable_reactions                   = true;
         bool enable_dissipated_energy           = true;
         bool enable_van_der_waals               = true;
         bool enable_rate_thresholding           = true;
+
+		size_t extra_data_from_here				= 1;
+		size_t rows 							= 0;
+		size_t cols 							= 0;
+		std::string file_name						= "";
+		std::vector<double> importdata;
+		
         std::string target_specie               = "H2";
         Parameters::excitation excitation_type  = Parameters::excitation::sinusoid;
         std::vector<double> excitation_params   = {-2.0e5, 30000.0};

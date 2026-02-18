@@ -7,6 +7,89 @@
 #include "common.h"
 #include "ode_fun.h"
 
+BubbleState interpolate_state(
+    const std::vector<double>& data,
+    std::size_t rows,
+    std::size_t cols,
+    double t
+) {
+    if (cols < 4) {
+        throw std::runtime_error("importdata must have at least 4 columns");
+    }
+
+    if (rows < 2) {
+        throw std::runtime_error("importdata must have at least 2 rows");
+    }
+
+    // --- manual binary search by t ---
+    std::size_t lo = 0;
+    std::size_t hi = rows;
+
+    while (lo < hi) {
+        std::size_t mid = (lo + hi) / 2;
+        double t_mid = data[mid * cols + 0];
+        if (t_mid <= t)
+            lo = mid + 1;
+        else
+            hi = mid;
+    }
+
+    std::size_t idx = lo;
+    if (idx == 0) idx = 1;
+    if (idx >= rows) idx = rows - 1;
+
+    auto at = [&](std::size_t r, std::size_t c) -> double {
+        return data[r * cols + c];
+    };
+
+	// ============================================================
+    // 1) Linear interpolation for R and R_dot
+    // ============================================================
+	BubbleState s;
+    const double t0 = at(idx - 1, 0);
+    const double t1 = at(idx, 0);
+    const double alpha = (t - t0) / (t1 - t0);
+
+    const double R0 = at(idx - 1, 1);
+    const double R1 = at(idx, 1);
+	
+	const double R_dot_0 = at(idx - 1, 2);
+    const double R_dot_1 = at(idx, 2);
+	
+    const double V0 = (4.0 / 3.0) * std::numbers::pi * R0 * R0 * R0;
+    const double V1 = (4.0 / 3.0) * std::numbers::pi * R1 * R1 * R1;
+    
+    // V_dot = (V1 - V0) / (t1 - t0)
+	
+	const double h   = t1 - t0;
+	const double tau = (t - t0) / h;
+	//R(t) – cubic Hermite
+	const double tau2 = tau * tau;
+	const double tau3 = tau2 * tau;
+
+	s.R =
+		  ( 2.0*tau3 - 3.0*tau2 + 1.0 ) * R0
+		+ ( tau3 - 2.0*tau2 + tau ) * h * R_dot_0
+		+ ( -2.0*tau3 + 3.0*tau2 ) * R1
+		+ ( tau3 - tau2 ) * h * R_dot_1;
+	//Ṙ(t)
+	s.R_dot =
+		( (6.0*tau2 - 6.0*tau) * R0
+		+ (3.0*tau2 - 4.0*tau + 1.0) * h * R_dot_0
+		+ (-6.0*tau2 + 6.0*tau) * R1
+		+ (3.0*tau2 - 2.0*tau) * h * R_dot_1 ) / h;
+	
+
+	// Extrapolation check
+	if (t < at(0,0) || t > at(rows-1,0)) {
+    std::cout << "EXTRAPOLATION! t = " << t
+			  << ", R = " << s.R
+              << ", R_dot = " << s.R_dot
+              << ", R_dot_dot = " << s.R_dot_dot << "\n";
+	}
+	
+    return s;
+}
 
 double vapour_pressure(const double T)
 {
@@ -257,6 +340,18 @@ is_success OdeFun::init(const ControlParameters& cpar)
             return false;
         }
         break;
+	case Parameters::excitation::sin_impulse:
+        if (this->cpar.excitation_params[1] <= 0.0)
+        {
+            this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Frequency must be positive, instead it is " + std::to_string(this->cpar.excitation_params[1]), this->cpar.ID);
+            return false;
+        }
+        if (this->cpar.excitation_params[2] < 1.0 || std::abs(std::round(this->cpar.excitation_params[2]) - this->cpar.excitation_params[2]) > 1e-12)
+        {
+            this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Number of harmonics must be a positive integer, instead it is " + std::to_string(this->cpar.excitation_params[2]), this->cpar.ID);
+            return false;
+        }
+        break;
     default:
         this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Invalid excitation type enum value: " + std::to_string(this->cpar.excitation_type), this->cpar.ID);
         return false;
@@ -344,14 +439,21 @@ is_success OdeFun::initial_conditions(
         x_dimensional[3+k] = 0.0;   // c_k_0 [mol/m^3]
     }
     x_dimensional[3+par->num_species] = 0.0;   // dissipated energy [J]
-    if (cpar.enable_evaporation && par->index_of_water != par->invalid_index)
-    {
-        x_dimensional[3+par->index_of_water] = c_H2O; // c_H2O_0 [mol/m^3]
-    }
+
     for (index_t k = 0; k < cpar.num_initial_species; ++k)
     {
         index_t index = cpar.species[k];
         x_dimensional[3+index] = cpar.fractions[k] * c_gas;   // c_k_0 [mol/m^3]
+    }
+    if (cpar.enable_evaporation && par->index_of_water != par->invalid_index)
+    {
+        x_dimensional[3+par->index_of_water] = c_H2O; // c_H2O_0 [mol/m^3]
+    }
+	
+	for (index_t k = 0; k < cpar.num_initial_species; ++k)
+    {
+		index_t index = cpar.species[k];
+        x_dimensional[3+index] = x_dimensional[3+index] * V_0;   // n_0 [mol]
     }
 
 // Dimensionless form
@@ -485,7 +587,7 @@ inline std::pair<double, double> _sin(
 }
 
 
-std::pair<double, double> OdeFun::pressures_excitation(
+std::tuple<double, double, double> OdeFun::pressures_excitation(
     const double t,
     const double R,
     const double R_dot,
@@ -543,6 +645,29 @@ std::pair<double, double> OdeFun::pressures_excitation(
             p_Inf_dot = w_dot * p_sum + w * p_sum_dot;
             break;
         }
+	
+	case Parameters::excitation::sin_impulse:
+        {
+            const double& p_A = cpar.excitation_params[0];
+            const double& freq = cpar.excitation_params[1];
+			const double& n = cpar.excitation_params[2];
+
+			if (t < 0.0) {
+				p_Inf     = cpar.P_amb;
+				p_Inf_dot = 0.0;
+			}
+			else if (t > n / freq) {
+				p_Inf     = cpar.P_amb;
+				p_Inf_dot = 0.0;
+			}
+			else {
+				const double insin = 2.0 * std::numbers::pi * freq;
+				p_Inf     = cpar.P_amb + p_A * std::sin(insin * t);
+				p_Inf_dot = p_A * insin * std::cos(insin * t);
+			}
+            break;
+        }
+	
     default: // no_excitation
         {
             p_Inf = cpar.P_amb;
@@ -551,12 +676,42 @@ std::pair<double, double> OdeFun::pressures_excitation(
         }
     }
     
-    const double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
+	//Keller-Miksis:
+    /*const double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
     const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // + 4.0 * cpar.mu_L * R_ddot / R;
     const double delta = (p_L - p_Inf) / cpar.rho_L;
     const double delta_dot = (p_L_dot - p_Inf_dot) / cpar.rho_L;
-
-    return std::make_pair(delta, delta_dot);
+	const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
+    const double den = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
+	const double c_L = cpar.c_L;
+    return std::make_pair(delta, delta_dot);*/
+	
+	/*Template from python, should be deleted:
+	p_L = p - (2.0 * surfactant * par.sigma + 4.0 * mu_L * R_dot) / R
+    p_L_dot_e = p_dot + (2.0 * surfactant * par.sigma * R_dot + 4.0 * mu_L * R_dot ** 2) / (R ** 2)
+    K_L=rho_L_ref/((p_L_ref+B_L)**(1.0/Gamma_L)*(1.0-b_L*rho_L_ref))
+    rho_L=K_L*(p_L+B_L)**(1.0/Gamma_L)/(1.0+b_L*K_L*(p_L+B_L)**(1.0/Gamma_L))
+    rho_Inf=K_L*(p_Inf+B_L)**(1.0/Gamma_L)/(1.0+b_L*K_L*(p_Inf+B_L)**(1.0/Gamma_L))
+    H=(Gamma_L/(Gamma_L-1.0)*(p_L+B_L)/rho_L-Gamma_L*b_L/(Gamma_L-1.0)*(p_L+B_L)+b_L*p_L)-(Gamma_L/(Gamma_L-1.0)*(p_Inf+B_L)/rho_Inf-Gamma_L*b_L/(Gamma_L-1.0)*(p_Inf+B_L)+b_L*p_Inf) #h_L-h_Inf
+    H_dot_e=p_L_dot_e/rho_L-p_Inf_dot/rho_Inf
+    c_L=(Gamma_L*(p_L+B_L)/(rho_L-b_L*rho_L*rho_L))**0.5
+    Nom=((1.0+R_dot/c_L)*H-3.0/2.0*(1.0-R_dot/(3.0*c_L))*R_dot*R_dot)/((1.0-R_dot/c_L)*R)+H_dot_e/c_L
+    Den=1.0+4.0*mu_L/(rho_L*R*c_L)	
+	*/
+	
+	//Gilmore:
+	const double p_L = p - (2.0 * par->surfactant * par->sigma + 4.0 * par->mu_L * R_dot) / R;
+    const double p_L_dot_e = p_dot + (2.0 * par->surfactant * par->sigma * R_dot + 4.0 * par->mu_L * R_dot * R_dot)/ (R * R);
+	const double K_L = par->rho_L_ref / ( std::pow(par->p_L_ref + par->B_L, 1.0 / par->Gamma_L) * (1.0 - par->b_L * par->rho_L_ref) );
+	const double rho_L=K_L* std::pow((p_L+par->B_L),(1.0/par->Gamma_L))/(1.0+par->b_L*K_L*std::pow((p_L+par->B_L),(1.0/par->Gamma_L)));
+	const double rho_Inf=K_L*std::pow((p_Inf+par->B_L),(1.0/par->Gamma_L))/(1.0+par->b_L*K_L*std::pow((p_Inf+par->B_L),(1.0/par->Gamma_L)));
+    const double H=(par->Gamma_L/(par->Gamma_L-1.0)*(p_L+par->B_L)/rho_L-par->Gamma_L*par->b_L/(par->Gamma_L-1.0)*(p_L+par->B_L)+par->b_L*p_L)-(par->Gamma_L/(par->Gamma_L-1.0)*(p_Inf+par->B_L)/rho_Inf-par->Gamma_L*par->b_L/(par->Gamma_L-1.0)*(p_Inf+par->B_L)+par->b_L*p_Inf); //h_L-h_Inf
+    const double H_dot_e=p_L_dot_e/rho_L-p_Inf_dot/rho_Inf;
+    const double c_L=std::sqrt( (par->Gamma_L*(p_L+par->B_L)/(rho_L-par->b_L*rho_L*rho_L)) );
+    const double nom=((1.0+R_dot/c_L)*H-3.0/2.0*(1.0-R_dot/(3.0*c_L))*R_dot*R_dot)/((1.0-R_dot/c_L)*R)+H_dot_e/c_L;
+    const double den=1.0+4.0*par->mu_L/(rho_L*R*c_L);
+	
+	return std::tuple(nom, den, c_L);
 }
 
 
@@ -915,9 +1070,9 @@ is_success OdeFun::operator()(
         double* x_dimless_dot
     )
 {
+	std::cout << std::scientific << std::setprecision(8); // 8 tizedesjegy
     if (!this->check_before_call(x_dimless))
         return false;
-
 
 // Non-dimensional -> dimensional (SI)
     for (index_t k = 0; k < par->num_species+4; ++k)
@@ -929,11 +1084,23 @@ is_success OdeFun::operator()(
     double* x_dimensional_dot = x_dimless_dot;
 
 // Common variables
-    const double R = x_dimensional[0];                     // bubble radius [m]
-    const double R_dot = x_dimensional[1];                 // bubble radius derivative [m/s]
+    BubbleState s = interpolate_state(cpar.importdata,cpar.rows,cpar.cols,t);
+
+    const double R = s.R;//x_dimensional[0];               // bubble radius [m]
+    const double R_dot = s.R_dot;//x_dimensional[1];//s.R_dot;       // bubble radius derivative [m/s]
+	const double V = (4.0 / 3.0 * std::numbers::pi) * R * R * R;
+	
     const double T = x_dimensional[2];                     // temperature [K]
-    const double* conc_dimensional = x_dimensional + 3;    // molar concentrations [mol/m^3]
-    double* conc_dot = x_dimensional_dot + 3;              // molar concentrations derivative [mol/m^3/s]
+	const double* n_dimensional = x_dimensional + 3;
+		
+	double conc_dimensional[par->num_species];// molar concentrations [mol/m^3]
+	const double re_V = 1.0 / V;
+	for (index_t k = 0; k < par->num_species; ++k) 
+	{
+		conc_dimensional[k] = n_dimensional[k] * re_V;
+	}	
+	
+    double conc_dot [par->num_species];              	   // molar concentrations derivative [mol/m^3/s]
     double M = 0.0;                                        // sum of molar concentrations [mol/m^3]
     double C_p_avg = 0.0;                                  // average molar heat capacity at constant pressure [J/mol/K]
     double lambda_avg = 0.0;                               // average thermal conductivity [W/m/K]
@@ -997,6 +1164,7 @@ is_success OdeFun::operator()(
         n_net_dot = _evap.first;
         evap_energy = _evap.second;
         conc_dot[par->index_of_water] += n_net_dot * 3.0 / R;
+		x_dimensional_dot [3+par->index_of_water] += n_net_dot;
     }
 
 // d/dt T
@@ -1004,33 +1172,44 @@ is_success OdeFun::operator()(
     for (index_t k = 0; k < par->num_species; ++k)
     {
         Q_r_dot -= this->omega_dot[k] * this->H[k];
+		const double V_E = (4.0 / 3.0 * std::numbers::pi) * cpar.R_E * cpar.R_E * cpar.R_E;
+		x_dimensional_dot [3+k] = this->omega_dot[k] * V;//V; //6.8
     }
-    const double T_dot = (Q_r_dot + 3.0 / R * (-p * R_dot + Q_th_dot + evap_energy)) / (M * C_v_avg);
+
+    const double T_dot = (Q_r_dot + 3.0 / R * (-p * R_dot + Q_th_dot + evap_energy)) / (M * C_v_avg);	
     const double M_dot = sum_omega_dot - 3.0 * R_dot / R * M + n_net_dot * 3.0 / R;
     const double p_dot = this->internal_pressure_derivative(T, T_dot, M, M_dot, conc_dimensional, conc_dot);
+	//p_dot = p * (sum_omega_dot/M + T_dot/T - V_dot/V)
     x_dimensional_dot[2] = T_dot;
-
+	
 // d/dt R_dot
-    const auto [delta, delta_dot] = this->pressures_excitation(t, R, R_dot, p, p_dot);  // delta = (p_L - p_Inf) / rho_L
+	const auto [nom, denom, c_L] = this->pressures_excitation(t, R, R_dot, p, p_dot);  // delta = (p_L - p_Inf) / rho_L
+    
+	//Keller-Miksis, not needed anymore (these equations are instead in the function 'pressures_excitation'):
+	/*const auto [delta, delta_dot] = this->pressures_excitation(t, R, R_dot, p, p_dot);  // delta = (p_L - p_Inf) / rho_L
     const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
-    const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
+    const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);*/
 
-    const double R_dot_dot = nom / denom;
-    x_dimensional_dot[1] = R_dot_dot;
+	const double R_dot_dot = 0.0;
+
+	x_dimensional_dot[1] = R_dot_dot;
 
 // Dissipated energy
     if (cpar.enable_dissipated_energy)
     {
         const double V_dot = 4.0 * R * R * R_dot * std::numbers::pi;
-        const double integrand_th = -(p * (1 + R_dot / cpar.c_L) + R / cpar.c_L * p_dot) * V_dot;
+        /*const double integrand_th = -(p * (1 + R_dot / cpar.c_L) + R / cpar.c_L * p_dot) * V_dot;
         const double integrand_v = 16.0 * std::numbers::pi * cpar.mu_L * (R * R_dot*R_dot + R * R * R_dot * R_dot_dot / cpar.c_L);
-        const double integrand_r = 4.0 * std::numbers::pi / cpar.c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar.rho_L * R_dot * R_dot * R_dot - cpar.rho_L * R * R_dot * R_dot_dot);
+        const double integrand_r = 4.0 * std::numbers::pi / cpar.c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar.rho_L * R_dot * R_dot * R_dot - cpar.rho_L * R * R_dot * R_dot_dot);*/
+		const double integrand_th = -(p * (1 + R_dot / c_L) + R / c_L * p_dot) * V_dot;
+        const double integrand_v = 16.0 * std::numbers::pi * cpar.mu_L * (R * R_dot*R_dot + R * R * R_dot * R_dot_dot / c_L);
+        const double integrand_r = 4.0 * std::numbers::pi / c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * par->rho_L_ref * R_dot * R_dot * R_dot - par->rho_L_ref * R * R_dot * R_dot_dot);
 
         x_dimensional_dot[par->num_species+3] = integrand_th + integrand_v + integrand_r;
     } else {
         x_dimensional_dot[par->num_species+3] = 0.0;
     }
-
+	
 // Dimensional -> non-dimensionalization
     // x_dimensional_dot = x_dimless_dot
     cpar.nondimensionalize_dot(x_dimless_dot, x_dimensional);

@@ -124,6 +124,15 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.mu_L =                      get_value<double>                   (j, "mu_L",                     builder.mu_L);
         builder.rho_L =                     get_value<double>                   (j, "rho_L",                    builder.rho_L);
         builder.c_L =                       get_value<double>                   (j, "c_L",                      builder.c_L);
+		/*builder.Gamma_L =					get_value<double>                   (j, "Gamma_L",                  builder.Gamma_L);
+		builder.c_L_ref =					get_value<double>                   (j, "c_L_ref",                  builder.c_L_ref);
+		builder.kappa =						get_value<double>                   (j, "kappa",                  	builder.kappa);
+		builder.r_hc =						get_value<double>                   (j, "r_hc",                  	builder.r_hc);
+		builder.B_L =						get_value<double>                   (j, "B_L",                  	builder.B_L);
+		builder.b_L =						get_value<double>                   (j, "b_L",                  	builder.b_L);
+		builder.cV_L =						get_value<double>                   (j, "cV_L",                  	builder.cV_L);
+		builder.rho_L_ref =					get_value<double>                   (j, "rho_L_ref",                builder.rho_L_ref);
+		builder.p_L_ref =					get_value<double>                   (j, "p_L_ref",                	builder.p_L_ref);*/
         builder.surfactant =                get_value<double>                   (j, "surfactant",               builder.surfactant);
         builder.enable_heat_transfer =      get_value<bool>                     (j, "enable_heat_transfer",     builder.enable_heat_transfer);
         builder.enable_evaporation =        get_value<bool>                     (j, "enable_evaporation",       builder.enable_evaporation);
@@ -138,6 +147,11 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params);
         builder.excitation_cycles =         get_value<double>                   (j, "excitation_cycles",        builder.excitation_cycles);
         builder.ramp_up_cycles =            get_value<double>                   (j, "ramp_up_cycles",           builder.ramp_up_cycles);
+		
+		builder.extra_data_from_here = 		get_value<size_t>					(j, "extra_data_from_here",		builder.extra_data_from_here);
+		builder.rows = 						get_value<size_t>					(j, "rows",						builder.rows);
+		builder.cols = 						get_value<size_t>					(j, "cols",						builder.cols);
+		builder.file_name = 		get_value<std::string>						(j, "file_name",				builder.file_name);
     }
     catch(const std::exception& e)
     {
@@ -222,6 +236,12 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->enable_dissipated_energy = builder.enable_dissipated_energy;
     this->enable_van_der_waals = builder.enable_van_der_waals;
     this->enable_rate_thresholding = builder.enable_rate_thresholding;
+	
+	this->extra_data_from_here = builder.extra_data_from_here;
+	this->rows = builder.rows;
+	this->cols = builder.cols;
+	this->file_name = builder.file_name;
+	
     this->target_specie = par->get_species(builder.target_specie);
     this->excitation_type = builder.excitation_type;
     this->excitation_cycles = builder.excitation_cycles;
@@ -536,8 +556,7 @@ void ControlParameters::nondimensionalize(double &t, double* x) const
     x[2] /= this->T_ref;
     for (size_t i = 0; i < par->num_species; ++i)
     {
-        const double c_i = x[i + 3];
-        const double n_i = c_i * V;
+		const double n_i = x[i + 3];
         const double n_dimless_i = n_i / this->n_ref;
         x[i+3] = n_dimless_i;
     }
@@ -560,12 +579,12 @@ void ControlParameters::dimensionalize(double &t, double* x) const
     x[0] *= this->R_ref;
     x[1] *= this->R_ref * this->t_ref_inv;
     x[2] *= this->T_ref;
-    for (size_t i = 0; i < par->num_species; ++i)
+
+	for (size_t i = 0; i < par->num_species; ++i)
     {
         const double n_dimless_i = x[i + 3];
         const double n_i = n_dimless_i * this->n_ref;
-        const double c_i = n_i / V;
-        x[i + 3] = c_i;
+        x[i + 3] = n_i;
     }
     x[par->num_species + 3] *= this->E_diss_ref;
 }
@@ -591,11 +610,11 @@ void ControlParameters::nondimensionalize_dot(double* x_dot, const double* x) co
     {
         // x_dimless = f(x)
         // dx_dimless/dt_dimless = df/dt * dt/dt_dimless
-            // f(x) = x * V / n_ref + epsilon
-            // df/dt = (dx/dt * V + x * dV/dt) / n_ref
+            // f(x) = x / n_ref + epsilon
+            // df/dt = dx/dt / n_ref
             // dt/dt_dimless = d/dt_dimless (t_dimless * t_ref) = t_ref
-        const double dfdt = (x_dot[k + 3] * V + x[k + 3] * V_dot) / this->n_ref;
-        x_dot[k + 3] = dfdt * this->t_ref;
+
+		x_dot [k + 3] = x_dot[k + 3] / this->n_ref * this->t_ref;
     }
     x_dot[par->num_species + 3] *= this->t_ref / this->E_diss_ref;
 }

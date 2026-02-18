@@ -9,6 +9,9 @@
 #include "nlohmann/json.hpp"
 #include "ode_solution.h"
 
+//#include "cnpy.h"
+#include <vector>
+#include <stdexcept>
 
 OdeSolution::OdeSolution():
     t(),

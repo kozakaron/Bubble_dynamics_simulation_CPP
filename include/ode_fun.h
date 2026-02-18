@@ -56,7 +56,7 @@ private:
     );
 
 
-    std::pair<double, double> pressures_excitation(
+    std::tuple<double, double, double> pressures_excitation(
         const double t,
         const double R,
         const double R_dot,
@@ -126,5 +126,18 @@ private:
     );
 
 };  // class OdeFun
+
+struct BubbleState {
+    double R;
+    double R_dot;
+    double R_dot_dot;
+};
+
+BubbleState interpolate_state(
+    const std::vector<double>& data,
+    std::size_t rows,
+    std::size_t cols,
+    double t
+);
 
 #endif // ODE_FUN_H

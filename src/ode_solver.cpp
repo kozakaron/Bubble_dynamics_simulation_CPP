@@ -42,7 +42,65 @@ static_assert(std::is_same<sunrealtype, double>::value, "sunrealtype must be dou
     } \
 }
 
+void read_csv_importdata(const std::string& filename, ControlParameters& cpar)
+{
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Cannot open CSV file: " + filename);
+    }
 
+    auto trim = [](std::string& s) {
+        s.erase(0, s.find_first_not_of(" \t\r\n"));
+        s.erase(s.find_last_not_of(" \t\r\n") + 1);
+    };
+
+    std::string header;
+    if (!std::getline(file, header)) {
+        throw std::runtime_error("CSV file is empty (no header)");
+    }
+
+    std::vector<double> importdata;
+    std::size_t cols = 0;
+    std::size_t rows = 0;
+    std::string line;
+
+    while (std::getline(file, line)) {
+        if (line.empty()) continue;
+		//std::cerr << "RAW LINE [" << rows << "]: '" << line << "'\n";
+        std::stringstream ss(line);
+        std::string cell;
+        std::size_t current_cols = 0;
+
+        while (std::getline(ss, cell, ',')) {
+            /*trim(cell);
+            if (cell.empty()) {
+                throw std::runtime_error("Empty cell in CSV at row " + std::to_string(rows));
+            }
+            importdata.push_back(std::stod(cell));*/
+			trim(cell);
+			if (cell.empty()) {
+				importdata.push_back(0.0);   // pl. R_ddot = 0
+			} else {
+				importdata.push_back(std::stod(cell));
+			}
+            ++current_cols;
+        }
+
+        if (cols == 0) {
+            cols = current_cols;
+        } else if (current_cols != cols) {
+            throw std::runtime_error("Inconsistent column count in CSV");
+        }
+
+        ++rows;
+    }
+
+    cpar.rows = rows;
+    cpar.cols = cols;
+    cpar.importdata = std::move(importdata);
+
+    //std::cout << "CSV loaded: " << rows << " x " << cols << std::endl;
+}
 // CVRhsFn, SUNErrHandlerFn, CVEwtFn definitisions:
 
 // Check if user_data is valid (holds valid pointers).
@@ -154,7 +212,7 @@ int error_weights(N_Vector y, N_Vector ewt, void* user_data)
     sunrealtype* ewt_data = NV_DATA_S(ewt);
 
     const double one_atom_mol_fraction = 1.0 / (Parameters::N_A * cpar->n_ref);
-    const double abstol_species = std::min(1e8 * one_atom_mol_fraction, 1e-4);
+    const double abstol_species = std::min(1e8 * one_atom_mol_fraction, 1e-7);
     const double reltol = 1e-10;
     const double abstol = 1e-10;
 
@@ -403,6 +461,28 @@ SimulationData OdeSolver::solve(
     ode_ptr->cpar.dimensionalize(solution.t.back(), solution.x.back().data());
     init_solve(cvode_mem, &user_data, x, &(solution.error_ID));
     if (solution.error_ID != ErrorHandler::no_error)  return data;
+	std::cout << ode_ptr->cpar.file_name << "\n";
+    read_csv_importdata(ode_ptr->cpar.file_name, ode_ptr->cpar);
+
+    std::size_t rlim = ode_ptr->cpar.rows;//std::min(ode_ptr->cpar.rows, 10);
+    std::size_t clim = ode_ptr->cpar.cols;//std::min(ode_ptr->cpar.cols, 7);
+
+    /*std::cout << "importdata preview (" << ode_ptr->cpar.rows << " x " << ode_ptr->cpar.cols << ")\n";
+
+    for (std::size_t i = 0; i < rlim; ++i)
+    {
+        for (std::size_t j = 0; j < clim; ++j)
+        {
+            std::cout << std::setw(14)
+                      << ode_ptr->cpar.importdata[i * ode_ptr->cpar.cols + j] << " ";
+        }
+        if (clim < ode_ptr->cpar.cols) std::cout << "...";
+        std::cout << "\n";
+    }
+
+    if (rlim < ode_ptr->cpar.rows)
+        std::cout << "...\n";*/
+
 
     // Solve
     long int num_jac_evals, last_num_jac_evals = 0;

@@ -10,14 +10,61 @@
 #include "nlohmann/json.hpp"
 #include "cxxopts.hpp"
 
-
 using namespace std;
 using namespace nlohmann;
 
 
 int main(int argc, char **argv)
 {
-    // Initialize logging
+    // ControlParameters cpar=ControlParameters(ControlParameters::Builder{
+		// .ID                          = 0,
+		// .mechanism                   = Parameters::mechanism::chemkin_kaust2023_ammonia_oxygenless,
+		// .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
+		// .species                     = {"O2","AR"},
+		// .fractions                   = {0.73,0.27},
+		// .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]
+		// .T_inf                       = 2.93149999999999977e+02,    // ambient temperature [K]
+		// .alfa_M                      = 3.49999999999999978e-01,    // water accommodation coefficient [-]
+		// .P_v                         = 2.33809999999999991e+03,    // vapour pressure [Pa]
+		// .mu_L                        = 1.00000000000000002e-03,    // dynamic viscosity [Pa*s]
+		// .rho_L                       = 9.98200000000000045e+02,    // liquid density [kg/m^3]
+		// .c_L                         = 1.48300000000000000e+03,    // sound speed [m/s]
+		// .surfactant                  = 1.00000000000000000e+00,    // surface tension modifier [-]
+		// .enable_heat_transfer        = true,
+		// .enable_evaporation          = true,
+		// .enable_reactions            = true,
+		// .enable_dissipated_energy    = true,
+		// .target_specie               = "H2",
+		// .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04, 1.00000000000000000e+00},
+		// .excitation_type             = Parameters::excitation::sin_impulse}
+	// );
+	// cpar.R_E =1e-4;
+	// cout << cpar << endl;
+	
+	// OdeFun ode;
+	// ode.init(cpar);
+	// cout << ode.par->model <<endl;
+	
+	// OdeSolverCVODE solver(ode.par->num_species+4);
+	// OdeSolution sol= solver.solve(1.0,&ode);
+	// cout << sol <<endl;
+	
+	// SimulationData data = SimulationData(cpar,sol);
+	// cout << data <<endl;
+	
+	// ErrorHandler::set_log_file("error.log");
+	
+	
+	// size_t errorid = LOG_ERROR(Error::severity::info,Error::type::general,"Kedves LOG_ERROR! Szia!");
+	// Error error = ErrorHandler::get_error(errorid);
+	// cout << error <<endl;
+	// (void)ErrorHandler::no_error;
+	
+	
+	// return 0;
+	
+	
+	// Initialize logging
     cxxopts::ParseResult result;
     cxxopts::Options options("Bubble dynamics simulation C++", "A high performance SUNDIALS CVODE powered zero dimensional (ODE) sonochemistry simulation of an acustically excited bubble.");
     options.add_options()

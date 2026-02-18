@@ -102,9 +102,6 @@ std::string Timer::current_time()
     buf = localtime(&in_time_t);
 #endif
     ss << std::put_time(buf, "%Y.%m.%d %X");
-#ifdef _WIN32
-    delete buf;
-#endif
     return ss.str();
 }
 

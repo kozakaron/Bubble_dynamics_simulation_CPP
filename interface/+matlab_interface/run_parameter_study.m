@@ -19,6 +19,7 @@ function run_parameter_study(parameter_study, json_path, executable_path, t_max,
         else
             executable_path = './bin/main'; % Linux/Mac
         end
+        fprintf('A main.exére való szűrést tessék bekapcsolni!')
     end
     if nargin < 4, t_max = 1.0; end
     if nargin < 5, timeout = 60.0; end

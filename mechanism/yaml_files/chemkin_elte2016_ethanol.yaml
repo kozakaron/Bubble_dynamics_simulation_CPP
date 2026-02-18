@@ -24,7 +24,7 @@ description: |-
 generator: ck2yaml
 input-files: [chemkin_elte2016_ethanol.inp]
 cantera-version: 3.1.0
-date: Sun, 16 Nov 2025 01:31:50 +0100
+date: Fri, 30 Jan 2026 16:19:18 +0100
 
 units: {length: cm, time: s, quantity: mol, activation-energy: K}
 
