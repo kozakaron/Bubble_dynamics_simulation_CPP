@@ -414,7 +414,7 @@ def plot(data, n=5.0, base_name='', format='png',
         end_index = -1
     else:
         end_index = np.where(t >= t_last)[0][0]
-
+        
     if t[end_index] < 1e-3:
         t = t[:end_index] * 1e6 # [us]
         t_label = '$t$ [μs]'
@@ -429,8 +429,8 @@ def plot(data, n=5.0, base_name='', format='png',
 
     V = 4.0 / 3.0 * R**3 * np.pi # [m^3]
     #NEW!
-    n = x[:end_index, 3:-1] # [mol/m^3] #(c.T * V).T # [mol]
-    internal_pressure = np.sum(n, axis=1) * 8.31446 * T / V # [MPa]
+    n_species = x[:end_index, 3:-1] # [mol/m^3] #(c.T * V).T # [mol]
+    internal_pressure = np.sum(n_species, axis=1) * 8.31446 * T / V # [MPa]
 
     Excitation, excitation_args, excitation_units, excitation_defaults = getExcitation(excitation_type='sin_impulse')#cpar.excitation_type)
 # plot R and T
@@ -490,10 +490,10 @@ def plot(data, n=5.0, base_name='', format='png',
     colors = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#d48044', '#33adff', '#a65628', '#f781bf', '#d444ca', '#d4ae44']
     color_index = 0
     texts = []
-    max_mol = np.max(np.nan_to_num(n, nan=0.0, posinf=0.0, neginf=0.0), axis=1) # maximum amounts of species [mol]
+    max_mol = np.max(np.nan_to_num(n_species, nan=0.0, posinf=0.0, neginf=0.0), axis=1) # maximum amounts of species [mol]
     indexes_to_plot = []
     for i, specie in enumerate(data['mechanism']['species_names']):
-        if n[-1, i] > 1e-24:
+        if n_species[-1, i] > 1e-24:
             indexes_to_plot.append(i)
     for i, specie in enumerate(data['mechanism']['species_names']):
         name = specie
@@ -502,12 +502,12 @@ def plot(data, n=5.0, base_name='', format='png',
         if i in indexes_to_plot:
             color = colors[color_index]
             color_index = color_index + 1 if color_index < len(colors) - 1 else 0
-            linewidth = 2.0 if presentation_mode and n[-1, i] > 1e-24 else 1.0
-            ax.plot(t, n[:, i], linewidth = linewidth, color=color, label = '$' + name + '$') # PLOT HERE
-            texts.append((color, name, n[-1, i]))            
+            linewidth = 2.0 if presentation_mode and n_species[-1, i] > 1e-24 else 1.0
+            ax.plot(t, n_species[:, i], linewidth = linewidth, color=color, label = '$' + name + '$') # PLOT HERE
+            texts.append((color, name, n_species[-1, i]))            
         elif not presentation_mode:
             linewidth = 2.0 if presentation_mode else 1.0
-            ax.plot(t, n[:, i], linewidth = linewidth, label = '$' + name + '$')  # PLOT HERE
+            ax.plot(t, n_species[:, i], linewidth = linewidth, label = '$' + name + '$')  # PLOT HERE
 
     # make legend
     texts.sort(key=lambda x: x[-1], reverse=True)
@@ -554,9 +554,8 @@ def plot(data, n=5.0, base_name='', format='png',
     external_pressure = [1e-3*Excitation(time/1e6, cpar['P_amb'], [cpar['p_A'],cpar['freq'],cpar['excitation_cycles']])[0] for time in t]#[:end_index]] # [MPa]
     ax1.plot(t, external_pressure, color='darkorange', label='external pressure', linewidth=linewidth)
     ax2.plot(t, internal_pressure/1e6, color='g', label='internal pressure', linewidth=linewidth)
-
     
-    if t[end_index]/1e6 < 1e-3:
+    if t[-1] < 1e-3:
         ax1.set_xlabel('$t$ [μs]')
     else:
         ax1.set_xlabel('$t$ [ms]')

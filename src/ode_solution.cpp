@@ -297,7 +297,7 @@ void SimulationData::postprocess()
         const double V_last = 4.0 / 3.0 * std::numbers::pi * std::pow(R_last, 3); // [m^3]
         const double c_target = sol.x.back()[3+cpar.target_specie];  // [mol/m^3]
 
-        n_target_specie = c_target * V_last;  // [mol]
+        n_target_specie = c_target;  // [mol] // * V_last;
     }
 
     if (n_target_specie < -1.0e-8)

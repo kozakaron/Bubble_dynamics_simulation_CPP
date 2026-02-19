@@ -1190,7 +1190,10 @@ is_success OdeFun::operator()(
     const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
     const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);*/
 
-	const double R_dot_dot = 0.0;
+	const double R_dot_dot =
+	(cpar.enable_dissipated_energy)
+	? nom /denom
+	: 0.0; //0, if dissipated energy is not needed
 
 	x_dimensional_dot[1] = R_dot_dot;
 

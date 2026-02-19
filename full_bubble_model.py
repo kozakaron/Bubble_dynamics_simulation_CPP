@@ -137,8 +137,8 @@ cpar_rules = dict(
     alfa_M =     dict(default=par.alfa_M,             type=float,         range=[0.0, 10.0],              comment='water accommodation coefficient [-]'),
     P_v =        dict(default=par.P_v,                type=float,         range=[0.0, 1e8],               comment='vapour pressure [Pa]'),
     mu_L =       dict(default=par.mu_L,               type=float,         range=[0.0, 10000.0],           comment='dynamic viscosity [Pa*s]'),
-    rho_L_ref =      dict(default=par.rho_L_ref,              type=float,         range=[0.0, 100000.0],          comment='density [kg/m^3]'),
-    c_L_ref =        dict(default=par.c_L_ref,                type=float,         range=[0.0, 100000.0],          comment='sound speed [m/s]'),
+    rho_L_ref =      dict(default=998.2,              type=float,         range=[0.0, 100000.0],          comment='density [kg/m^3]'),
+    c_L_ref =        dict(default=1483.0,                type=float,         range=[0.0, 100000.0],          comment='sound speed [m/s]'),
     surfactant = dict(default=1.0,                    type=float,         range=[0.0, 1000.0],            comment='surfactant (surface tension modfier) [-]'),
 )
 # Excitation parameters:
@@ -941,47 +941,25 @@ def get_data(cpar, num_sol, error_code, elapsed_time):
     # normal functioning
     data.steps = len(num_sol.t)
     
-    
     from scipy.interpolate import interp1d
 
-    # 1. Adatok betöltése
-    # Feltételezve: 0. oszlop: idő, 1. oszlop: R, 2. oszlop: R_dot
+    # 1. Loading data
+    # Assumption (first three columns): t, R, R_dot
     data2 = np.loadtxt(cpar.file_name, delimiter=',', skiprows=1)
     t_data2 = data2[:, 0]
     R_data2 = data2[:, 1]
     R_dot_data2 = data2[:, 2]
-
-    # 2. Átváltás térfogat-térbe
-    # V = 4/3 * pi * R^3
-    V_data2 = (4.0/3.0) * np.pi * np.power(R_data2, 3)
-
-    # V_dot kiszámítása a láncszabály alapján: dV/dt = 4 * pi * R^2 * dR/dt
-    V_dot_data2 = 4.0 * np.pi * np.power(R_data2, 2) * R_dot_data2
-
-    # 3. Interpolációs függvények létrehozása a térfogat adatokon
-    # lineáris interpoláció az idő függvényében
-    f_V = interp1d(t_data2, V_data2, kind='linear', fill_value="extrapolate")
-    f_V_dot = interp1d(t_data2, V_dot_data2, kind='linear', fill_value="extrapolate")
-
-    # 4. Új értékek kiszámítása a num_sol.t időpontokra
-    V_interp = f_V(num_sol.t)
-    V_dot_interp = f_V_dot(num_sol.t)
-
-    # 5. Visszakonvertálás sugár-térbe
-    # R = (3V / 4pi)^(1/3)
-    new_R = np.power((3.0 * V_interp) / (4.0 * np.pi), 1.0/3.0)
+    # 2. Interpolation
+    new_R = interp1d(t_data2, R_data2, kind='linear', fill_value="extrapolate") #np.power((3.0 * V_interp) / (4.0 * np.pi), 1.0/3.0)
 
     # R_dot = V_dot / (4 * pi * R^2)
-    # Kis sugaraknál (osztás nullával) érdemes óvatosnak lenni
-    new_R_dot = np.zeros_like(new_R)
-    mask = new_R > 1e-15
-    new_R_dot[mask] = V_dot_interp[mask] / (4.0 * np.pi * np.power(new_R[mask], 2))
+    new_R_dot = interp1d(t_data2, R_dot_data2, kind='linear', fill_value="extrapolate")
 
-    # 6. Behelyettesítés a num_sol.y-ba
-    # Feltételezve: 0. oszlop az R, 1. oszlop az R_dot
-    num_sol.y[0, :] = new_R
-    num_sol.y[1, :] = new_R_dot
-    
+    #mask = new_R > 1e-15
+    #new_R_dot[mask] = V_dot_interp[mask] / (4.0 * np.pi * np.power(new_R[mask], 2))
+
+    num_sol.y[0, :] = new_R(num_sol.t)
+    num_sol.y[1, :] = new_R_dot(num_sol.t)
     
     data.x_initial = num_sol.y[:, 0] # initial values of [R, R_dot, T, c_1, ... c_K]
     # collapse time (first loc min of R)    TODO fix
@@ -994,7 +972,7 @@ def get_data(cpar, num_sol, error_code, elapsed_time):
     #data.T_max = np.max(num_sol.y[2,:]) # maximum of temperature peaks [K]
     data.x_final = num_sol.y[:,-1] # final values of [R, R_dot, T, c_1, ... c_K]
     last_V = 4.0 / 3.0 * (100.0 * data.x_final[0]) ** 3#((100.0 * data.x_final[0]) ** 3 - (100.0 * cpar.r_hc) ** 3) * np.pi # [cm^3]
-    data[f'n_{target_specie}'] = data.x_final[3+par.index[target_specie]] * last_V # [mol]
+    data[f'n_{target_specie}'] = data.x_final[3+par.index[target_specie]] # [mol]
     m_target = 1.0e-3 * data[f'n_{target_specie}'] * par.W[par.index[target_specie]] # [kg]
     data.expansion_work = _work(cpar, enable_evaporation) # [J]
     data.dissipated_acoustic_energy = data.x_final[3+par.K]  # [J]
