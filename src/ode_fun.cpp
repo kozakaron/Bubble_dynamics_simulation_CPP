@@ -455,6 +455,11 @@ is_success OdeFun::initial_conditions(
 		index_t index = cpar.species[k];
         x_dimensional[3+index] = x_dimensional[3+index] * V_0;   // n_0 [mol]
     }
+	
+	if (cpar.enable_evaporation && par->index_of_water != par->invalid_index)
+	{
+		x_dimensional[3+par->index_of_water] = x_dimensional[3+par->index_of_water] * V_0;
+	}
 
 // Dimensionless form
     double dummy = 0.0;
