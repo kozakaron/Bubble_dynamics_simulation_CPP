@@ -56,12 +56,18 @@ private:
     );
 
 
-    std::pair<double, double> pressures_excitation(
-        const double t,
+    std::pair<double, double> excitation_pressures(
+        const double t
+    );
+
+
+    double bubble_dynamics(
         const double R,
         const double R_dot,
         const double p,
-        const double p_dot
+        const double p_dot,
+        const double P_inf,
+        const double P_inf_dot
     );
 
 

@@ -488,12 +488,8 @@ inline std::pair<double, double> _sin(
 }
 
 
-std::pair<double, double> OdeFun::pressures_excitation(
-    const double t,
-    const double R,
-    const double R_dot,
-    const double p,
-    const double p_dot
+std::pair<double, double> OdeFun::excitation_pressures(
+    const double t
 )
 {
     double p_Inf, p_Inf_dot;
@@ -559,16 +555,32 @@ std::pair<double, double> OdeFun::pressures_excitation(
     if (!cpar.excitation_interpolator.x_data.empty())
     {
         auto [p_interp, p_dot_interp, p_dot_dot_interp] = cpar.excitation_interpolator.interpolate(t);
-        p_Inf = p_interp;
+        p_Inf = cpar.P_amb + p_interp;
         p_Inf_dot = p_dot_interp;
     }
-    
+
+    return std::make_pair(p_Inf, p_Inf_dot);
+}
+
+
+double OdeFun::bubble_dynamics(
+    const double R,
+    const double R_dot,
+    const double p,
+    const double p_dot,
+    const double P_inf,
+    const double P_inf_dot
+)
+{
     const double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
     const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // + 4.0 * cpar.mu_L * R_ddot / R;
-    const double delta = (p_L - p_Inf) / cpar.rho_L;
-    const double delta_dot = (p_L_dot - p_Inf_dot) / cpar.rho_L;
+    const double delta = (p_L - P_inf) / cpar.rho_L;
+    const double delta_dot = (p_L_dot - P_inf_dot) / cpar.rho_L;
 
-    return std::make_pair(delta, delta_dot);
+    const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
+    const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
+
+    return nom / denom;
 }
 
 
@@ -1035,11 +1047,8 @@ is_success OdeFun::operator()(
     else
     {
         // Compute R_dot_dot from Keller-Miksis equation
-        const auto [delta, delta_dot] = this->pressures_excitation(t, R, R_dot, p, p_dot);  // delta = (p_L - p_Inf) / rho_L
-        const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
-        const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
-
-        R_dot_dot = nom / denom;
+        const auto [P_inf, P_inf_dot] = this->excitation_pressures(t);
+        R_dot_dot = this->bubble_dynamics(R, R_dot, p, p_dot, P_inf, P_inf_dot);
         x_dimensional_dot[1] = R_dot_dot;
     }
 
