@@ -4,7 +4,10 @@
 #include "parameters.h"
 #include "control_parameters.h"
 #include "ode_fun.h"
+#include "interpolator.h"
 #include "test_list.h"
+
+#include <numbers>
 
 NO_OPTIMIZATION
 
@@ -62,30 +65,37 @@ void benchmark_ode_fun()
         };
         const double T = x[2];
 
-    // pressures_excitation()
+    // excitation_pressures()
         const double p = 115718.99999999997;
         const double p_dot = 1.4057234685268682e-05;
-        std::pair<double, double> result_pressure;
-        BENCHMARK_LINE(result_pressure = ode.pressures_excitation(t, x[0], x[1], p, p_dot);, 1000000);
+        auto [P_inf, P_inf_dot] = ode.excitation_pressures(t);
+        BENCHMARK_LINE(ode.excitation_pressures(t);, 1000000);
+
+    // bubble_dynamics()
+        auto result_R_dot_dot = ode.bubble_dynamics(x[0], x[1], p, p_dot, P_inf, P_inf_dot);
+        BENCHMARK_LINE(ode.bubble_dynamics(x[0], x[1], p, p_dot, P_inf, P_inf_dot);, 1000000);
+        (void)result_R_dot_dot;
 
     // thermodynamic()
         BENCHMARK_LINE(ode.thermodynamic(T);, 100000);
 
     // evaporation()
-        std::pair<double, double> result_evap;
         const double X_H2O = 3.2315225982636570e-01;
-        BENCHMARK_LINE(result_evap = ode.evaporation(p, T, X_H2O);, 1000000);
+        auto [result_evap, result_evap_dot] = ode.evaporation(p, T, X_H2O);
+        BENCHMARK_LINE(ode.evaporation(p, T, X_H2O);, 1000000);
+        (void)result_evap;
+        (void)result_evap_dot;
 
     // internal_pressure()
         double M = 0.8363084533423445;
-        double result_p;
-        BENCHMARK_LINE(result_p = ode.internal_pressure(T, M, x.data()+3);, 100000);
+        auto result_p = ode.internal_pressure(T, M, x.data()+3);
+        BENCHMARK_LINE(ode.internal_pressure(T, M, x.data()+3);, 100000);
         (void)result_p;
 
     // internal_pressure_derivative()
-        double result_p_dot;
-        std::array<double, 32+4> dxdt;
-        BENCHMARK_LINE(result_p_dot = ode.internal_pressure_derivative(T, 0.0, M, 0.0, x.data()+3, dxdt.data()+3);, 100000);
+        std::array<double, 32+4> dxdt = {};
+        auto result_p_dot = ode.internal_pressure_derivative(T, 0.0, M, 0.0, x.data()+3, dxdt.data()+3);
+        BENCHMARK_LINE(ode.internal_pressure_derivative(T, 0.0, M, 0.0, x.data()+3, dxdt.data()+3);, 100000);
         (void)result_p_dot;
 
     // forward_rate()
@@ -161,32 +171,39 @@ void benchmark_ode_fun()
             1.1445537293517848e-02,  5.5500381673767307e-03,  0.0000000000000000e+00,  0.0000000000000000e+00,  7.2195229829469272e-08,
             1.1381442517029756e-06
         };
-        std::array<double, 12+4> dxdt;
+        std::array<double, 12+4> dxdt = {};
         const double T = x[2];
 
-    // pressures_excitation()
+    // excitation_pressures()
         const double p = 115718.99999999997;
         const double p_dot = 1.4057234685268682e-05;
-        std::pair<double, double> result_pressure;
-        BENCHMARK_LINE(result_pressure = ode.pressures_excitation(t, x[0], x[1], p, p_dot);, 1000000);
+        auto [P_inf, P_inf_dot] = ode.excitation_pressures(t);
+        BENCHMARK_LINE(ode.excitation_pressures(t);, 1000000);
+
+    // bubble_dynamics()
+        auto result_R_dot_dot = ode.bubble_dynamics(x[0], x[1], p, p_dot, P_inf, P_inf_dot);
+        BENCHMARK_LINE(ode.bubble_dynamics(x[0], x[1], p, p_dot, P_inf, P_inf_dot);, 1000000);
+        (void)result_R_dot_dot;
 
     // thermodynamic()
         BENCHMARK_LINE(ode.thermodynamic(T);, 100000);
 
     // evaporation()
-        std::pair<double, double> result_evap;
         const double X_H2O = 3.2315225982636570e-01;
-        BENCHMARK_LINE(result_evap = ode.evaporation(p, T, X_H2O);, 1000000);
+        auto [result_evap, result_evap_dot] = ode.evaporation(p, T, X_H2O);
+        BENCHMARK_LINE(ode.evaporation(p, T, X_H2O);, 1000000);
+        (void)result_evap;
+        (void)result_evap_dot;
 
     // internal_pressure()
         double M = 0.8363084533423445;
-        double result_p;
-        BENCHMARK_LINE(result_p = ode.internal_pressure(T, M, x.data()+3);, 100000);
+        auto result_p = ode.internal_pressure(T, M, x.data()+3);
+        BENCHMARK_LINE(ode.internal_pressure(T, M, x.data()+3);, 100000);
         (void)result_p;
 
     // internal_pressure_derivative()
-        double result_p_dot;
-        BENCHMARK_LINE(result_p_dot = ode.internal_pressure_derivative(T, 0.0, M, 0.0, x.data()+3, dxdt.data()+3);, 100000);
+        auto result_p_dot = ode.internal_pressure_derivative(T, 0.0, M, 0.0, x.data()+3, dxdt.data()+3);
+        BENCHMARK_LINE(ode.internal_pressure_derivative(T, 0.0, M, 0.0, x.data()+3, dxdt.data()+3);, 100000);
         (void)result_p_dot;
 
     // forward_rate()
@@ -212,6 +229,30 @@ void benchmark_ode_fun()
             cpar.nondimensionalize(t_dimless, x_dimless.data());
             BENCHMARK_LINE(ode(t_dimless, x_dimless.data(), dxdt_dimless.data());, 10000);
         }
+    }
+
+    std::cout << colors::bold << "Interpolator with sine wave" << colors::reset << std::endl;
+    {
+        Interpolator interp;
+        
+        // Fill with sine wave data
+        const size_t num_points = 1000;
+        const double t_max = 0.001;  // 1 ms
+        for (size_t i = 0; i < num_points; ++i)
+        {
+            double t_i = i * t_max / (num_points - 1);
+            double x_i = 1e-5 * std::sin(2.0 * std::numbers::pi * 500.0e3 * t_i);  // 1 kHz sine wave
+            interp.t_data.push_back(t_i);
+            interp.x_data.push_back(x_i);
+        }
+        
+        // Benchmark interpolation at mid-range value
+        const double t_eval = t_max / 2.0;
+        auto [x_interp, x_dot, x_ddot] = interp.interpolate(t_eval);
+        BENCHMARK_LINE(interp.interpolate(t_eval);, 1000000);
+        (void)x_interp;
+        (void)x_dot;
+        (void)x_ddot;
     }
 }
 
