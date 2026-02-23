@@ -1,12 +1,14 @@
-function plot(data, n, show_cpar)
+function plot(data, n, show_cpar, plot_pressure)
     % PLOT Plots the results of the simulation from data.
     % Arguments:
     %   data: struct containing the simulation data.
     %   n: how long the plotted time interval should be compared to the collapse time (default: 5).
     %   show_cpar: if true, the control parameters will be printed on the plot (default: false).
+    %   plot_pressure: if true, plot external excitation and internal pressure (default: false).
 
     if nargin < 2, n = 5.0; end
-    if nargin < 4, show_cpar = true; end
+    if nargin < 3, show_cpar = true; end
+    if nargin < 4, plot_pressure = false; end
 
     % Extract data
     cpar = data.cpar;
@@ -14,23 +16,20 @@ function plot(data, n, show_cpar)
     x = sol.x;
     t = sol.t;
 
-    % Find collapse time
-    [~, loc_min] = findpeaks(-x(:, 1)); % Find local minima of R
-    if ~isempty(loc_min)
-        collapse_time = t(loc_min(1)); % First local minimum
-    else
-        collapse_time = t(end);
-    end
-
     % Determine time interval for plotting
-    t_last = n * data.t_peak
+    t_last = n * data.t_peak;
+    if t_last < 1e-7 || t(end) < t_last || n < 0 || ~sol.success
+        end_index = length(t);
+    else
+        [~, end_index] = min(abs(t - t_last));
+    end
 
     % Adjust time scale
     if t(end_index) < 1e-3
-        t = t(1:end_index) * 1e6; % Convert to microseconds
+        t_plot = t(1:end_index) * 1e6; % Convert to microseconds
         t_label = 't [\mus]';
     else
-        t = t(1:end_index) * 1e3; % Convert to milliseconds
+        t_plot = t(1:end_index) * 1e3; % Convert to milliseconds
         t_label = 't [ms]';
     end
 
@@ -41,16 +40,16 @@ function plot(data, n, show_cpar)
 
     % Compute molar amounts
     V = 4.0 / 3.0 * R.^3 * pi; % Volume [m^3]
-    n_mol = c.* V; % Molar amounts [mol]
+    n_mol = c .* V; % Molar amounts [mol]
 
     % Plot R and T
     figure;
     ax1 = subplot(1, 1, 1);
     yyaxis left;
-    plot(t, R / cpar.R_E, 'b', 'LineWidth', 1.5);
+    plot(t_plot, R / cpar.R_E, 'b', 'LineWidth', 1.5);
     ylabel('R/R_E [-]', 'Color', 'b');
     yyaxis right;
-    plot(t, T, 'r-.', 'LineWidth', 1.5);
+    plot(t_plot, T, 'r-.', 'LineWidth', 1.5);
     ylabel('T [K]', 'Color', 'r');
     xlabel(t_label);
     grid on;
@@ -81,7 +80,7 @@ function plot(data, n, show_cpar)
     hold on;
     colors = lines(size(n_mol, 2)); % Generate distinct colors
     for i = 1:size(n_mol, 2)
-        plot(t, n_mol(:, i), 'LineWidth', 1.5, 'Color', colors(i, :));
+        plot(t_plot, n_mol(:, i), 'LineWidth', 1.5, 'Color', colors(i, :));
     end
     set(gca, 'YScale', 'log');
     ylim([1e-24, max(max(n_mol)) * 5]); % Limit lower bounds of y-axis
@@ -92,6 +91,25 @@ function plot(data, n, show_cpar)
     % Add legend
     legend(data.mechanism.species_names, 'Location', 'best');
     hold off;
+
+    % Plot pressure excitation and internal pressure
+    if plot_pressure
+        p_excitation = sol.p_excitation(1:end_index) * 1e-3; % Convert from Pa to kPa
+        p_internal = sol.p_internal(1:end_index) * 1e-6;    % Convert from Pa to MPa
+        
+        figure;
+        ax3 = subplot(1, 1, 1);
+        yyaxis left;
+        plot(t_plot, p_excitation, 'Color', [1.0 0.65 0.0], 'LineWidth', 1.5); % darkorange
+        ylabel('Pressure excitation [kPa]', 'Color', [1.0 0.65 0.0]);
+        yyaxis right;
+        plot(t_plot, p_internal, 'Color', 'g', 'LineWidth', 1.5);
+        ylabel('Internal pressure [MPa]', 'Color', 'g');
+        set(gca, 'YScale', 'log');
+        ylim([0.5*min(p_internal), 2.0*max(p_internal)]);
+        xlabel(t_label);
+        grid on;
+    end
 
     print_data(data);
 end

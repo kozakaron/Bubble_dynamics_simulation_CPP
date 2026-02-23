@@ -56,7 +56,7 @@ void OdeSolution::push_t_x(const double t_dimless, const double *x_dimless, OdeF
     p_internal.push_back(p_int);
     
     // Compute excitation pressure (external pressure)
-    auto [P_inf, P_inf_dot] = ode_ptr->excitation_pressures(t_dimless);
+    auto [P_inf, P_inf_dot] = ode_ptr->excitation_pressures(t.back());
     (void)P_inf_dot;
     p_excitation.push_back(P_inf);
 }
