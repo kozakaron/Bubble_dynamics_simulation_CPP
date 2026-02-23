@@ -85,12 +85,19 @@ def _read_json_and_binary(file_path: str) -> dict:
     """
     Reads Bubble_dynamics_simulation_CPP's output file, which is a JSON binary mix. It begins with an utf8 based JSON string
     and then contains binary data after <BINARY>. The JSON part is parsed, and the binary data is read into numpy arrays.
+    
+    The output dictionary includes:
+        - t: time array
+        - R, R_dot, T, E_diss: individual state variables
+        - p_excitation, p_internal: pressure time series
+        - c_<species_name>: individual species concentrations
+        - x: full state array (for backward compatibility)
 
     Args:
         file_path (str): Path to the file.
 
     Returns:
-        dict: A dictionary containing the JSON data and the binary arrays.
+        dict: A dictionary containing the JSON data and the binary arrays with restructured sol data.
     """
 
     with open(file_path, 'rb') as f:
@@ -119,15 +126,41 @@ def _read_json_and_binary(file_path: str) -> dict:
         num_saved_steps = data["sol"]["num_saved_steps"]
         num_dim = data["sol"]["num_dim"]
 
-        # Read the binary part
-        t = np.frombuffer(binary_part[:num_saved_steps * 8], dtype=np.float64)
-        x = np.frombuffer(binary_part[num_saved_steps * 8:], dtype=np.float64).reshape((num_saved_steps, num_dim))
+        # Read the binary part sequentially:
+        offset = 0
+        t = np.frombuffer(binary_part[offset:offset + num_saved_steps * 8], dtype=np.float64)
+        offset += num_saved_steps * 8
+        
+        x = np.frombuffer(binary_part[offset:offset + num_saved_steps * num_dim * 8], dtype=np.float64).reshape((num_saved_steps, num_dim))
+        offset += num_saved_steps * num_dim * 8
+        
+        p_excitation = np.frombuffer(binary_part[offset:offset + num_saved_steps * 8], dtype=np.float64)
+        offset += num_saved_steps * 8
+        
+        p_internal = np.frombuffer(binary_part[offset:offset + num_saved_steps * 8], dtype=np.float64)
 
-        # Add the binary data to the dictionary
+        # Add the binary data to the dictionary and restructure sol
         data = dict(data)
-        data["sol"]["t"] = t
-        data["sol"]["x"] = x
-        data["sol"]["total_error"] = np.array(data["sol"]["total_error"])
+        sol = dict(data["sol"])
+        
+        sol["t"] = t
+        sol["x"] = x  # Keep for backward compatibility
+        sol["p_excitation"] = p_excitation
+        sol["p_internal"] = p_internal
+        sol["total_error"] = np.array(sol.get("total_error", []))
+        
+        sol["R"] = x[:, 0]           # radius [m]
+        sol["R_dot"] = x[:, 1]       # radius velocity [m/s]
+        sol["T"] = x[:, 2]           # temperature [K]
+        sol["E_diss"] = x[:, -1]     # dissipated energy [J]
+        
+        if "mechanism" in data and "species_names" in data["mechanism"]:
+            species_names = data["mechanism"]["species_names"]
+            concentrations = x[:, 3:-1]
+            for i, species_name in enumerate(species_names):
+                sol[f"c_{species_name}"] = concentrations[:, i]
+        
+        data["sol"] = sol
 
     return data
 
@@ -386,7 +419,7 @@ def _print_data(data, print_it=True):
     
 
 def plot(data, n=5.0, base_name='', format='png',
-         presentation_mode=False, show_legend=False, show_cpar=True):
+         presentation_mode=False, show_legend=False, show_cpar=True, plot_pressure=False):
     """
     This funfction plots the results of the simulation form data (returned by run_simulation()).
     Parameters:
@@ -401,6 +434,7 @@ def plot(data, n=5.0, base_name='', format='png',
      * presentation_mode: if True, the plot will be in presentation mode (default: False)
      * show_legend: if True, the legend will be visible with every single species (default: False)
      * show_cpar: if True, the control parameters will be printed on the plot (default: False)
+     * plot_pressure: if True, plot external excitation and internal pressure (default: False)
     """
 
 # Calculations 
@@ -537,6 +571,29 @@ def plot(data, n=5.0, base_name='', format='png',
     if show_legend: ax.legend()
 
     plt.show()
+    
+# plot pressure excitation and internal pressure
+    if plot_pressure:
+        p_excitation = sol['p_excitation'][:end_index] * 1e-3
+        p_internal = sol['p_internal'][:end_index] * 1e-6
+        
+        plt.rcParams.update({'font.size': 24 if presentation_mode else 18})
+        linewidth = 2.0 if presentation_mode else 1.0
+        fig3 = plt.figure(figsize=(16, 9) if presentation_mode else (20, 6))
+        ax1 = fig3.add_subplot(axisbelow=True)
+        ax2 = ax1.twinx()
+        
+        ax1.plot(t, p_excitation, color='darkorange', label='external pressure', linewidth=linewidth)
+        ax2.plot(t, p_internal, color='g', label='internal pressure', linewidth=linewidth)
+
+        ax1.set_xlabel(t_label)
+        ax1.set_ylabel('Pressure excitation [kPa]', color='darkorange')
+        ax2.set_ylabel('Internal pressure [MPa]', color='g')
+        ax2.set_ylim([0.5*np.min(p_internal), 2.0*np.max(p_internal)])
+        ax2.set_yscale('log')
+        if not presentation_mode: ax1.grid()
+
+        plt.show()
     
 # saving the plots
     if base_name != '':
