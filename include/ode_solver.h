@@ -29,8 +29,8 @@ class OdeSolver
 {
 public:
     SUNContext sun_context;           // An opaque pointer used by SUNDIALS objects for error handling, logging, profiling, etc.
-    double t;                         // simulation time
-    N_Vector x;                       // simulation state vector
+    double t_dimless;                 // simulation time
+    N_Vector x_dimless;               // simulation state vector
     N_Vector constraints;             // constraints vector
     SUNMatrix A;                      // matrix for linear solver
     SUNLinearSolver linear_solver;    // linear solver

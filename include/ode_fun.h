@@ -18,11 +18,6 @@ public:
     const Parameters* par;              // reaction mechanism
     ControlParameters cpar;             // control parameters
     size_t num_species;                 // number of species (to check if init was called properly)
-#if defined TEST || defined BENCHMARK
-public:
-#else
-private:
-#endif
     // dimensionless form
     double* x_dimensional;              // state vector (x) in SI units (length: Parameters::num_species+4) [mol/m^3]
     // evaporation

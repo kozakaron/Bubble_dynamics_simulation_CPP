@@ -8,6 +8,7 @@
 
 #include "nlohmann/json.hpp"
 #include "ode_solution.h"
+#include "ode_fun.h"
 
 
 OdeSolution::OdeSolution():
@@ -36,16 +37,36 @@ is_success OdeSolution::success() const
 }
 
 
-void OdeSolution::push_t_x(const double t_i, const double *x_i)
+void OdeSolution::push_t_x(const double t_dimless, const double *x_dimless, OdeFun* ode_ptr)
 {
-    t.push_back(t_i);
-    x.push_back(std::vector<double>(x_i, x_i + num_dim));
+    t.push_back(t_dimless);
+    x.push_back(std::vector<double>(x_dimless, x_dimless + num_dim));
+    ode_ptr->cpar.dimensionalize(t.back(), x.back().data());
+    
+    // Compute pressures from dimensional state
+    const double T = x.back()[2];
+    double M = 0.0;
+    for (size_t k = 3; k < num_dim; ++k) {
+        M += x.back()[k];
+    }
+    const double* conc = x.back().data() + 3;
+    
+    // Compute internal pressure (using dimensional values)
+    double p_int = ode_ptr->internal_pressure(T, M, conc);
+    p_internal.push_back(p_int);
+    
+    // Compute excitation pressure (external pressure)
+    auto [P_inf, P_inf_dot] = ode_ptr->excitation_pressures(t_dimless);
+    (void)P_inf_dot;
+    p_excitation.push_back(P_inf);
 }
 
 void OdeSolution::clear()
 {
     t.clear();
     x.clear();
+    p_excitation.clear();
+    p_internal.clear();
     num_dim = 0;
     num_steps = 0;
     num_repeats = 0;
@@ -183,9 +204,13 @@ nlohmann::ordered_json OdeSolution::to_json() const
     j["num_lin_iters"] = this->num_lin_iters;
     j["num_nonlin_iters"] = this->num_nonlin_iters;
     j["total_error"] = this->total_error;
+    j["p_excitation"] = this->p_excitation;
+    j["p_internal"] = this->p_internal;
     // Saved as binary data in SimulationData:
     //j["t"] = std::vector<double>({this->t.front(), this->t.back()});
     //j["x"] = std::vector<std::vector<double>>({this->x.front(), this->x.back()});
+    //j["p_excitation"] = std::vector<double>({this->p_excitation.front(), this->p_excitation.back()});
+    //j["p_internal"] = std::vector<double>({this->p_internal.front(), this->p_internal.back()});
     
     return j;
 }
@@ -551,6 +576,23 @@ void SimulationData::save_json_with_binary(const std::string &json_path) const
         }
         binary_output_file.write(reinterpret_cast<const char*>(row.data()), row.size() * sizeof(double));
     }
+
+    // Save sol.p_excitation (1D array)
+    if (this->sol.p_excitation.size() != this->sol.x.size())
+    {
+        LOG_ERROR("Mismatch between sol.p_excitation.size() and sol.x.size(): " + std::to_string(this->sol.p_excitation.size()) + " != " + std::to_string(this->sol.x.size()));
+        return;
+    }
+    binary_output_file.write(reinterpret_cast<const char*>(this->sol.p_excitation.data()), this->sol.p_excitation.size() * sizeof(double));
+
+    // Save sol.p_internal (1D array)
+    if (this->sol.p_internal.size() != this->sol.x.size())
+    {
+        LOG_ERROR("Mismatch between sol.p_internal.size() and sol.x.size(): " + std::to_string(this->sol.p_internal.size()) + " != " + std::to_string(this->sol.x.size()));
+        return;
+    }
+    binary_output_file.write(reinterpret_cast<const char*>(this->sol.p_internal.data()), this->sol.p_internal.size() * sizeof(double));
+
     binary_output_file.close();
 }
 

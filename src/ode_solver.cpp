@@ -185,8 +185,8 @@ static_assert(std::is_same<decltype(&error_weights), CVEwtFn>::value, "error_wei
 
 OdeSolver::OdeSolver(const size_t num_dim):
     sun_context(nullptr),
-    t(0.0),
-    x(nullptr),
+    t_dimless(0.0),
+    x_dimless(nullptr),
     A(nullptr),
     linear_solver(nullptr),
     cvode_mem(nullptr),
@@ -201,7 +201,7 @@ OdeSolver::OdeSolver(const size_t num_dim):
     HANDLE_ERROR_CODE(SUNContext_PushErrHandler(sun_context, error_handler, (void*)&user_data));
 
     // Setup vectors
-    HANDLE_RETURN_PTR(x, N_VNew_Serial(num_dim, sun_context));
+    HANDLE_RETURN_PTR(x_dimless, N_VNew_Serial(num_dim, sun_context));
     HANDLE_RETURN_PTR(constraints, N_VNew_Serial(num_dim, sun_context));
     
     for (size_t i = 0; i < num_dim; i++)
@@ -213,7 +213,7 @@ OdeSolver::OdeSolver(const size_t num_dim):
 
     // Setup CVODE
     HANDLE_RETURN_PTR(cvode_mem, CVodeCreate(CV_BDF, sun_context));
-    HANDLE_ERROR_CODE(CVodeInit(cvode_mem, right_hand_side, 0.0, x));
+    HANDLE_ERROR_CODE(CVodeInit(cvode_mem, right_hand_side, 0.0, x_dimless));
     HANDLE_ERROR_CODE(CVodeSetMaxNumSteps(cvode_mem, 2000000000));
     HANDLE_ERROR_CODE(CVodeSetMaxHnilWarns(cvode_mem, 10));                                   // maximum number of warnings for t+h=t
     HANDLE_ERROR_CODE(CVodeSetMaxStep(cvode_mem, 1.0e-3 * ControlParameters::t_ref_inv));     // Limit max step size to 1 ms
@@ -224,7 +224,7 @@ OdeSolver::OdeSolver(const size_t num_dim):
 
     // Setup linear solver
     HANDLE_RETURN_PTR(A, SUNDenseMatrix(num_dim, num_dim, sun_context));
-    HANDLE_RETURN_PTR(linear_solver, SUNLinSol_Dense(x, A, sun_context));
+    HANDLE_RETURN_PTR(linear_solver, SUNLinSol_Dense(x_dimless, A, sun_context));
     HANDLE_ERROR_CODE(CVodeSetLinearSolver(cvode_mem, linear_solver, A));
 
     // Setup nonlinear solver
@@ -236,7 +236,7 @@ OdeSolver::OdeSolver(const size_t num_dim):
 OdeSolver::~OdeSolver()
 {
     size_t* error_ID_ptr = &(init_error_ID);
-    N_VDestroy(x);
+    N_VDestroy(x_dimless);
     N_VDestroy(constraints);
     CVodeFree(&cvode_mem);
     HANDLE_ERROR_CODE(SUNLinSolFree(linear_solver));
@@ -397,11 +397,10 @@ SimulationData OdeSolver::solve(
     }
 
     // Setup CVODE resources and initial conditions
-    solution.num_dim = NV_LENGTH_S(x);
-    ode_ptr->initial_conditions(NV_DATA_S(x));
-    solution.push_t_x(0.0, NV_DATA_S(x));
-    ode_ptr->cpar.dimensionalize(solution.t.back(), solution.x.back().data());
-    init_solve(cvode_mem, &user_data, x, &(solution.error_ID));
+    solution.num_dim = NV_LENGTH_S(x_dimless);
+    ode_ptr->initial_conditions(NV_DATA_S(x_dimless));
+    solution.push_t_x(0.0, NV_DATA_S(x_dimless), ode_ptr);
+    init_solve(cvode_mem, &user_data, x_dimless, &(solution.error_ID));
     if (solution.error_ID != ErrorHandler::no_error)  return data;
 
     // Solve
@@ -409,18 +408,17 @@ SimulationData OdeSolver::solve(
     while (true)
     {
         // Integration (step)
-        int retval = CVode(cvode_mem, t_max_dimless, x, &t, CV_ONE_STEP);
+        int retval = CVode(cvode_mem, t_max_dimless, x_dimless, &t_dimless, CV_ONE_STEP);
 
         // Success
         if (retval == CV_SUCCESS) {
             // Update maximum values
-            data.midprocess(t, NV_DATA_S(x));
+            data.midprocess(t_dimless, NV_DATA_S(x_dimless));
 
             // Save solution
             if (save_solution)
             {
-                solution.push_t_x(t, NV_DATA_S(x));
-                ode_ptr->cpar.dimensionalize(solution.t.back(), solution.x.back().data());
+                solution.push_t_x(t_dimless, NV_DATA_S(x_dimless), ode_ptr);
             }
 
             // Save Jacobian
@@ -454,15 +452,14 @@ SimulationData OdeSolver::solve(
         }
 
         // Exit conditions
-        if (t >= t_max_dimless)  break;
+        if (t_dimless >= t_max_dimless)  break;
         if (user_data.timed_out)  break;
         if (retval != CV_SUCCESS)  break;
     }
 
     // fill solution
-    solution.push_t_x(t, NV_DATA_S(x));
-    ode_ptr->cpar.dimensionalize(solution.t.back(), solution.x.back().data());
-    construct_solution(solution, cvode_mem, &(solution.error_ID), x);
+    solution.push_t_x(t_dimless, NV_DATA_S(x_dimless), ode_ptr);
+    construct_solution(solution, cvode_mem, &(solution.error_ID), x_dimless);
     solution.runtime       = timer.lap();
     user_data.ode_ptr      = nullptr;
     user_data.timer_ptr    = nullptr;
