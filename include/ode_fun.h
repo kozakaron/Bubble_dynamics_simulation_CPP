@@ -57,6 +57,7 @@ public:
 
 
     double bubble_dynamics(
+        const double t,
         const double R,
         const double R_dot,
         const double p,

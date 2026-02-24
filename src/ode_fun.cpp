@@ -492,7 +492,7 @@ std::pair<double, double> OdeFun::excitation_pressures(
     const double t
 )
 {
-    double p_Inf, p_Inf_dot;
+    double p_inf, p_inf_dot;
        
     switch (cpar.excitation_type)
     {
@@ -503,8 +503,8 @@ std::pair<double, double> OdeFun::excitation_pressures(
 
             const auto [w, w_dot] = _tukey_window(t, freq, cpar.excitation_cycles, cpar.ramp_up_cycles);
             const auto [p1, p1_dot] = _sin(t, p_A, freq, 0.0);
-            p_Inf = cpar.P_amb + w * p1;
-            p_Inf_dot = w_dot * p1 + w * p1_dot;
+            p_inf = cpar.P_amb + w * p1;
+            p_inf_dot = w_dot * p1 + w * p1_dot;
             break;
         }
     case Parameters::excitation::two_sinusoids:
@@ -518,8 +518,8 @@ std::pair<double, double> OdeFun::excitation_pressures(
             const auto [w, w_dot] = _tukey_window(t, freq1, cpar.excitation_cycles, cpar.ramp_up_cycles);
             const auto [p1, p1_dot] = _sin(t, p_A1, freq1, 0.0);
             const auto [p2, p2_dot] = _sin(t, p_A2, freq2, theta_phase);
-            p_Inf = cpar.P_amb + w * (p1 + p2);
-            p_Inf_dot = w_dot * (p1 + p2) + w * (p1_dot + p2_dot);
+            p_inf = cpar.P_amb + w * (p1 + p2);
+            p_inf_dot = w_dot * (p1 + p2) + w * (p1_dot + p2_dot);
             break;
         }
     case Parameters::excitation::square:
@@ -539,14 +539,14 @@ std::pair<double, double> OdeFun::excitation_pressures(
                 p_sum += p_n;
                 p_sum_dot += p_n_dot;
             }
-            p_Inf = cpar.P_amb + w * p_sum;
-            p_Inf_dot = w_dot * p_sum + w * p_sum_dot;
+            p_inf = cpar.P_amb + w * p_sum;
+            p_inf_dot = w_dot * p_sum + w * p_sum_dot;
             break;
         }
     default: // no_excitation
         {
-            p_Inf = cpar.P_amb;
-            p_Inf_dot = 0.0;
+            p_inf = cpar.P_amb;
+            p_inf_dot = 0.0;
             break;
         }
     }
@@ -555,15 +555,16 @@ std::pair<double, double> OdeFun::excitation_pressures(
     if (!cpar.excitation_interpolator.x_data.empty())
     {
         auto [p_interp, p_dot_interp, p_dot_dot_interp] = cpar.excitation_interpolator.interpolate(t);
-        p_Inf = cpar.P_amb + p_interp;
-        p_Inf_dot = p_dot_interp;
+        p_inf = cpar.P_amb + p_interp;
+        p_inf_dot = p_dot_interp;
     }
 
-    return std::make_pair(p_Inf, p_Inf_dot);
+    return std::make_pair(p_inf, p_inf_dot);
 }
 
 
 double OdeFun::bubble_dynamics(
+    const double t,
     const double R,
     const double R_dot,
     const double p,
@@ -572,15 +573,45 @@ double OdeFun::bubble_dynamics(
     const double P_inf_dot
 )
 {
-    const double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
-    const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // + 4.0 * cpar.mu_L * R_ddot / R;
-    const double delta = (p_L - P_inf) / cpar.rho_L;
-    const double delta_dot = (p_L_dot - P_inf_dot) / cpar.rho_L;
+    // Radius interpolator takes precedence over equation-based dynamics
+    if (!cpar.radius_interpolator.x_data.empty())
+    {
+        auto [R_interp, R_dot_interp, R_dot_dot_interp] = cpar.radius_interpolator.interpolate(t);
+        const double damping_coefficient = 1.0e8;    // adjustable [1/s]
+        return R_dot_dot_interp - damping_coefficient * (R_dot - R_dot_interp);
+    }
 
-    const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
-    const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
+    if (!cpar.enable_gilmore)
+    {
+        // Keller-Miksis equation
+        const double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
+        const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // + 4.0 * cpar.mu_L * R_dot_dot / R;
+        const double delta = (p_L - P_inf) / cpar.rho_L;
+        const double delta_dot = (p_L_dot - P_inf_dot) / cpar.rho_L;
 
-    return nom / denom;
+        const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
+        const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
+        return nom / denom;
+    }
+    else
+    {
+        // Gilmore equation NASG liquid model (https://doi.org/10.1016/j.ultsonch.2020.105307)
+        const double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
+        const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot)/ (R * R); // + 4.0 * cpar.mu_L * R_dot_dot / R;
+
+        // Noble-Abel-stiffened-gas (NASG) EoS for liquid
+        const double K_L = par->rho_L_ref / ( std::pow(par->p_L_ref + par->B_L, 1.0 / par->Gamma_L) * (1.0 - par->b_L * par->rho_L_ref) );    // constant representing the liquid reference state
+        const double rho_L   = K_L * std::pow((p_L   + par->B_L), (1.0 / par->Gamma_L)) / (1.0 + par->b_L * K_L * std::pow((p_L   + par->B_L), (1.0 / par->Gamma_L)));    // density of liquid at bubble wall
+        const double rho_inf = K_L * std::pow((P_inf + par->B_L), (1.0 / par->Gamma_L)) / (1.0 + par->b_L * K_L * std::pow((P_inf + par->B_L), (1.0 / par->Gamma_L)));    // density of liquid at infinity
+        const double c_L = std::sqrt( par->Gamma_L * (p_L + par->B_L) / (rho_L - par->b_L * rho_L * rho_L) );   // speed of sound in liquid at bubble wall
+        const double H = par->Gamma_L / (par->Gamma_L - 1.0) * ( (p_L + par->B_L) / rho_L - (P_inf + par->B_L) / rho_inf ) - \
+                         par->b_L * (p_L - P_inf) / (par->Gamma_L - 1.0);    // Enthalpy difference (H = h_L - h_inf)
+        const double H_dot = p_L_dot / rho_L - P_inf_dot / rho_inf; // - 4.0 * cpar.mu_L * R_dot_dot / (rho_L * R);
+        
+        const double nom = ((1.0 + R_dot / c_L) * H - 1.5 * (1.0 - R_dot / (3.0 * c_L)) * R_dot * R_dot)  /  ((1.0 - R_dot / c_L) * R)  +  H_dot / c_L;
+        const double den = 1.0 + 4.0 * par->mu_L / (rho_L * R * c_L);
+        return nom / den;
+    }
 }
 
 
@@ -1035,22 +1066,9 @@ is_success OdeFun::operator()(
     x_dimensional_dot[2] = T_dot;
 
 // d/dt R_dot
-    double R_dot_dot = 0.0;
-    if (!cpar.radius_interpolator.x_data.empty())
-    {
-        // Use interpolated R_dot_dot with damping correction
-        auto [R_interp, R_dot_interp, R_dot_dot_interp] = cpar.radius_interpolator.interpolate(t);
-        const double damping_coefficient = 1.0e8;    // adjustable [1/s]
-        R_dot_dot = R_dot_dot_interp - damping_coefficient * (R_dot - R_dot_interp);
-        x_dimensional_dot[1] = R_dot_dot;
-    }
-    else
-    {
-        // Compute R_dot_dot from Keller-Miksis equation
-        const auto [P_inf, P_inf_dot] = this->excitation_pressures(t);
-        R_dot_dot = this->bubble_dynamics(R, R_dot, p, p_dot, P_inf, P_inf_dot);
-        x_dimensional_dot[1] = R_dot_dot;
-    }
+    const auto [P_inf, P_inf_dot] = this->excitation_pressures(t);
+    const double R_dot_dot = this->bubble_dynamics(t, R, R_dot, p, p_dot, P_inf, P_inf_dot);
+    x_dimensional_dot[1] = R_dot_dot;
 
 // Dissipated energy
     if (cpar.enable_dissipated_energy)

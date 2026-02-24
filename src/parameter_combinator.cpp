@@ -285,6 +285,7 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
     this->enable_reactions =            builder.enable_reactions;
     this->enable_dissipated_energy =    builder.enable_dissipated_energy;
     this->enable_van_der_waals =        builder.enable_van_der_waals;
+    this->enable_gilmore =              builder.enable_gilmore;
     this->enable_rate_thresholding =    builder.enable_rate_thresholding;
     this->target_specie =               builder.target_specie;
     this->excitation_type =             builder.excitation_type;
@@ -548,6 +549,7 @@ void ParameterCombinator::init(const ordered_json& j)
         builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
         builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
         builder.enable_van_der_waals =      get_value<bool>                     (j, "enable_van_der_waals",     builder.enable_van_der_waals);
+        builder.enable_gilmore =            get_value<bool>                     (j, "enable_gilmore",           builder.enable_gilmore);
         builder.enable_rate_thresholding =  get_value<bool>                     (j, "enable_rate_thresholding", builder.enable_rate_thresholding);
         builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
         builder.excitation_type = Parameters::string_to_excitation(
@@ -706,6 +708,7 @@ std::string ParameterCombinator::to_string(const bool with_code) const
     ss << format_field_name << ".enable_reactions" << " = " << std::boolalpha << this->enable_reactions << ",\n";
     ss << format_field_name << ".enable_dissipated_energy" << " = " << std::boolalpha << this->enable_dissipated_energy << ",\n";
     ss << format_field_name << ".enable_van_der_waals" << " = " << std::boolalpha << this->enable_van_der_waals << ",\n";
+    ss << format_field_name << ".enable_gilmore" << " = " << std::boolalpha << this->enable_gilmore << ",\n";
     ss << format_field_name << ".enable_rate_thresholding" << " = " << std::boolalpha << this->enable_rate_thresholding << ",\n";
     ss << format_field_name << ".target_specie" << " = " << species_to_string(this->target_specie) << ",\n";
     ss << format_field_name << ".excitation_type"            << " = " << (with_code ? "Parameters::excitation::" : "") << Parameters::excitation_names[this->excitation_type] << "\n";
@@ -747,6 +750,7 @@ ordered_json ParameterCombinator::to_json() const
     j["enable_reactions"] = this->enable_reactions;
     j["enable_dissipated_energy"] = this->enable_dissipated_energy;
     j["enable_van_der_waals"] = this->enable_van_der_waals;
+    j["enable_gilmore"] = this->enable_gilmore;
     j["enable_rate_thresholding"] = this->enable_rate_thresholding;
     j["target_specie"] = this->target_specie;
     j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
@@ -818,6 +822,7 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         .enable_reactions = this->enable_reactions,
         .enable_dissipated_energy = this->enable_dissipated_energy,
         .enable_van_der_waals = this->enable_van_der_waals,
+        .enable_gilmore = this->enable_gilmore,
         .enable_rate_thresholding = this->enable_rate_thresholding,
         .target_specie = this->target_specie,
         .excitation_type = this->excitation_type,
