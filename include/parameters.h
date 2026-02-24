@@ -49,12 +49,20 @@ public:
 
 // PHYSICAL CONSTANTS
 
+// Water reference properties at 30 °C and 1 atm
     static constexpr double c_L           = 1483.0;             // Liquid sound speed at 30 °C [m/s]
     static constexpr double rho_L         = 998.2;              // Liquid density [kg/m^3]
     static constexpr double sigma         = 0.07197;            // Surface tension [N/m]
     static constexpr double mu_L          = 0.001;              // Dynamic viscosity at 30 °C and 1 atm [Pa*s]
     static constexpr double P_v           = 2338.1;             // Saturated vapour pressure at 30 °C [Pa]
     static constexpr double alpha_M       = 0.35;               // Water accommodation coefficient [-]
+// Water NASG parameters (for Gilmore equation)
+    static constexpr double Gamma_L		  = 1.19;               // general polytropic exponent [-]
+	static constexpr double B_L			  = 6.2178e8;           // pressure constant that models molecular attraction [Pa]
+	static constexpr double b_L			  = 6.7212e-4;          // co-volume constant that represents the volume of molecules [m^3/kg]
+    static constexpr double p_L_ref		  = 1.0e5;              // reference pressure [Pa]
+	static constexpr double rho_L_ref	  = 997.0;              // reference density [kg/m^3]
+// Universal constants
     static constexpr double k_B           = 1.380649e-23;       // Boltzmann constant [J/K]
     static constexpr double R_g           = 8.31446;            // Universal gas constant [J/mol/K]
     static constexpr double R_kmol        = 8314.46;            // Universal gas constant [J/kmol/K]
@@ -69,6 +77,7 @@ public:
     static constexpr double atm2Pa        = 101325.0;           // Conversion factor from atm to Pa
     static constexpr double bar2Pa        = 100000.0;           // Conversion factor from bar to Pa
     static constexpr double absolute_zero = 273.15;             // Zero °C in Kelvin
+    
 
 // MECHANISM DEPENDENT PARAMETERS
 

@@ -72,8 +72,8 @@ void benchmark_ode_fun()
         BENCHMARK_LINE(ode.excitation_pressures(t);, 1000000);
 
     // bubble_dynamics()
-        auto result_R_dot_dot = ode.bubble_dynamics(x[0], x[1], p, p_dot, P_inf, P_inf_dot);
-        BENCHMARK_LINE(ode.bubble_dynamics(x[0], x[1], p, p_dot, P_inf, P_inf_dot);, 1000000);
+        auto result_R_dot_dot = ode.bubble_dynamics(t, x[0], x[1], p, p_dot, P_inf, P_inf_dot);
+        BENCHMARK_LINE(ode.bubble_dynamics(t, x[0], x[1], p, p_dot, P_inf, P_inf_dot);, 1000000);
         (void)result_R_dot_dot;
 
     // thermodynamic()
@@ -181,8 +181,8 @@ void benchmark_ode_fun()
         BENCHMARK_LINE(ode.excitation_pressures(t);, 1000000);
 
     // bubble_dynamics()
-        auto result_R_dot_dot = ode.bubble_dynamics(x[0], x[1], p, p_dot, P_inf, P_inf_dot);
-        BENCHMARK_LINE(ode.bubble_dynamics(x[0], x[1], p, p_dot, P_inf, P_inf_dot);, 1000000);
+        auto result_R_dot_dot = ode.bubble_dynamics(t, x[0], x[1], p, p_dot, P_inf, P_inf_dot);
+        BENCHMARK_LINE(ode.bubble_dynamics(t, x[0], x[1], p, p_dot, P_inf, P_inf_dot);, 1000000);
         (void)result_R_dot_dot;
 
     // thermodynamic()

@@ -113,6 +113,7 @@ private:
     bool enable_reactions;
     bool enable_dissipated_energy;
     bool enable_van_der_waals;
+    bool enable_gilmore;
     bool enable_rate_thresholding;
     std::string target_specie;
     Parameters::excitation excitation_type;
@@ -140,6 +141,7 @@ public:
         bool enable_reactions                   = true;
         bool enable_dissipated_energy           = true;
         bool enable_van_der_waals               = true;
+        bool enable_gilmore                     = false;
         bool enable_rate_thresholding           = true;
         std::string target_specie               = "H2";
         Parameters::excitation excitation_type  = Parameters::excitation::sinusoid;

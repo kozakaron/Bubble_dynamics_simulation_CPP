@@ -135,6 +135,7 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
         builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
         builder.enable_van_der_waals =      get_value<bool>                     (j, "enable_van_der_waals",     builder.enable_van_der_waals);
+        builder.enable_gilmore =            get_value<bool>                     (j, "enable_gilmore",           builder.enable_gilmore);
         builder.enable_rate_thresholding =  get_value<bool>                     (j, "enable_rate_thresholding", builder.enable_rate_thresholding);
         builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
         builder.excitation_type = Parameters::string_to_excitation(
@@ -206,6 +207,13 @@ ControlParameters::ControlParameters(const std::string& json_path)
 }
 
 
+static bool relative_diff_above_threshold(const double a, const double b, const double threshold = 0.01)
+{
+    if (b == 0.0) return a != 0.0;
+    return std::abs(a - b) / std::abs(b) > threshold;
+}
+
+
 void ControlParameters::init(const ControlParameters::Builder& builder)
 {
     this->ID = builder.ID;
@@ -226,6 +234,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->enable_reactions = builder.enable_reactions;
     this->enable_dissipated_energy = builder.enable_dissipated_energy;
     this->enable_van_der_waals = builder.enable_van_der_waals;
+    this->enable_gilmore = builder.enable_gilmore;
     this->enable_rate_thresholding = builder.enable_rate_thresholding;
     this->target_specie = par->get_species(builder.target_specie);
     this->excitation_type = builder.excitation_type;
@@ -281,6 +290,22 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
         this->excitation_type = Parameters::excitation::no_excitation;
         this->excitation_cycles = 0.0;
         this->ramp_up_cycles = 0.0;
+    }
+
+    // Warn if Gilmore is enabled but material properties differ significantly from water
+    if (this->enable_gilmore && this->radius_interpolator.x_data.empty())
+    {
+        const bool mismatch = relative_diff_above_threshold(this->rho_L,      par->rho_L) ||
+                              relative_diff_above_threshold(this->c_L,        par->c_L) ||
+                              relative_diff_above_threshold(this->mu_L,       par->mu_L) ||
+                              relative_diff_above_threshold(this->surfactant, 1.0);
+        if (mismatch)
+        {
+            LOG_ERROR(Error::severity::warning, Error::type::preprocess,
+                "Gilmore equation uses hardcoded NASG coefficients for water. "
+                "The specified liquid material properties (rho_L, c_L, mu_L, surfactant) "
+                "differ significantly from water reference values. Use enable_gilmore=false to disable Gilmore equation.", this->ID);
+        }
     }
 
     // Set reference values
@@ -441,7 +466,7 @@ std::string ControlParameters::to_csv() const
     ss << format_double << this->c_L << "," << format_double << this->surfactant << ",";
     ss << std::boolalpha << this->enable_heat_transfer << "," << std::boolalpha << this->enable_evaporation << ",";
     ss << std::boolalpha << this->enable_reactions << "," << std::boolalpha << this->enable_dissipated_energy << ",";
-    ss << std::boolalpha << this->enable_van_der_waals << "," << std::boolalpha << this->enable_rate_thresholding << ",";
+    ss << std::boolalpha << this->enable_van_der_waals << "," << std::boolalpha << this->enable_gilmore << "," << std::boolalpha << this->enable_rate_thresholding << ",";
     ss << par->species_names[this->target_specie] << ",";
     ss << Parameters::excitation_names[this->excitation_type] << ",";
     for (size_t index = 0; index < Parameters::excitation_arg_nums[this->excitation_type]; ++index)
@@ -508,6 +533,7 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << format_string << ".enable_reactions"           << " = " << format_bool   << this->enable_reactions          << ",\n";
     ss << format_string << ".enable_dissipated_energy"   << " = " << format_bool   << this->enable_dissipated_energy  << ",\n";
     ss << format_string << ".enable_van_der_waals"       << " = " << format_bool   << this->enable_van_der_waals      << ",\n";
+    ss << format_string << ".enable_gilmore"             << " = " << format_bool   << this->enable_gilmore            << ",\n";
     ss << format_string << ".enable_rate_thresholding"   << " = " << format_bool   << this->enable_rate_thresholding  << ",\n";
     ss << format_string << ".target_specie"              << " = " << species_to_string(this->target_specie)           << ",\n";
     ss << format_string << ".excitation_type"            << " = " << (with_code ? "Parameters::excitation::" : "") << Parameters::excitation_names[this->excitation_type] << "\n";
@@ -563,6 +589,7 @@ ordered_json ControlParameters::to_json() const
     j["enable_reactions"] = this->enable_reactions;
     j["enable_dissipated_energy"] = this->enable_dissipated_energy;
     j["enable_van_der_waals"] = this->enable_van_der_waals;
+    j["enable_gilmore"] = this->enable_gilmore;
     j["enable_rate_thresholding"] = this->enable_rate_thresholding;
     j["target_specie"] = par->species_names.at(this->target_specie);
     j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
