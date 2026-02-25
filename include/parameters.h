@@ -104,7 +104,6 @@ public:
 // Reactions constants
     const index_t num_reactions;                    // Number of reactions
     const double *arrhenius_parameters;             // Arrhenius parameters (num_reactions, 3): {ln_A, b, E_over_R}
-    const index_t *reaction_order;                  // reaction_order (num_reactions)
 // Reaction matrixes
     const index_t num_max_species_per_reaction;     // Maximum number of species participating in a reaction
     const index_t *nu_indexes;                      // Indexes of species participating in reactions (num_reactions, num_max_species_per_reaction)
@@ -137,6 +136,11 @@ public:
     const index_t *plog_reaction_indexes;           // Indexes of PLOG reactions (num_plog_reactions)
     const index_t *plog_seperators;                 // Seperators of PLOG reactions (num_plog_reactions+1)
     const double *plog_parameters;                  // PLOG parameters (num_plog_levels, 4): {P_j, ln_Aj, b_j, Ej_over_R}
+ // Constants for bimolecular threshold calculations
+    const index_t *reaction_order;                  // reaction_order (num_reactions)
+    const double *ln_bimolecular_threshold_base;    // ln(N_A * sigma_AB^2 / kappa_AB * sqrt(8 * pi * R_g / W_AB)); NaN for unimolecular (num_reactions)
+    const double *epsilon_AB;                       // sqrt(epsilon_A * epsilon_B); common Lennard-Jones well-depth; NaN for unimolecular (num_reactions)
+    const double *ln_epsilon_AB;                    // ln(epsilon_AB)
 
 // CONSTRUCTORS
     Parameters(const nlohmann::json& j);
