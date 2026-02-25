@@ -687,6 +687,23 @@ std::pair<double, double> OdeFun::evaporation(
 }
 
 
+// Natural logarithm of the dimensionless collision integral Ω^(2,2)(T*).
+// https://doi.org/10.1063/1.1678363
+inline double ln_Omega_22(const double T_star, const double ln_T_star)
+{
+    constexpr double A    = 1.16145, B = 0.14874;
+    constexpr double C    = 0.52487, D = 0.77320;
+    constexpr double E    = 2.16178, F = 2.43787;
+    constexpr double ln_A = 0.1496692245;
+    if (T_star > 10.0)
+    {
+        return ln_A - B * ln_T_star;
+    }
+    return std::log(
+        A * std::pow(T_star, -B) + C * std::exp(-D * T_star) + E * std::exp(-F * T_star)
+    );
+}
+
 void OdeFun::forward_rate(
     const double T,
     const double M,
@@ -694,14 +711,14 @@ void OdeFun::forward_rate(
 )
 {
 // Arrhenius reactions
-    const double logT = std::log(T);
+    const double ln_T = std::log(T);
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
         const double& ln_A     = par->arrhenius_parameters[index * 3 + 0];    // Logarithm of pre-exponential factors [ln(m^3n/mol^n/s)], where n is reaction_order-1 [-]
         const double& b        = par->arrhenius_parameters[index * 3 + 1];    // Temperature exponents [-]
         const double& E_over_R = par->arrhenius_parameters[index * 3 + 2];    // Activation energies / universal gas constant [K]
 
-        this->ln_k_forward[index] = ln_A + b * logT - E_over_R / T;
+        this->ln_k_forward[index] = ln_A + b * ln_T - E_over_R / T;
     }
     
 // Pressure dependent reactions
@@ -724,7 +741,7 @@ void OdeFun::forward_rate(
         const double &E0_over_R = falloff_parameters[2];
 
         const double ln_k_inf = this->ln_k_forward[index];
-        const double ln_k_0 = ln_A0 + b_0 * logT - E0_over_R / T;
+        const double ln_k_0 = ln_A0 + b_0 * ln_T - E0_over_R / T;
         const double ln_Pr = ln_k_0 + std::log(M_eff_loc) - ln_k_inf;
         const double log10_Pr = ln_Pr / std::numbers::ln10;
 
@@ -810,8 +827,8 @@ void OdeFun::forward_rate(
         const double &E_upper_over_R = par->plog_parameters[upper*4+3];
 
         // reaction rates at the lower and upper pressures
-        const double ln_k_lower = ln_A_lower + b_lower * logT - E_lower_over_R / T;
-        const double ln_k_upper = ln_A_upper + b_upper * logT - E_upper_over_R / T;
+        const double ln_k_lower = ln_A_lower + b_lower * ln_T - E_lower_over_R / T;
+        const double ln_k_upper = ln_A_upper + b_upper * ln_T - E_upper_over_R / T;
 
         // interpolation
         if (p < par->plog_parameters[par->plog_seperators[j]*4+0])    // p < smallest pressure level
@@ -830,19 +847,30 @@ void OdeFun::forward_rate(
     
 // Forward rate thresholding
     if (!cpar.enable_rate_thresholding) return;
-    const double reaction_rate_threshold = par->k_B * T / par->h; // [1/s]
-    const double ln_reaction_rate_threshold = std::log(reaction_rate_threshold);
-    const double ln_correction = std::log(par->R_g * T / par->atm2Pa); // unit correction for higher order reactions [m^3/mol]
+    const double ln_correction = std::log(par->R_g * T / par->atm2Pa);  // unit correction for higher order reactions [m^3/mol]
+    const double ln_uni_limit  = std::log(par->k_B * T / par->h);       // [1/s]
+    const double ln_kB_T       = std::log(par->k_B) + ln_T;
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
-        const double ln_threshold = ln_reaction_rate_threshold + ln_correction * (par->reaction_order[index] - 1);
-        const double ln_k_forward = this->ln_k_forward[index];
-        if (!std::isfinite(ln_k_forward) || ln_k_forward > ln_threshold)
+        const double ln_bi_limit_base = par->ln_bimolecular_threshold_base[index];
+        const index_t m = par->reaction_order[index];
+        double ln_threshold;
+        if (std::isnan(ln_bi_limit_base))    // unimolecular
         {
-            this->ln_k_forward[index] = std::copysign(ln_threshold, ln_k_forward);
+            ln_threshold = ln_uni_limit + (m - 1) * ln_correction;
+        }
+        else    // bimolecular
+        {
+            const double T_star    = par->k_B * T / par->epsilon_AB[index];
+            const double ln_T_star = ln_kB_T  - par->ln_epsilon_AB[index];
+            ln_threshold = ln_bi_limit_base + 0.5 * ln_T + ln_Omega_22(T_star, ln_T_star) + (m - 2) * ln_correction;
+        }
+        const double ln_k = this->ln_k_forward[index];
+        if (!std::isfinite(ln_k) || ln_k > ln_threshold)
+        {
+            this->ln_k_forward[index] = std::copysign(ln_threshold, ln_k);
         }
     }
-    
 }
 
 
