@@ -8,6 +8,7 @@
 #include "ode_fun.h"
 
 BubbleState interpolate_state(
+	std::size_t R_dot_from_file,
     const std::vector<double>& data,
     std::size_t rows,
     std::size_t cols,
@@ -56,8 +57,8 @@ BubbleState interpolate_state(
 	const double R_dot_0 = at(idx - 1, 2);
     const double R_dot_1 = at(idx, 2);
 	
-    const double V0 = (4.0 / 3.0) * std::numbers::pi * R0 * R0 * R0;
-    const double V1 = (4.0 / 3.0) * std::numbers::pi * R1 * R1 * R1;
+    //const double V0 = (4.0 / 3.0) * std::numbers::pi * R0 * R0 * R0;
+    //const double V1 = (4.0 / 3.0) * std::numbers::pi * R1 * R1 * R1;
     
     // V_dot = (V1 - V0) / (t1 - t0)
 	
@@ -73,12 +74,18 @@ BubbleState interpolate_state(
 		+ ( -2.0*tau3 + 3.0*tau2 ) * R1
 		+ ( tau3 - tau2 ) * h * R_dot_1;
 	//Ṙ(t)
-	s.R_dot =
+	if(R_dot_from_file)
+	{
+		s.R_dot = (R1-R0) / (t1-t0);
+	}
+	else
+	{
+		s.R_dot =
 		( (6.0*tau2 - 6.0*tau) * R0
 		+ (3.0*tau2 - 4.0*tau + 1.0) * h * R_dot_0
 		+ (-6.0*tau2 + 6.0*tau) * R1
 		+ (3.0*tau2 - 2.0*tau) * h * R_dot_1 ) / h;
-	
+	}
 
 	// Extrapolation check
 	if (t < at(0,0) || t > at(rows-1,0)) {
@@ -1089,7 +1096,7 @@ is_success OdeFun::operator()(
     double* x_dimensional_dot = x_dimless_dot;
 
 // Common variables
-    BubbleState s = interpolate_state(cpar.importdata,cpar.rows,cpar.cols,t);
+    BubbleState s = interpolate_state(cpar.R_dot_from_file,cpar.importdata,cpar.rows,cpar.cols,t);
 
     const double R = s.R;//x_dimensional[0];               // bubble radius [m]
     const double R_dot = s.R_dot;//x_dimensional[1];//s.R_dot;       // bubble radius derivative [m/s]

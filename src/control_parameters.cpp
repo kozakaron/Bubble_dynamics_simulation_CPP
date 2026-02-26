@@ -148,10 +148,10 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.excitation_cycles =         get_value<double>                   (j, "excitation_cycles",        builder.excitation_cycles);
         builder.ramp_up_cycles =            get_value<double>                   (j, "ramp_up_cycles",           builder.ramp_up_cycles);
 		
-		builder.extra_data_from_here = 		get_value<size_t>					(j, "extra_data_from_here",		builder.extra_data_from_here);
+		builder.R_dot_from_file = 			get_value<size_t>					(j, "R_dot_from_file",			builder.R_dot_from_file);
 		builder.rows = 						get_value<size_t>					(j, "rows",						builder.rows);
 		builder.cols = 						get_value<size_t>					(j, "cols",						builder.cols);
-		builder.file_name = 		get_value<std::string>						(j, "file_name",				builder.file_name);
+		builder.file_name = 				get_value<std::string>				(j, "file_name",				builder.file_name);
     }
     catch(const std::exception& e)
     {
@@ -237,7 +237,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->enable_van_der_waals = builder.enable_van_der_waals;
     this->enable_rate_thresholding = builder.enable_rate_thresholding;
 	
-	this->extra_data_from_here = builder.extra_data_from_here;
+	this->R_dot_from_file = builder.R_dot_from_file;
 	this->rows = builder.rows;
 	this->cols = builder.cols;
 	this->file_name = builder.file_name;
