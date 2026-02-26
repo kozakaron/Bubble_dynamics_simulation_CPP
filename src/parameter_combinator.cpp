@@ -2,6 +2,7 @@
 #include <sstream>
 #include <fstream>
 #include <cmath>
+#include <unordered_set>
 
 #include "nlohmann/json.hpp"
 #include "parameter_combinator.h"
@@ -538,7 +539,7 @@ void ParameterCombinator::init(const ordered_json& j)
         builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
         builder.P_amb =                     get_range                           (j, "P_amb",                    builder.P_amb);
         builder.T_inf =                     get_range                           (j, "T_inf",                    builder.T_inf);
-        builder.alpha_M =                   get_range                           (j, "alpha_M",                   builder.alpha_M);
+        builder.alpha_M =                   get_range                           (j, "alpha_M",                  builder.alpha_M);
         builder.P_v =                       get_range                           (j, "P_v",                      builder.P_v);
         builder.mu_L =                      get_range                           (j, "mu_L",                     builder.mu_L);
         builder.rho_L =                     get_range                           (j, "rho_L",                    builder.rho_L);
@@ -596,6 +597,19 @@ void ParameterCombinator::init(const ordered_json& j)
                 std::string("Warning, key excitation_params is missing. Excitation params are: ") + Parameters::excitation_arg_names.at(builder.excitation_type)
             );
         }
+
+        static const std::unordered_set<std::string> expected_keys = {
+            "mechanism", "R_E", "ratio", "species", "fractions",
+            "P_amb", "T_inf", "alpha_M", "P_v", "mu_L", "rho_L", "c_L", "surfactant",
+            "enable_heat_transfer", "enable_evaporation", "enable_reactions",
+            "enable_dissipated_energy", "enable_van_der_waals", "enable_gilmore",
+            "enable_rate_thresholding", "target_specie",
+            "excitation_type", "excitation_params", "excitation_cycles", "ramp_up_cycles",
+        };
+        for (const auto& [key, val] : j.items())
+            if (!expected_keys.count(key))
+                LOG_ERROR(Error::severity::warning, Error::type::preprocess,
+                    "Unexpected key in ParameterCombinator JSON: \"" + key + "\": " + val.dump());
     }
     catch(const std::exception& e)
     {

@@ -4,6 +4,7 @@
 #include <numeric>
 #include <numbers>
 #include <iomanip>
+#include <unordered_set>
 #include <stdint.h>
 
 #include "nlohmann/json.hpp"
@@ -118,8 +119,9 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.mechanism =                 get_value<std::string>              (j, "mechanism",                builder.mechanism);
         builder.radius_profile_file =       get_value<std::string>              (j, "radius_profile_file",      builder.radius_profile_file, false);
         builder.excitation_profile_file =   get_value<std::string>              (j, "excitation_profile_file",  builder.excitation_profile_file, false);
-        builder.R_E =                       get_value<double>                   (j, "R_E",                      builder.R_E);
-        builder.ratio =                     get_value<double>                   (j, "ratio",                    builder.ratio);
+            bool warn_radius = builder.radius_profile_file.empty();
+        builder.R_E =                       get_value<double>                   (j, "R_E",                      builder.R_E, warn_radius);
+        builder.ratio =                     get_value<double>                   (j, "ratio",                    builder.ratio, warn_radius);
         builder.species =                   get_value<std::vector<std::string>> (j, "species",                  builder.species);
         builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
         builder.P_amb =                     get_value<double>                   (j, "P_amb",                    builder.P_amb);
@@ -138,12 +140,28 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.enable_gilmore =            get_value<bool>                     (j, "enable_gilmore",           builder.enable_gilmore);
         builder.enable_rate_thresholding =  get_value<bool>                     (j, "enable_rate_thresholding", builder.enable_rate_thresholding);
         builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
+            bool warn_excitation = builder.excitation_profile_file.empty() && builder.radius_profile_file.empty();
         builder.excitation_type = Parameters::string_to_excitation(
-                                            get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
+                                            get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type), warn_excitation)
         );
-        builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params);
-        builder.excitation_cycles =         get_value<double>                   (j, "excitation_cycles",        builder.excitation_cycles);
-        builder.ramp_up_cycles =            get_value<double>                   (j, "ramp_up_cycles",           builder.ramp_up_cycles);
+            warn_excitation = (builder.excitation_type != Parameters::excitation::no_excitation) && warn_excitation;
+        builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params,  warn_excitation);
+        builder.excitation_cycles =         get_value<double>                   (j, "excitation_cycles",        builder.excitation_cycles,  warn_excitation);
+        builder.ramp_up_cycles =            get_value<double>                   (j, "ramp_up_cycles",           builder.ramp_up_cycles,     warn_excitation);
+
+        static const std::unordered_set<std::string> expected_keys = {
+            "ID", "mechanism", "radius_profile_file", "excitation_profile_file",
+            "R_E", "ratio", "species", "fractions",
+            "P_amb", "T_inf", "alpha_M", "P_v", "mu_L", "rho_L", "c_L", "surfactant",
+            "enable_heat_transfer", "enable_evaporation", "enable_reactions",
+            "enable_dissipated_energy", "enable_van_der_waals", "enable_gilmore",
+            "enable_rate_thresholding", "target_specie",
+            "excitation_type", "excitation_params", "excitation_cycles", "ramp_up_cycles",
+        };
+        for (const auto& [key, val] : j.items())
+            if (!expected_keys.count(key))
+                LOG_ERROR(Error::severity::warning, Error::type::preprocess,
+                    "Unexpected key in ControlParameters JSON: \"" + key + "\": " + val.dump());
     }
     catch(const std::exception& e)
     {
@@ -249,7 +267,14 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     }
     this->num_initial_species = 0;
     this->set_species(std::vector<std::string>(builder.species), std::vector<double>(builder.fractions));
-    this->set_excitation_params(std::vector<double>(builder.excitation_params));
+    if (
+        this->excitation_type != Parameters::excitation::no_excitation &&
+        builder.radius_profile_file.empty() &&
+        builder.excitation_profile_file.empty()
+    )
+    {
+        this->set_excitation_params(std::vector<double>(builder.excitation_params));
+    }
 
     if (!builder.radius_profile_file.empty() && !builder.excitation_profile_file.empty())
     {

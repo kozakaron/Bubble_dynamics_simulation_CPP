@@ -413,7 +413,7 @@ SimulationData OdeSolver::solve(
         // Success
         if (retval == CV_SUCCESS) {
             // Update maximum values
-            data.midprocess(t_dimless, NV_DATA_S(x_dimless));
+            data.midprocess(t_dimless, NV_DATA_S(x_dimless), ode_ptr);
 
             // Save solution
             if (save_solution)

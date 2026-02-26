@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <numbers>
 #include <cmath>
+#include <tuple>
 
 #include "common.h"
 #include "ode_fun.h"
@@ -563,6 +564,35 @@ std::pair<double, double> OdeFun::excitation_pressures(
 }
 
 
+std::tuple<double, double, double, double> OdeFun::liquid_properties(const double p_L, const double P_inf)
+{
+    if (!cpar.enable_gilmore)
+        return {cpar.c_L, cpar.rho_L, cpar.rho_L, 0.0};
+
+#if true
+        // Noble-Abel stiffened-gas (NASG) EoS
+        const double K_L     = par->rho_L_ref / (std::pow(par->p_L_ref + par->B_L, 1.0 / par->Gamma_L) * (1.0 - par->b_L * par->rho_L_ref));
+        const double rho_L   = K_L * std::pow((p_L   + par->B_L), 1.0 / par->Gamma_L) / (1.0 + par->b_L * K_L * std::pow((p_L   + par->B_L), 1.0 / par->Gamma_L));
+        const double rho_inf = K_L * std::pow((P_inf + par->B_L), 1.0 / par->Gamma_L) / (1.0 + par->b_L * K_L * std::pow((P_inf + par->B_L), 1.0 / par->Gamma_L));
+        const double c_L     = std::sqrt(par->Gamma_L * (p_L + par->B_L) / (rho_L - par->b_L * rho_L * rho_L));
+        const double H       = par->Gamma_L / (par->Gamma_L - 1.0) * ((p_L + par->B_L) / rho_L - (P_inf + par->B_L) / rho_inf)
+                             - par->b_L * (p_L - P_inf) / (par->Gamma_L - 1.0);
+#else
+        // Tait EoS
+        constexpr double n_T   = 7.025;       // Tait polytropic exponent [-]
+        constexpr double B_T   = 3.0478e8;    // Tait stiffness constant [Pa]
+        constexpr double rho_T = 998.2;       // Reference liquid density [kg/m^3]
+        constexpr double p_T   = 101325.0;    // Reference pressure [Pa]
+        const double rho_L   = rho_T * std::pow((p_L   + B_T) / (p_T + B_T), 1.0 / n_T);
+        const double rho_inf = rho_T * std::pow((P_inf + B_T) / (p_T + B_T), 1.0 / n_T);
+        const double c_L     = std::sqrt(n_T * (p_L + B_T) / rho_L);
+        const double H       = n_T / (n_T - 1.0) * ((p_L + B_T) / rho_L - (P_inf + B_T) / rho_inf);
+#endif
+
+    return {c_L, rho_L, rho_inf, H};
+}
+
+
 double OdeFun::bubble_dynamics(
     const double t,
     const double R,
@@ -584,8 +614,8 @@ double OdeFun::bubble_dynamics(
     if (!cpar.enable_gilmore)
     {
         // Keller-Miksis equation
-        const double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
-        const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // + 4.0 * cpar.mu_L * R_dot_dot / R;
+        const double p_L     = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
+        const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // - 4.0 * cpar.mu_L * R_dot_dot / R;
         const double delta = (p_L - P_inf) / cpar.rho_L;
         const double delta_dot = (p_L_dot - P_inf_dot) / cpar.rho_L;
 
@@ -593,23 +623,16 @@ double OdeFun::bubble_dynamics(
         const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
         return nom / denom;
     }
-    else
+    else    // Gilmore equation (https://doi.org/10.1016/j.ultsonch.2020.105307)
     {
-        // Gilmore equation NASG liquid model (https://doi.org/10.1016/j.ultsonch.2020.105307)
-        const double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
-        const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot)/ (R * R); // + 4.0 * cpar.mu_L * R_dot_dot / R;
-
-        // Noble-Abel-stiffened-gas (NASG) EoS for liquid
-        const double K_L = par->rho_L_ref / ( std::pow(par->p_L_ref + par->B_L, 1.0 / par->Gamma_L) * (1.0 - par->b_L * par->rho_L_ref) );    // constant representing the liquid reference state
-        const double rho_L   = K_L * std::pow((p_L   + par->B_L), (1.0 / par->Gamma_L)) / (1.0 + par->b_L * K_L * std::pow((p_L   + par->B_L), (1.0 / par->Gamma_L)));    // density of liquid at bubble wall
-        const double rho_inf = K_L * std::pow((P_inf + par->B_L), (1.0 / par->Gamma_L)) / (1.0 + par->b_L * K_L * std::pow((P_inf + par->B_L), (1.0 / par->Gamma_L)));    // density of liquid at infinity
-        const double c_L = std::sqrt( par->Gamma_L * (p_L + par->B_L) / (rho_L - par->b_L * rho_L * rho_L) );   // speed of sound in liquid at bubble wall
-        const double H = par->Gamma_L / (par->Gamma_L - 1.0) * ( (p_L + par->B_L) / rho_L - (P_inf + par->B_L) / rho_inf ) - \
-                         par->b_L * (p_L - P_inf) / (par->Gamma_L - 1.0);    // Enthalpy difference (H = h_L - h_inf)
+        const double p_L     = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
+        const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // - 4.0 * cpar.mu_L * R_dot_dot / R;
+        auto [c_L, rho_L, rho_inf, H] = liquid_properties(p_L, P_inf);
         const double H_dot = p_L_dot / rho_L - P_inf_dot / rho_inf; // - 4.0 * cpar.mu_L * R_dot_dot / (rho_L * R);
-        
-        const double nom = ((1.0 + R_dot / c_L) * H - 1.5 * (1.0 - R_dot / (3.0 * c_L)) * R_dot * R_dot)  /  ((1.0 - R_dot / c_L) * R)  +  H_dot / c_L;
-        const double den = 1.0 + 4.0 * par->mu_L / (rho_L * R * c_L);
+        //std::cout << "t=" << t << ";\tp=" << p << ";\trho_L=" << rho_L << "\tc_L=" << c_L << "\n";
+
+        const double nom = ((1.0 + R_dot / c_L) * H - 1.5 * (1.0 - R_dot / (3.0 * c_L)) * R_dot * R_dot) / ((1.0 - R_dot / c_L) * R) + H_dot / c_L;
+        const double den = 1.0 + 4.0 * cpar.mu_L / (rho_L * R * c_L);
         return nom / den;
     }
 }

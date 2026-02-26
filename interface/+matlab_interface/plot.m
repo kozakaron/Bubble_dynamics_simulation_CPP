@@ -17,7 +17,8 @@ function plot(data, n, show_cpar, plot_pressure)
     t = sol.t;
 
     % Determine time interval for plotting
-    t_last = n * data.t_peak;
+    postproc = getfield_or_default(data, 'postproc', struct());
+    t_last = n * getfield_or_default(postproc, 't_peak', 0.0);
     if t_last < 1e-7 || t(end) < t_last || n < 0 || ~sol.success
         end_index = length(t);
     else
