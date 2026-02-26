@@ -14,8 +14,8 @@ BubbleState interpolate_state(
     std::size_t cols,
     double t
 ) {
-    if (cols < 4) {
-        throw std::runtime_error("importdata must have at least 4 columns");
+    if (cols < 2) {
+        throw std::runtime_error("importdata must have at least 2 columns");
     }
 
     if (rows < 2) {
@@ -54,9 +54,6 @@ BubbleState interpolate_state(
     const double R0 = at(idx - 1, 1);
     const double R1 = at(idx, 1);
 	
-	const double R_dot_0 = at(idx - 1, 2);
-    const double R_dot_1 = at(idx, 2);
-	
     //const double V0 = (4.0 / 3.0) * std::numbers::pi * R0 * R0 * R0;
     //const double V1 = (4.0 / 3.0) * std::numbers::pi * R1 * R1 * R1;
     
@@ -68,23 +65,28 @@ BubbleState interpolate_state(
 	const double tau2 = tau * tau;
 	const double tau3 = tau2 * tau;
 
-	s.R =
-		  ( 2.0*tau3 - 3.0*tau2 + 1.0 ) * R0
+
+	//Ṙ(t)
+	if(R_dot_from_file==1)
+	{
+		const double R_dot_0 = at(idx - 1, 2);
+		const double R_dot_1 = at(idx, 2);
+		
+		s.R =  ( 2.0*tau3 - 3.0*tau2 + 1.0 ) * R0
 		+ ( tau3 - 2.0*tau2 + tau ) * h * R_dot_0
 		+ ( -2.0*tau3 + 3.0*tau2 ) * R1
 		+ ( tau3 - tau2 ) * h * R_dot_1;
-	//Ṙ(t)
-	if(R_dot_from_file)
-	{
-		s.R_dot = (R1-R0) / (t1-t0);
-	}
-	else
-	{
+		
 		s.R_dot =
 		( (6.0*tau2 - 6.0*tau) * R0
 		+ (3.0*tau2 - 4.0*tau + 1.0) * h * R_dot_0
 		+ (-6.0*tau2 + 6.0*tau) * R1
 		+ (3.0*tau2 - 2.0*tau) * h * R_dot_1 ) / h;
+	}
+	else
+	{		
+		s.R_dot = (R1-R0) / (t1-t0);
+		s.R = R0 + s.R_dot*(t-t0); //std::cout << "R_dot_from_file: " << R_dot_from_file << ", s.R_dot:" << s.R_dot << ", s.R: " << s.R << "\n";
 	}
 
 	// Extrapolation check
