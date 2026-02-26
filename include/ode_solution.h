@@ -62,6 +62,12 @@ public:
     double t_peak;             // [s]
     double R_min;              // [m]
     double T_min;              // [K]
+    double v_max;              // [m/s]
+    double p_internal_max;     // [Pa]
+    double p_internal_min;     // [Pa]
+    double Ma_max;             // [-]
+    double c_L_max;            // [m/s] (only relevant for Gilmore)
+    double rho_L_max;          // [kg/m^3] (only relevant for Gilmore)
 // Post-processing results
     double dissipated_energy;  // [J]
     double expansion_work;     // [J]
@@ -70,9 +76,10 @@ public:
 // Members
     const ControlParameters &cpar;
     OdeSolution sol;
+    std::vector<double> x_dimensional;
 // Methods
     SimulationData(const ControlParameters &cpar);
-    void midprocess(const double t, const double* x);
+    void midprocess(const double t_dimless, const double* x_dimless, OdeFun* ode_ptr);
     void postprocess();
     std::string to_csv() const;
     std::string to_string() const;
