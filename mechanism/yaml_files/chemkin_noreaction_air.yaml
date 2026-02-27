@@ -1,0 +1,113 @@
+generator: ck2yaml
+input-files: [chemkin_noreaction_air.inp]
+cantera-version: 3.1.0
+date: Fri, 27 Feb 2026 16:54:02 +0100
+
+units: {length: cm, time: s, quantity: mol, activation-energy: K}
+
+phases:
+- name: gas
+  thermo: ideal-gas
+  elements: [H, N, O, Ar]
+  species: [N2, O2, H2O, AR]
+  transport: mixture-averaged
+  state: {T: 300.0, P: 1 atm}
+
+species:
+- name: N2
+  composition: {N: 2}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 1000.0, 6000.0]
+    data:
+    - [3.58256851, -5.58781407e-04, 7.83391479e-07, 8.73631719e-10, 
+        -7.49971666e-13, -1051.60018, 2.75873431]
+    - [2.95257637, 1.3969004e-03, -4.92631603e-07, 7.86010195e-11, 
+        -4.60755204e-15, -924.423063, 5.87156477]
+    note: |-
+      G 8/02
+       Refitting species N2:
+         max difference Cp/R = 4.5555e-03 at T =   200.0000 K
+         max difference H/RT = 8.2895e-04 at T =   200.0000 K
+         max difference S/R  = 7.3491e-04 at T =   200.0000 K
+         T_match =  1000.000000 jump
+         Delta(Cp/R, H/RT, S/R) = ( 8.882e-16, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 97.53
+    diameter: 3.621
+    polarizability: 1.76
+    rotational-relaxation: 4.0
+- name: O2
+  composition: {O: 2}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 1000.0, 6000.0]
+    data:
+    - [3.66627111, -2.01629566e-03, 6.94873168e-06, -6.16244023e-09, 
+        1.7591906e-12, -1053.52472, 4.12801194]
+    - [3.66096065, 6.56365811e-04, -1.41149627e-07, 2.05797935e-11, 
+        -1.29913436e-15, -1214.90829, 3.41609021]
+    note: |-
+      RUS 89
+       Refitting species O2:
+         max difference Cp/R = 1.0265e-02 at T =   200.0000 K
+         max difference H/RT = 1.8678e-03 at T =   200.0000 K
+         max difference S/R  = 1.6560e-03 at T =   200.0000 K
+         T_match =  1000.000000 jump
+         Delta(Cp/R, H/RT, S/R) = ( 8.882e-16, 4.441e-16, 0.000e+00)
+  transport:
+    model: gas
+    geometry: linear
+    well-depth: 107.4
+    diameter: 3.458
+    polarizability: 1.6
+    rotational-relaxation: 3.8
+- name: H2O
+  composition: {H: 2, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 1000.0, 6000.0]
+    data:
+    - [4.23584018, -2.35035878e-03, 7.44852451e-06, -6.61473728e-09, 
+        2.24734749e-12, -3.02970623e+04, -0.999620648]
+    - [2.6770389, 2.9731816e-03, -7.7376889e-07, 9.4433514e-11, 
+        -4.2689991e-15, -2.98862362e+04, 6.88231731]
+    note: |-
+      L 5/89
+       Refitting species H2O:
+         max difference Cp/R = 3.2870e-03 at T =   200.0000 K
+         max difference H/RT = 5.9812e-04 at T =   200.0000 K
+         max difference S/R  = 5.3027e-04 at T =   200.0000 K
+         T_match =  1000.000000 jump
+         Delta(Cp/R, H/RT, S/R) = ( 0.000e+00, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: nonlinear
+    well-depth: 572.4
+    diameter: 2.605
+    dipole: 1.844
+    rotational-relaxation: 4.0
+- name: AR
+  composition: {Ar: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 1000.0, 6000.0]
+    data:
+    - [2.5, -1.21434192e-16, 3.14642268e-19, -3.308722e-22, 
+        1.21191563e-25, -745.375, 4.37967491]
+    - [2.5, 0.0, 0.0, 0.0, 0.0, -745.375, 4.37967491]
+    note: |-
+      G 5/97
+       Refitting species AR:
+         max difference Cp/R = 1.7764e-15 at T =   200.0000 K
+         max difference H/RT = 8.8818e-16 at T =   208.7044 K
+         max difference S/R  = 7.1054e-15 at T =   249.3247 K
+         T_match =  1000.000000 jump
+         Delta(Cp/R, H/RT, S/R) = ( 4.441e-16, 0.000e+00, 0.000e+00)
+  transport:
+    model: gas
+    geometry: atom
+    well-depth: 136.5
+    diameter: 3.33

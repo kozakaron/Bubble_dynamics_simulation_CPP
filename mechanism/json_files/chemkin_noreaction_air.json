@@ -1,0 +1,109 @@
+{
+"model": "chemkin_noreaction_air",
+"species": {
+    "num_elements": 4,
+    "num_species": 4,
+    "index_of_water": 2,
+    "invalid_index": 65535,
+    "element_names": [  "H",   "N",   "O",  "Ar"],
+                           // [           0,            1,            2,            3]
+    "species_names":          [        "N2",         "O2",        "H2O",         "AR"],
+    "molar_weights":          [    0.028014,     0.031998,     0.018015,      0.03995],    // [kg/mol]
+    "thermal_conductivities": [  0.02613428,   0.02677468,   0.02659529,    0.0182593],    // [W/m/K] (at 303.15 K)
+    "van_der_waals_a":        [   0.1942282,     0.186285,    0.4244481,    0.2114328],    // [m^6*Pa/mol^2]
+    "van_der_waals_b":        [5.988183e-05, 5.215362e-05, 2.229629e-05, 4.657386e-05],    // [m^3/mol]
+    "LJ_well_depths":         [  1.3465e-21,   1.4828e-21,   7.9028e-21,   1.8846e-21],    // [J]
+    "LJ_collision_diameters": [   3.621e-10,    3.458e-10,    2.605e-10,     3.33e-10],    // [m]
+    "dipole_moments":         [         0.0,          0.0,   6.1509e-30,          0.0],    // [C*m]
+    "polarizabilities":       [    1.76e-30,      1.6e-30,          0.0,          0.0],    // [m^3]
+    "rotational_relaxations": [         4.0,          3.8,          4.0,          0.0]     // [-]
+    
+},
+"thermodynamics": {
+    "temp_ranges": [
+        //     T_low       T_mid      T_high
+        //       [K]         [K]         [K]
+        [     200.0,     1000.0,     6000.0],    //   0. N2
+        [     200.0,     1000.0,     6000.0],    //   1. O2
+        [     200.0,     1000.0,     6000.0],    //   2. H2O
+        [     200.0,     1000.0,     6000.0]     //   3. AR
+    ],
+    "a_low": [
+        //             a_0               a_1               a_2               a_3               a_4               a_5               a_6
+        [      3.58256851,  -0.000558781407,   7.83391479e-07,   8.73631719e-10,  -7.49971666e-13,      -1051.60018,       2.75873431],    //   0. N2
+        [      3.66627111,   -0.00201629566,   6.94873168e-06,  -6.16244023e-09,    1.7591906e-12,      -1053.52472,       4.12801194],    //   1. O2
+        [      4.23584018,   -0.00235035878,   7.44852451e-06,  -6.61473728e-09,   2.24734749e-12,      -30297.0623,     -0.999620648],    //   2. H2O
+        [             2.5,  -1.21434192e-16,   3.14642268e-19,    -3.308722e-22,   1.21191563e-25,         -745.375,       4.37967491]     //   3. AR
+    ],
+    "a_high": [
+        //             a_0               a_1               a_2               a_3               a_4               a_5               a_6
+        [      2.95257637,     0.0013969004,  -4.92631603e-07,   7.86010195e-11,  -4.60755204e-15,      -924.423063,       5.87156477],    //   0. N2
+        [      3.66096065,   0.000656365811,  -1.41149627e-07,   2.05797935e-11,  -1.29913436e-15,      -1214.90829,       3.41609021],    //   1. O2
+        [       2.6770389,     0.0029731816,   -7.7376889e-07,    9.4433514e-11,   -4.2689991e-15,      -29886.2362,       6.88231731],    //   2. H2O
+        [             2.5,              0.0,              0.0,              0.0,              0.0,         -745.375,       4.37967491]     //   3. AR
+    ]
+},
+"arrhenius_parameters": {
+    "num_reactions": 0,
+    "num_max_species_per_reaction": 0,
+    "arrhenius_params_with_orders": [
+        //                 ln(A)                       b                     E/R               order (n)
+        //[m^(3n-3)/mol^(n-1)/s]                     [-]                     [K]                     [-]
+        
+    ],
+    "stochiometric_coeffs": [
+        //     indexes      nu forward     nu backward              nu
+        
+    ]
+},
+"third_body_reactions": {
+    "num_third_body_reactions": 0,
+    "third_body_reaction_indexes": [],
+    "is_falloff_reaction":         [],
+    "third_body_efficiencies": [
+        //      N2        O2       H2O        AR
+        
+    ]
+},
+"irreversible_reactions": {
+    "num_irreversible_reactions": 0,
+    "irreversible_reaction_indexes": []
+    
+},
+"falloff_reactions": {
+    "num_falloff_reactions": 0,
+    "num_lindemann_reactions": 0,
+    "num_troe_reactions": 0,
+    "num_sri_reactions": 0,
+    "falloff_reaction_indexes": [],
+    "falloff_reaction_types":   [],
+    "is_third_body_indexes":    [],
+    "falloff_parameters": [
+        //                 ln(A)                       b                     E/R
+        //[m^(3n-3)/mol^(n-1)/s]                     [-]                     [K]
+        
+    ],
+    "troe_parameters": [
+        //                 alpha                    T***                      T*                     T**
+        //                   [-]                     [K]                     [K]                     [K]
+        
+    ],
+    "sri_parameters": [
+        //                     a                       b                       c                       d                       e
+        //                   [-]                     [K]                     [K]                     [-]                     [-]
+        
+    ]
+    
+},
+"plog_reactions": {
+    "num_plog_reactions": 0,
+    "num_plog_levels": 0,
+    "plog_reaction_indexes": [],
+    "plog_seperators": [         0],
+    "plog_parameters": [
+        //                     P                   ln(A)                       b                     E/R
+        //                  [Pa]  [m^(3n-3)/mol^(n-1)/s]                     [-]                     [K]
+        
+    ]
+}
+}

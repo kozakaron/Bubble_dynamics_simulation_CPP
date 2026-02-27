@@ -90,7 +90,7 @@ def _read_json_and_binary(file_path: str) -> dict:
         - t: time array
         - R, R_dot, T, E_diss: individual state variables
         - p_excitation, p_internal: pressure time series
-        - c_<species_name>: individual species concentrations
+        - n_<species_name>: individual species molar amounts [mol]
         - x: full state array (for backward compatibility)
 
     Args:
@@ -157,8 +157,9 @@ def _read_json_and_binary(file_path: str) -> dict:
         if "mechanism" in data and "species_names" in data["mechanism"]:
             species_names = data["mechanism"]["species_names"]
             concentrations = x[:, 3:-1]
+            V = (4.0 / 3.0) * np.pi * x[:, 0]**3  # bubble volume [m^3]
             for i, species_name in enumerate(species_names):
-                sol[f"c_{species_name}"] = concentrations[:, i]
+                sol[f"n_{species_name}"] = concentrations[:, i] * V  # molar amount [mol]
         
         data["sol"] = sol
 
