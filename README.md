@@ -155,6 +155,37 @@ cpar = {
 
 If you are unsure about the available mechanisms, excitation types or excitation parameters, you may refer to [./include/parameters.h](./include/parameters.h). As an alternative, you can mistype the type (e.g.: `cpar['mechanism'] = 'x'`) or set an invalid number of arguments (e.g.: `cpar['excitation_params'] = []`) and the resulting error message shall list the available options or the names/units of the arguments.
 
+**Table: Control parameters (`cpar`)**
+
+| Category | Name | Symbol | Description | Unit |
+|:---|:---|:---:|:---|:---:|
+| | `ID` | | A unique number identifying the simulation, only relevant for parameter studies (int) | |
+| | `mechanism` | | Name of chemical mechanism (string) to use | |
+| **Initial conditions** | `R_E` | $R_E$ | Equilibrium bubble radius | $m$ |
+| | `ratio` | $R_0/R_E$ | Ratio of initial and equilibrium bubble size (for unforced vibrations) | $1$ |
+| | `species` | $\{\chi_1, \chi_2, \ldots\}$ | List of chemical symbols (string) of initial species | |
+| | `fractions` | $\{X_1, X_2, \ldots\}$ | List of molar fractions of initial species | $1$ |
+| | `P_amb` | $P_\infty$ | Ambient pressure | $Pa$ |
+| | `T_inf` | $T_\infty$ | Ambient temperature | $K$ |
+| **Ambient liquid** | `alpha_M` | $\alpha_M$ | Accommodation coefficient of evaporation | $1$ |
+| | `P_v` | $P_v$ | Saturated vapour pressure | $Pa$ |
+| | `mu_L` | $\mu_L$ | Dynamic viscosity | $Pa \cdot s$ |
+| | `rho_L` | $\rho_L$ | Liquid density | $kg/m^3$ |
+| | `c_L` | $c_L$ | Sound speed | $m/s$ |
+| | `surfactant` | $\sigma_L/\sigma_{H_2O}$ | Ratio of liquid surface tension and water's surface tension | $1$ |
+| **Simulation settings** | `enable_heat_transfer` | | Toggles heat transfer between the bubble and ambient liquid | |
+| | `enable_evaporation` | | Toggles evaporation (ambient liquid is assumed to be water) | |
+| | `enable_reactions` | | Toggles chemical reactions | |
+| | `enable_dissipated_energy` | | Toggles dissipated energy, should be false for unforced vibrations | |
+| | `enable_van_der_waals` | | Toggles between ideal and van der Waals state equation | |
+| | `enable_gilmore` | | Toggles between Keller-Miksis and Gilmore bubble model | |
+| | `enable_nasg` | | Toggles between Tait and NASG liquid equation of state (requires `enable_gilmore`) | |
+| | `enable_rate_thresholding` | | Toggles reaction rate thresholding, improves stability | |
+| **Excitation** | `excitation_type` | | Type of excitation (string) | |
+| | `excitation_params` | | List of excitation parameters | |
+| | `excitation_cycles` | | The number of cycles the excitation lasts | $1$ |
+| | `ramp_up_cycles` | | The number of ramp-up cycles until the peak amplitude is reached | $1$ |
+
 #### run_simulation()
 
 In order to run the simulation, use `run_simulation()`:
@@ -170,6 +201,56 @@ Arguments:
  * `save_steps` (bool): Whether to save the simulation steps. If false, only the first and last steps will be saved, which is a tony bit faster. (default: true)
         
 Returns (dict): A dictionary containing the simulation results. See key `'sol'` for the numerical solution and `'cpar'` for the original control parameters. The time series can be accessed via `data['sol']['t']` and `data['sol']['x']` as arrays. The simulation is sucessful if `data['sol']['success']` is true. You may also acces post processing data, like `data['energy_demand']`. Extra information is saved under keys `'excitation'`, `'mechanism'` and `'version'`.
+
+**Table: Return value of `run_simulation()` (`data`)**
+
+| Main key | Subkey | Symbol | Description | Unit |
+|:---|:---|:---:|:---|:---:|
+| `postproc` | `R_max` | $R_{max}$ | Maximum bubble radius | $m$ |
+| | `R_min` | $R_{min}$ | Minimum bubble radius (at collapse) | $m$ |
+| | `T_max` | $T_{max}$ | Maximum temperature inside the bubble | $K$ |
+| | `T_min` | $T_{min}$ | Minimum temperature inside the bubble | $K$ |
+| | `t_peak` | $t_{peak}$ | Time of collapse (maximal temperature) | $s$ |
+| | `v_max` | $v_{max}$ | Maximum bubble wall velocity | $m/s$ |
+| | `Ma_max` | $Ma_{max}$ | Maximum Mach number of the bubble wall (using local $c_L$) | $1$ |
+| | `p_internal_max` | $p_{int,max}$ | Maximum internal pressure | $Pa$ |
+| | `p_internal_min` | $p_{int,min}$ | Minimum internal pressure | $Pa$ |
+| | `c_L_max` | $c_{L,max}$ | Maximum liquid sound speed | $m/s$ |
+| | `rho_L_max` | $\rho_{L,max}$ | Maximum liquid density | $kg/m^3$ |
+| | `n_target_specie` | $n_{target}$ | Final molar amount of `target_species` | $mol$ |
+| | `energy_demand` | | Energy demand for `target_species` production. Not SI! | $MJ/kg$ |
+| | `dissipated_energy` | $E_{diss}$ | Total dissipated energy (acoustic, thermal, viscous) | $J$ |
+| | `expansion_work` | $W_P$ | Expansion work/initial potential energy (for unforced oscillations) | $J$ |
+| `sol` | `success` | | Whether the simulation completed without error | |
+| | `error` | | Error message string | |
+| | `runtime` | | Wall-clock runtime of the solver | $s$ |
+| | `num_dim` | | Number of ODE dimensions (3 + num_species + 1) | |
+| | `num_steps` | | Number of accepted solver steps | |
+| | `num_saved_steps` | | Number of saved time points | |
+| | `num_repeats` | | Number of step repeats (due to error control) | |
+| | `num_fun_evals` | | Number of RHS function evaluations | |
+| | `num_fun_evals_jac` | | Number of RHS evaluations for Jacobian | |
+| | `num_jac_evals` | | Number of Jacobian evaluations | |
+| | `num_nonlin_iters` | | Number of nonlinear solver iterations | |
+| | `total_error` | | Accumulated per-dimension integration error | |
+| | `t` | $t$ | Time array | $s$ |
+| | `x` | | Full state vector (index as `x[step_num][dim_num]`) | |
+| | `R` | $R$ | Bubble radius time series | $m$ |
+| | `R_dot` | $\dot{R}$ | Bubble wall velocity time series | $m/s$ |
+| | `T` | $T$ | Internal temperature time series | $K$ |
+| | `E_diss` | $E_{diss}$ | Dissipated energy time series | $J$ |
+| | `p_excitation` | $p_{exc}$ | External excitation pressure time series | $Pa$ |
+| | `p_internal` | $p_{int}$ | Internal pressure time series | $Pa$ |
+| | `n_<species>` | $n_{\chi_i}$ | Molar amount time series for each species $\chi_i$, e.g.: `n_H2O` | $mol$ |
+| `excitation` | `type` | | Excitation type string | |
+| | `names` | | List of excitation parameter names | |
+| | `units` | | List of excitation parameter units | |
+| `mechanism` | `model` | | Name of the chemical mechanism | |
+| | `num_species` | | Number of chemical species | |
+| | `num_reactions` | | Number of chemical reactions | |
+| | `species_names` | | List of species name strings | |
+| `cpar` | | | Copy of the input control parameters | |
+| `version` | | | Solver version string | |
 
 #### plot()
 
@@ -423,6 +504,7 @@ When parsed, these structs are turned into const static members of the `Paramete
 Available mechanisms:
 | Name                         | Reagent atoms | Non-reagent molecules | Number of species [-] | Number of reactions [-] |
 |------------------------------|----------------|------------------------|------------------------|--------------------------|
+| chemkin_noreaction_air       |                | N2, O2, H2O, Ar        | 4                      | 0                        |
 | uson2022_hydrogen            | H, O           | -                      | 10                     | 34                       |
 | elte2016_hydrogen            | H, O           | He, N2, Ar             | 12                     | 30                       |
 | elte2016_syngas              | H, C, O        | He, N2, Ar             | 15                     | 44                       |
@@ -445,9 +527,9 @@ ControlParameters cpar = ControlParameters{ControlParameters::Builder{
     .ID                          = 0,
     .mechanism                   = "chemkin_elte2016_hydrogen",
     .R_E                         = 1.00000000000000008e-05,    // bubble equilibrium radius [m]
-    .ratio                       = 1.00000000000000000e+00,    // 
-    .species                     = {"O2"},
-    .fractions                   = {1.00000000000000000e+00},
+    .ratio                       = 1.00000000000000000e+00,    // R_0/R_E for unforced oscillations [-]
+    .species                     = {"O2"},                     // names of species in initial bubble (array of strings)
+    .fractions                   = {1.00000000000000000e+00},  // molar fractions of species in initial bubble (array of doubles)
     .P_amb                       = 1.01325000000000000e+05,    // ambient pressure [Pa]
     .T_inf                       = 2.93149999999999977e+02,    // ambient temperature [K]
     .alpha_M                     = 3.49999999999999978e-01,    // water accommodation coefficient [-]
@@ -463,10 +545,10 @@ ControlParameters cpar = ControlParameters{ControlParameters::Builder{
     .enable_van_der_waals        = true,
     .enable_rate_thresholding    = true,
     .target_specie               = "H2",
-    .excitation_type             = Parameters::excitation::sinusoid,
-    .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04},
-    .excitation_cycles           = 1,
-    .ramp_up_cycles              = 0
+    .excitation_type             = Parameters::excitation::sinusoid,                      // type of excitation (enum)
+    .excitation_params           = {-2.00000000000000000e+05, 3.00000000000000000e+04},   // parameters for excitation (array of doubles)
+    .excitation_cycles           = 1,                                                     // number of excitation cycles to use (according to freq/freq1 in excitation_params) [-]
+    .ramp_up_cycles              = 0                                                      // number of cycles until the excitation reaches full amplitude (0<=ramp_up_cycles<=excitation_cycles/2) [-]
 }};
 ```
 These above are also the default values, any builder argument can be missed. Use the `to_sting()` method or the `ostream operator<<` overload to print the control parameters to the console. It will be printed in the same format as above, which is also valid code. The class also have a csv header and a `to_csv()` method, like many other classes.

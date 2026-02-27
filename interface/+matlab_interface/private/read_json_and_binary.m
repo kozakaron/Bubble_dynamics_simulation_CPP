@@ -8,7 +8,7 @@ function data = read_json_and_binary(file_path)
     %   - x: full state array (for backward compatibility)
     %   - R, R_dot, T, E_diss: individual state variables
     %   - p_excitation, p_internal: pressure time series
-    %   - c_<species_name>: individual species concentrations
+    %   - n_<species_name>: individual species molar amounts [mol]
     %
     % Usage: data = read_json_and_binary(file_path);
 
@@ -70,10 +70,11 @@ function data = read_json_and_binary(file_path)
     if isfield(data, 'mechanism') && isfield(data.mechanism, 'species_names')
         species_names = data.mechanism.species_names;
         concentrations = x(:, 4:end-1);
+        V = (4.0 / 3.0) * pi * data.sol.R.^3;  % bubble volume [m^3]
         for i = 1:length(species_names)
             species_name = species_names{i};
-            field_name = sprintf('c_%s', species_name);
-            data.sol.(field_name) = concentrations(:, i);
+            field_name = sprintf('n_%s', species_name);
+            data.sol.(field_name) = concentrations(:, i) .* V;  % molar amount [mol]
         end
     end
 end
