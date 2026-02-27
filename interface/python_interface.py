@@ -385,6 +385,7 @@ def _print_data(data, print_it=True):
     text += f"  Enable Dissipated Energy: {cpar.get('enable_dissipated_energy', nan)}\n"
     text += f"  Enable Van der Waals: {cpar.get('enable_van_der_waals', nan)}\n"
     text += f"  Enable Gilmore: {cpar.get('enable_gilmore', nan)}\n"
+    text += f"  Enable NASG: {cpar.get('enable_nasg', nan)}\n"
     text += f"  Enable Rate Thresholding: {cpar.get('enable_rate_thresholding', nan)}\n"
     text += f"  Target Specie: {cpar.get('target_specie', nan)}\n"
     text += f"  Excitation Type: {cpar.get('excitation_type', nan)}\n"
@@ -730,6 +731,7 @@ def line_to_dict(line):
         enable_dissipated_energy = bool(line['enable_dissipated_energy']),
         enable_van_der_waals = bool(line['enable_van_der_waals']),
         enable_gilmore = bool(line['enable_gilmore']),
+        enable_nasg = bool(line['enable_nasg']),
         enable_rate_thresholding = bool(line['enable_rate_thresholding']),
         target_specie = str(line['target_specie']),
         excitation_type = str(line['excitation_type']),

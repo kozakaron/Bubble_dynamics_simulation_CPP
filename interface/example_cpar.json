@@ -24,6 +24,7 @@
         "enable_dissipated_energy": true,
         "enable_van_der_waals": true,
         "enable_gilmore": false,
+        "enable_nasg": false,
         "enable_rate_thresholding": true,
         "target_specie": "H2",
         "excitation_type": "sinusoid",
