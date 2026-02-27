@@ -17,7 +17,7 @@ public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
     static constexpr size_t max_species = 5;
-    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,enable_van_der_waals,enable_gilmore,enable_rate_thresholding,target_specie,excitation_type,excitation_params,excitation_cycles,ramp_up_cycles";
+    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,enable_van_der_waals,enable_gilmore,enable_nasg,enable_rate_thresholding,target_specie,excitation_type,excitation_params,excitation_cycles,ramp_up_cycles";
 // Members
     size_t ID;                          // ID of control parameter
     const Parameters* par;              // reaction mechanism (pointer to Parameters instance)
@@ -45,6 +45,7 @@ public:
     bool enable_dissipated_energy;
     bool enable_van_der_waals;
     bool enable_gilmore;
+    bool enable_nasg;
     bool enable_rate_thresholding;
     index_t target_specie;
     // Excitation parameters:
@@ -99,6 +100,7 @@ public:
         bool enable_dissipated_energy           = true;
         bool enable_van_der_waals               = true;
         bool enable_gilmore                     = false;
+        bool enable_nasg                        = false;
         bool enable_rate_thresholding           = true;
         std::string target_specie               = "H2";
         Parameters::excitation excitation_type  = Parameters::excitation::sinusoid;

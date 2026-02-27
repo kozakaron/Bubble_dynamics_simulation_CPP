@@ -138,6 +138,7 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
         builder.enable_van_der_waals =      get_value<bool>                     (j, "enable_van_der_waals",     builder.enable_van_der_waals);
         builder.enable_gilmore =            get_value<bool>                     (j, "enable_gilmore",           builder.enable_gilmore);
+        builder.enable_nasg =               get_value<bool>                     (j, "enable_nasg",              builder.enable_nasg, false);
         builder.enable_rate_thresholding =  get_value<bool>                     (j, "enable_rate_thresholding", builder.enable_rate_thresholding);
         builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
             bool warn_excitation = builder.excitation_profile_file.empty() && builder.radius_profile_file.empty();
@@ -154,7 +155,7 @@ ControlParameters::ControlParameters(const ordered_json& j)
             "R_E", "ratio", "species", "fractions",
             "P_amb", "T_inf", "alpha_M", "P_v", "mu_L", "rho_L", "c_L", "surfactant",
             "enable_heat_transfer", "enable_evaporation", "enable_reactions",
-            "enable_dissipated_energy", "enable_van_der_waals", "enable_gilmore",
+            "enable_dissipated_energy", "enable_van_der_waals", "enable_gilmore", "enable_nasg",
             "enable_rate_thresholding", "target_specie",
             "excitation_type", "excitation_params", "excitation_cycles", "ramp_up_cycles",
         };
@@ -253,6 +254,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->enable_dissipated_energy = builder.enable_dissipated_energy;
     this->enable_van_der_waals = builder.enable_van_der_waals;
     this->enable_gilmore = builder.enable_gilmore;
+    this->enable_nasg = builder.enable_nasg;
     this->enable_rate_thresholding = builder.enable_rate_thresholding;
     this->target_specie = par->get_species(builder.target_specie);
     this->excitation_type = builder.excitation_type;
@@ -491,7 +493,7 @@ std::string ControlParameters::to_csv() const
     ss << format_double << this->c_L << "," << format_double << this->surfactant << ",";
     ss << std::boolalpha << this->enable_heat_transfer << "," << std::boolalpha << this->enable_evaporation << ",";
     ss << std::boolalpha << this->enable_reactions << "," << std::boolalpha << this->enable_dissipated_energy << ",";
-    ss << std::boolalpha << this->enable_van_der_waals << "," << std::boolalpha << this->enable_gilmore << "," << std::boolalpha << this->enable_rate_thresholding << ",";
+    ss << std::boolalpha << this->enable_van_der_waals << "," << std::boolalpha << this->enable_gilmore << "," << std::boolalpha << this->enable_nasg << "," << std::boolalpha << this->enable_rate_thresholding << ",";
     ss << par->species_names[this->target_specie] << ",";
     ss << Parameters::excitation_names[this->excitation_type] << ",";
     for (size_t index = 0; index < Parameters::excitation_arg_nums[this->excitation_type]; ++index)
@@ -559,6 +561,7 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << format_string << ".enable_dissipated_energy"   << " = " << format_bool   << this->enable_dissipated_energy  << ",\n";
     ss << format_string << ".enable_van_der_waals"       << " = " << format_bool   << this->enable_van_der_waals      << ",\n";
     ss << format_string << ".enable_gilmore"             << " = " << format_bool   << this->enable_gilmore            << ",\n";
+    ss << format_string << ".enable_nasg"                << " = " << format_bool   << this->enable_nasg               << ",\n";
     ss << format_string << ".enable_rate_thresholding"   << " = " << format_bool   << this->enable_rate_thresholding  << ",\n";
     ss << format_string << ".target_specie"              << " = " << species_to_string(this->target_specie)           << ",\n";
     ss << format_string << ".excitation_type"            << " = " << (with_code ? "Parameters::excitation::" : "") << Parameters::excitation_names[this->excitation_type] << "\n";
@@ -615,6 +618,7 @@ ordered_json ControlParameters::to_json() const
     j["enable_dissipated_energy"] = this->enable_dissipated_energy;
     j["enable_van_der_waals"] = this->enable_van_der_waals;
     j["enable_gilmore"] = this->enable_gilmore;
+    j["enable_nasg"] = this->enable_nasg;
     j["enable_rate_thresholding"] = this->enable_rate_thresholding;
     j["target_specie"] = par->species_names.at(this->target_specie);
     j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);

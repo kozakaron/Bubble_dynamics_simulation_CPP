@@ -569,27 +569,40 @@ std::tuple<double, double, double, double> OdeFun::liquid_properties(const doubl
     if (!cpar.enable_gilmore)
         return {cpar.c_L, cpar.rho_L, cpar.rho_L, 0.0};
 
-#if true
+    if (cpar.enable_nasg)
+    {
         // Noble-Abel stiffened-gas (NASG) EoS
-        const double K_L     = par->rho_L_ref / (std::pow(par->p_L_ref + par->B_L, 1.0 / par->Gamma_L) * (1.0 - par->b_L * par->rho_L_ref));
-        const double rho_L   = K_L * std::pow((p_L   + par->B_L), 1.0 / par->Gamma_L) / (1.0 + par->b_L * K_L * std::pow((p_L   + par->B_L), 1.0 / par->Gamma_L));
-        const double rho_inf = K_L * std::pow((P_inf + par->B_L), 1.0 / par->Gamma_L) / (1.0 + par->b_L * K_L * std::pow((P_inf + par->B_L), 1.0 / par->Gamma_L));
-        const double c_L     = std::sqrt(par->Gamma_L * (p_L + par->B_L) / (rho_L - par->b_L * rho_L * rho_L));
-        const double H       = par->Gamma_L / (par->Gamma_L - 1.0) * ((p_L + par->B_L) / rho_L - (P_inf + par->B_L) / rho_inf)
-                             - par->b_L * (p_L - P_inf) / (par->Gamma_L - 1.0);
-#else
-        // Tait EoS
-        constexpr double n_T   = 7.025;       // Tait polytropic exponent [-]
-        constexpr double B_T   = 3.0478e8;    // Tait stiffness constant [Pa]
-        constexpr double rho_T = 998.2;       // Reference liquid density [kg/m^3]
-        constexpr double p_T   = 101325.0;    // Reference pressure [Pa]
-        const double rho_L   = rho_T * std::pow((p_L   + B_T) / (p_T + B_T), 1.0 / n_T);
-        const double rho_inf = rho_T * std::pow((P_inf + B_T) / (p_T + B_T), 1.0 / n_T);
-        const double c_L     = std::sqrt(n_T * (p_L + B_T) / rho_L);
-        const double H       = n_T / (n_T - 1.0) * ((p_L + B_T) / rho_L - (P_inf + B_T) / rho_inf);
-#endif
+        constexpr double Gamma_L   = Parameters::nasg::Gamma_L;
+        constexpr double B_L       = Parameters::nasg::B_L;
+        constexpr double b_L       = Parameters::nasg::b_L;
+        constexpr double p_L_ref   = Parameters::nasg::p_L_ref;
+        constexpr double rho_L_ref = Parameters::nasg::rho_L_ref;
 
-    return {c_L, rho_L, rho_inf, H};
+        const double K_L     = rho_L_ref / (std::pow(p_L_ref + B_L, 1.0 / Gamma_L) * (1.0 - b_L * rho_L_ref));
+        const double rho_L   = K_L * std::pow((p_L   + B_L), 1.0 / Gamma_L) / (1.0 + b_L * K_L * std::pow((p_L   + B_L), 1.0 / Gamma_L));
+        const double rho_inf = K_L * std::pow((P_inf + B_L), 1.0 / Gamma_L) / (1.0 + b_L * K_L * std::pow((P_inf + B_L), 1.0 / Gamma_L));
+        const double c_L     = std::sqrt(Gamma_L * (p_L + B_L) / (rho_L - b_L * rho_L * rho_L));
+        const double h_L     = Gamma_L / (Gamma_L - 1.0) * (p_L   + B_L) / rho_L   - Gamma_L / (Gamma_L - 1.0) * b_L * (p_L   + B_L) + b_L * p_L;
+        const double h_inf   = Gamma_L / (Gamma_L - 1.0) * (P_inf + B_L) / rho_inf - Gamma_L / (Gamma_L - 1.0) * b_L * (P_inf + B_L) + b_L * P_inf;
+        const double H       = h_L - h_inf;
+
+        return {c_L, rho_L, rho_inf, H};
+    } else {
+        // Tait EoS
+        constexpr double Gamma_L   = Parameters::tait::Gamma_L;
+        constexpr double B_L       = Parameters::tait::B_L;
+        constexpr double p_L_ref   = Parameters::tait::p_L_ref;
+        constexpr double rho_L_ref = Parameters::tait::rho_L_ref;
+
+        const double rho_L   = rho_L_ref * std::pow((p_L   + B_L) / (p_L_ref + B_L), 1.0 / Gamma_L);
+        const double rho_inf = rho_L_ref * std::pow((P_inf + B_L) / (p_L_ref + B_L), 1.0 / Gamma_L);
+        const double c_L     = std::sqrt(Gamma_L * (p_L + B_L) / rho_L);
+        const double h_L     = Gamma_L / (Gamma_L - 1.0) * (p_L   + B_L) / rho_L;
+        const double h_inf   = Gamma_L / (Gamma_L - 1.0) * (P_inf + B_L) / rho_inf;
+        const double H       = h_L - h_inf;
+
+        return {c_L, rho_L, rho_inf, H};
+    }
 }
 
 
@@ -623,7 +636,7 @@ double OdeFun::bubble_dynamics(
         const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
         return nom / denom;
     }
-    else    // Gilmore equation (https://doi.org/10.1016/j.ultsonch.2020.105307)
+    else    // Gilmore equation with Tait EoS (https://doi.org/10.1016/j.ultsonch.2020.105307)
     {
         const double p_L     = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
         const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // - 4.0 * cpar.mu_L * R_dot_dot / R;
