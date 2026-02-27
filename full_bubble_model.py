@@ -1468,7 +1468,7 @@ class Make_dir:
         file = os.path.join(self.save_dir, file_base_name + '_data.csv')
         file = open(file, 'w')
         # write header line
-        line = self._list_to_string(keys + ['R_0', 'R_dot_0', 'T_0'] + ['c_' + specie + '_0' for specie in par.species] + ['R_last', 'R_dot_last', 'T_last'] + ['c_' + specie + '_last' for specie in par.species])
+        line = self._list_to_string(keys + ['R_0', 'R_dot_0', 'T_0'] + ['n_' + specie + '_0' for specie in par.species] + ['R_last', 'R_dot_last', 'T_last'] + ['n_' + specie + '_last' for specie in par.species])
         file.write(line + '\n')
         # write data
         line = self._list_to_string([data[key]] for key in keys)
@@ -1480,7 +1480,7 @@ class Make_dir:
         file = os.path.join(self.save_dir, file_base_name + '_num_sol.csv')
         file = open(file, 'w')
         # write header line
-        line = self._list_to_string(['t', 'R', 'R_dot', 'T'] + ['c_' + specie for specie in par.species] + ['dissipated_acoustic_energy']) 
+        line = self._list_to_string(['t', 'R', 'R_dot', 'T'] + ['n_' + specie for specie in par.species] + ['dissipated_acoustic_energy']) 
         file.write(line + '\n')
         # write data
         for i in range(len(num_sol.t)):
@@ -1519,7 +1519,7 @@ class Make_dir:
         self.number += 1
         self.lines = 0
         # write header line:
-        line = self._list_to_string(keys + ['R_0', 'R_dot_0', 'T_0'] + ['c_' + specie + '_0' for specie in par.species] + ['R_last', 'R_dot_last', 'T_last'] + ['c_' + specie + '_last' for specie in par.species])
+        line = self._list_to_string(keys + ['R_0', 'R_dot_0', 'T_0'] + ['n_' + specie + '_0' for specie in par.species] + ['R_last', 'R_dot_last', 'T_last'] + ['n_' + specie + '_last' for specie in par.species])
         self.file.write(line + '\n')
     
     def close(self):
