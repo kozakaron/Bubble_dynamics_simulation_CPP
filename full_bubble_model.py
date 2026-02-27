@@ -948,18 +948,18 @@ def get_data(cpar, num_sol, error_code, elapsed_time):
     data2 = np.loadtxt(cpar.file_name, delimiter=',', skiprows=1)
     t_data2 = data2[:, 0]
     R_data2 = data2[:, 1]
-    R_dot_data2 = data2[:, 2]
+    #R_dot_data2 = data2[:, 2]
     # 2. Interpolation
     new_R = interp1d(t_data2, R_data2, kind='linear', fill_value="extrapolate") #np.power((3.0 * V_interp) / (4.0 * np.pi), 1.0/3.0)
 
     # R_dot = V_dot / (4 * pi * R^2)
-    new_R_dot = interp1d(t_data2, R_dot_data2, kind='linear', fill_value="extrapolate")
+    #new_R_dot = interp1d(t_data2, R_dot_data2, kind='linear', fill_value="extrapolate")
 
     #mask = new_R > 1e-15
     #new_R_dot[mask] = V_dot_interp[mask] / (4.0 * np.pi * np.power(new_R[mask], 2))
 
     num_sol.y[0, :] = new_R(num_sol.t)
-    num_sol.y[1, :] = new_R_dot(num_sol.t)
+    #num_sol.y[1, :] = new_R_dot(num_sol.t)
     
     data.x_initial = num_sol.y[:, 0] # initial values of [R, R_dot, T, c_1, ... c_K]
     # collapse time (first loc min of R)    TODO fix
@@ -1468,7 +1468,7 @@ class Make_dir:
         file = os.path.join(self.save_dir, file_base_name + '_data.csv')
         file = open(file, 'w')
         # write header line
-        line = self._list_to_string(keys + ['R_0', 'R_dot_0', 'T_0'] + ['n_' + specie + '_0' for specie in par.species] + ['R_last', 'R_dot_last', 'T_last'] + ['n_' + specie + '_last' for specie in par.species])
+        line = self._list_to_string(keys + ['R_0', 'R_dot_0', 'T_0'] + ['c_' + specie + '_0' for specie in par.species] + ['R_last', 'R_dot_last', 'T_last'] + ['c_' + specie + '_last' for specie in par.species])
         file.write(line + '\n')
         # write data
         line = self._list_to_string([data[key]] for key in keys)
@@ -1480,7 +1480,7 @@ class Make_dir:
         file = os.path.join(self.save_dir, file_base_name + '_num_sol.csv')
         file = open(file, 'w')
         # write header line
-        line = self._list_to_string(['t', 'R', 'R_dot', 'T'] + ['n_' + specie for specie in par.species] + ['dissipated_acoustic_energy']) 
+        line = self._list_to_string(['t', 'R', 'R_dot', 'T'] + ['c_' + specie for specie in par.species] + ['dissipated_acoustic_energy']) 
         file.write(line + '\n')
         # write data
         for i in range(len(num_sol.t)):
@@ -1519,7 +1519,7 @@ class Make_dir:
         self.number += 1
         self.lines = 0
         # write header line:
-        line = self._list_to_string(keys + ['R_0', 'R_dot_0', 'T_0'] + ['n_' + specie + '_0' for specie in par.species] + ['R_last', 'R_dot_last', 'T_last'] + ['n_' + specie + '_last' for specie in par.species])
+        line = self._list_to_string(keys + ['R_0', 'R_dot_0', 'T_0'] + ['c_' + specie + '_0' for specie in par.species] + ['R_last', 'R_dot_last', 'T_last'] + ['c_' + specie + '_last' for specie in par.species])
         self.file.write(line + '\n')
     
     def close(self):
