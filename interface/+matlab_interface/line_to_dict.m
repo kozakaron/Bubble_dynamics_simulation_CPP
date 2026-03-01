@@ -1,6 +1,9 @@
 function cpar = line_to_dict(line)
     % Convert a row of a table (line) into a structured dictionary (cpar).
     % Usage: cpar = line_to_dict(all_data(1, :));
+    arguments
+        line  % A row of a table (e.g. all_data(1, :))
+    end
 
     % Parse species
     species = strsplit(string(line.species), ';');

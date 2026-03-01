@@ -1,14 +1,16 @@
-function plot(data, n, show_cpar, plot_pressure)
+function plot(data, options)
     % PLOT Plots the results of the simulation from data.
     % Arguments:
     %   data: struct containing the simulation data.
     %   n: how long the plotted time interval should be compared to the collapse time (default: 5).
     %   show_cpar: if true, the control parameters will be printed on the plot (default: false).
     %   plot_pressure: if true, plot external excitation and internal pressure (default: false).
-
-    if nargin < 2, n = 5.0; end
-    if nargin < 3, show_cpar = true; end
-    if nargin < 4, plot_pressure = false; end
+    arguments
+        data struct
+        options.n (1,1) double = 5.0
+        options.show_cpar (1,1) logical = true
+        options.plot_pressure (1,1) logical = false
+    end
 
     % Extract data
     cpar = data.cpar;
@@ -18,8 +20,8 @@ function plot(data, n, show_cpar, plot_pressure)
 
     % Determine time interval for plotting
     postproc = getfield_or_default(data, 'postproc', struct());
-    t_last = n * getfield_or_default(postproc, 't_peak', 0.0);
-    if t_last < 1e-7 || t(end) < t_last || n < 0 || ~sol.success
+    t_last = options.n * getfield_or_default(postproc, 't_peak', 0.0);
+    if t_last < 1e-7 || t(end) < t_last || options.n < 0 || ~sol.success
         end_index = length(t);
     else
         [~, end_index] = min(abs(t - t_last));
@@ -56,7 +58,7 @@ function plot(data, n, show_cpar, plot_pressure)
     grid on;
 
     % Add control parameters as text box
-    if show_cpar
+    if options.show_cpar
         text_str = sprintf('Initial conditions:\n');
         text_str = [text_str, sprintf('  R_E = %.2f [\x03bcm]\n', 1e6 * cpar.R_E)];
         text_str = [text_str, sprintf('  P_{amb} = %.2f [bar]\n', 1e-5 * cpar.P_amb)];
@@ -94,7 +96,7 @@ function plot(data, n, show_cpar, plot_pressure)
     hold off;
 
     % Plot pressure excitation and internal pressure
-    if plot_pressure
+    if options.plot_pressure
         p_excitation = sol.p_excitation(1:end_index) * 1e-3; % Convert from Pa to kPa
         p_internal = sol.p_internal(1:end_index) * 1e-6;    % Convert from Pa to MPa
         

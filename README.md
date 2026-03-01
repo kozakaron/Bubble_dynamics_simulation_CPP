@@ -144,6 +144,8 @@ cpar = {
     'enable_reactions': True,
     'enable_dissipated_energy': True,
     'enable_van_der_waals': True,
+    'enable_gilmore': True,
+    'enable_nasg': True,
     'enable_rate_thresholding': True,
     'target_specie': 'H2',
     'excitation_type': 'sinusoid',
@@ -155,7 +157,7 @@ cpar = {
 
 If you are unsure about the available mechanisms, excitation types or excitation parameters, you may refer to [./include/parameters.h](./include/parameters.h). As an alternative, you can mistype the type (e.g.: `cpar['mechanism'] = 'x'`) or set an invalid number of arguments (e.g.: `cpar['excitation_params'] = []`) and the resulting error message shall list the available options or the names/units of the arguments.
 
-**Table: Control parameters (`cpar`)**
+Content of control parameters (`cpar`):
 
 | Category | Name | Symbol | Description | Unit |
 |:---|:---|:---:|:---|:---:|
@@ -200,9 +202,9 @@ Arguments:
  * `timeout` (float): Timeout for the simulation. (default: 60.0 sec)
  * `save_steps` (bool): Whether to save the simulation steps. If false, only the first and last steps will be saved, which is a tony bit faster. (default: true)
         
-Returns (dict): A dictionary containing the simulation results. See key `'sol'` for the numerical solution and `'cpar'` for the original control parameters. The time series can be accessed via `data['sol']['t']` and `data['sol']['x']` as arrays. The simulation is sucessful if `data['sol']['success']` is true. You may also acces post processing data, like `data['energy_demand']`. Extra information is saved under keys `'excitation'`, `'mechanism'` and `'version'`.
+Returns (dict): A dictionary containing the simulation results. See key `'sol'` for the numerical solution and `'cpar'` for the original control parameters. The time series can be accessed via `data['sol']['t']` and `data['sol']['x']` as arrays. The simulation is sucessful if `data['sol']['success']` is true. You may also acces post processing data under `data['postproc']`. Extra information is saved under keys `'excitation'`, `'mechanism'` and `'version'`.
 
-**Table: Return value of `run_simulation()` (`data`)**
+Content of return value of `run_simulation()` (`data`):
 
 | Main key | Subkey | Symbol | Description | Unit |
 |:---|:---|:---:|:---|:---:|
@@ -269,6 +271,7 @@ Arguments:
  * `presentation_mode`: if True, the plot will be in presentation mode, whith thicker lines and larger fonts. (default: False)
  * `show_legend`: if True, the legend will be visible with every single species (default: False)
  * `show_cpar`: if True, the control parameters will be printed on the plot (default: False)
+ * `plot_pressure`: if True, the excitation and internal pressure will be plotted as well (default: False)
 
  ### Run parameter studies
 
@@ -504,7 +507,7 @@ When parsed, these structs are turned into const static members of the `Paramete
 Available mechanisms:
 | Name                         | Reagent atoms | Non-reagent molecules | Number of species [-] | Number of reactions [-] |
 |------------------------------|----------------|------------------------|------------------------|--------------------------|
-| chemkin_noreaction_air       |                | N2, O2, H2O, Ar        | 4                      | 0                        |
+| chemkin_noreaction_air       | -              | N2, O2, H2O, Ar        | 4                      | 0                        |
 | uson2022_hydrogen            | H, O           | -                      | 10                     | 34                       |
 | elte2016_hydrogen            | H, O           | He, N2, Ar             | 12                     | 30                       |
 | elte2016_syngas              | H, C, O        | He, N2, Ar             | 15                     | 44                       |
@@ -543,6 +546,8 @@ ControlParameters cpar = ControlParameters{ControlParameters::Builder{
     .enable_reactions            = true,
     .enable_dissipated_energy    = true,
     .enable_van_der_waals        = true,
+    .enable_gilmore              = true,
+    .enable_nasg                 = true,
     .enable_rate_thresholding    = true,
     .target_specie               = "H2",
     .excitation_type             = Parameters::excitation::sinusoid,                      // type of excitation (enum)

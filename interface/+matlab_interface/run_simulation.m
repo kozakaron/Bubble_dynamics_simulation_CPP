@@ -1,18 +1,24 @@
-function data = run_simulation(cpar, json_path, executable_path, t_max, timeout, save_steps)
+function data = run_simulation(cpar, options)
     % RUN_SIMULATION Runs a single simulation using the C++ executable.
-    % Usage: data = run_simulation(cpar, json_path, executable_path, t_max, timeout, save_steps);
+    % Usage: data = run_simulation(cpar, t_max=1.0, timeout=60.0, save_steps=true, json_path="ignore.json");
+    arguments
+        cpar struct
+        options.json_path (1,1) string = "ignore.json"
+        options.executable_path (1,1) string = ""
+        options.t_max (1,1) double = 1.0
+        options.timeout (1,1) double = 60.0
+        options.save_steps (1,1) logical = true
+    end
 
-    if nargin < 2, json_path = 'ignore.json'; end
-    if nargin < 3
+    if options.executable_path == ""
         if ispc
             executable_path = './bin/main.exe'; % Windows
         else
             executable_path = './bin/main'; % Linux/Mac
         end
+    else
+        executable_path = options.executable_path;
     end
-    if nargin < 4, t_max = 1.0; end
-    if nargin < 5, timeout = 60.0; end
-    if nargin < 6, save_steps = true; end
 
     % Ensure species, fractions, and excitation_params are arrays
     if ~isfield(cpar, 'species') || isempty(cpar.species)
@@ -36,22 +42,23 @@ function data = run_simulation(cpar, json_path, executable_path, t_max, timeout,
     % Write the JSON file
     json_data = struct('cpar', cpar);
     json_str = jsonencode(json_data, PrettyPrint=true);
-    fid = fopen(json_path, 'w');
+    fid = fopen(options.json_path, 'w');
     fwrite(fid, json_str, 'char');
     fclose(fid);
 
     % Check paths
-    json_path = check_path(json_path);
+    json_path = check_path(options.json_path);
     executable_path = check_path(executable_path);
 
     % Run the simulation
-    command_list = {executable_path, '--run', json_path, '--tmax', num2str(t_max), '--timeout', num2str(timeout)};
-    if save_steps
+    command_list = {char(executable_path), '--run', char(json_path), '--tmax', num2str(options.t_max), '--timeout', num2str(options.timeout)};
+    if options.save_steps
         command_list{end+1} = '--save';
     end
     
     % Create a process to run the command
     [status, cmdout] = system(strjoin(command_list, ' '));
+    cmdout = regexprep(cmdout, '\x1B\[[0-9;]*[A-Za-z]', '');
     disp(cmdout);
     fprintf('\n%s returned with code %d.\n', executable_path, status);
 
