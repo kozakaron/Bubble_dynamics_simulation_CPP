@@ -3,6 +3,9 @@ function all_data = read_parameter_study(directory)
     % Usage:
     %   all_data = read_parameter_study('path/to/parameter/study');
     %   good_data = all_data(all_data.success == "true", :);
+    arguments
+        directory (1,1) string  % Path to the parameter study directory
+    end
 
     % Ensure the directory exists
     if ~isfolder(directory)

@@ -513,6 +513,9 @@ std::string strip_comments(const std::string& s) {
 
 json get_json(const std::string& json_path)
 {
+    // Normalize path separators
+    std::string normalized_path = json_path;
+    std::replace(normalized_path.begin(), normalized_path.end(), '\\', '/');
     // Open JSON file
     std::ifstream input_file(json_path);
     if (!input_file.is_open())
@@ -520,7 +523,7 @@ json get_json(const std::string& json_path)
         LOG_ERROR(
             Error::severity::error,
             Error::type::preprocess,
-            "Could not open JSON file: " + json_path
+            "Could not open JSON file: " + normalized_path
         );
         return {};
     }
@@ -623,7 +626,7 @@ const Parameters *Parameters::get_parameters(const std::string& mech_name)
     {
         LOG_ERROR(
             Error::severity::error, Error::type::preprocess,
-            "Directory \"" + mech_dir_path.string() + "\" not found. Make sure, your current working directory is correct."
+            "Directory \"" + mech_dir_path.generic_string() + "\" not found. Make sure, your current working directory is correct."
         );
         return nullptr;
     }
@@ -644,7 +647,7 @@ const Parameters *Parameters::get_parameters(const std::string& mech_name)
 
         LOG_ERROR(
             Error::severity::error, Error::type::preprocess,
-            "Mechanism JSON file \"" + json_path.string() + "\" not found. Check if the mechanism name is correct. Available: " + ::to_string((std::string*)available.data(), available.size())
+            "Mechanism JSON file \"" + json_path.generic_string() + "\" not found. Check if the mechanism name is correct. Available: " + ::to_string((std::string*)available.data(), available.size())
         );
         return nullptr;
     }
@@ -654,7 +657,7 @@ const Parameters *Parameters::get_parameters(const std::string& mech_name)
     const double runtime = timer.lap();
     LOG_ERROR(
         Error::severity::info, Error::type::preprocess,
-        "Loaded mechanism \"" + param->mechanism_name + "\" from \"" + json_path.string() + "\" in " + Timer::format_time(runtime) + "."
+        "Loaded mechanism \"" + param->mechanism_name + "\" from \"" + json_path.generic_string() + "\" in " + Timer::format_time(runtime) + "."
     );
     const std::string expected_mechanism_name = json_path.stem().string();
     if (param->mechanism_name != expected_mechanism_name)

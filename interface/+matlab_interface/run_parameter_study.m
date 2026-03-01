@@ -1,4 +1,4 @@
-function run_parameter_study(parameter_study, json_path, executable_path, t_max, timeout, save_directory, cpu_count)
+function run_parameter_study(parameter_study, options)
     % RUN_PARAMETER_STUDY Runs a parameter study using the C++ executable.
     % Saves the provided parameter_study dictionary to a JSON file and uses it as input to run the study.
     % Captures stdout and stderr in real-time and prints them as they arrive.
@@ -10,20 +10,26 @@ function run_parameter_study(parameter_study, json_path, executable_path, t_max,
     %   t_max: Maximum simulation time (default: 1.0).
     %   timeout: Timeout for the simulation (default: 60.0).
     %   save_directory: Directory to save the results (default: './_parameter_studies/test').
-    %   cpu_count: Number of CPU cores to use.
+    %   cpu_count: Number of CPU cores to use (0 = auto, default: 0).
+    arguments
+        parameter_study struct
+        options.json_path (1,1) string = "ignore.json"
+        options.executable_path (1,1) string = ""
+        options.t_max (1,1) double = 1.0
+        options.timeout (1,1) double = 60.0
+        options.save_directory (1,1) string = "./_parameter_studies/test"
+        options.cpu_count (1,1) double {mustBeInteger, mustBeNonnegative} = 0
+    end
 
-    if nargin < 2, json_path = 'ignore.json'; end
-    if nargin < 3
+    if options.executable_path == ""
         if ispc
             executable_path = './bin/main.exe'; % Windows
         else
             executable_path = './bin/main'; % Linux/Mac
         end
+    else
+        executable_path = options.executable_path;
     end
-    if nargin < 4, t_max = 1.0; end
-    if nargin < 5, timeout = 60.0; end
-    if nargin < 6, save_directory = './_parameter_studies/test'; end
-    if nargin < 7, cpu_count = 0; end
 
     % Ensure species, fractions, and excitation_params are arrays
     if ~isfield(parameter_study, 'species') || isempty(parameter_study.species)
@@ -57,28 +63,28 @@ function run_parameter_study(parameter_study, json_path, executable_path, t_max,
     % Write the JSON file
     json_data = struct('parameter_study', parameter_study);
     json_str = jsonencode(json_data, 'PrettyPrint', true);
-    fid = fopen(json_path, 'w');
+    fid = fopen(options.json_path, 'w');
     if fid == -1
-        error('Could not open file "%s" for writing.', json_path);
+        error('Could not open file "%s" for writing.', options.json_path);
     end
     fwrite(fid, json_str, 'char');
     fclose(fid);
 
     % Check paths
-    json_path = check_path(json_path);
+    json_path = check_path(options.json_path);
     executable_path = check_path(executable_path);
 
     % Run simulation (call the executable)
     start_time = tic;
     command_list = {
-        executable_path, '--parameter_study', json_path, ...
-        '--tmax', num2str(t_max), ...
-        '--timeout', num2str(timeout), ...
-        '--directory', save_directory
+        char(executable_path), '--parameter_study', char(json_path), ...
+        '--tmax', num2str(options.t_max), ...
+        '--timeout', num2str(options.timeout), ...
+        '--directory', char(options.save_directory)
     };
-    if cpu_count > 0
+    if options.cpu_count > 0
         command_list{end + 1} = '--cpu';
-        command_list{end + 1} = num2str(cpu_count);
+        command_list{end + 1} = num2str(options.cpu_count);
     end
 
     % Create a process to run the command and capture stdout in real-time

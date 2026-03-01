@@ -137,7 +137,7 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
         builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
         builder.enable_van_der_waals =      get_value<bool>                     (j, "enable_van_der_waals",     builder.enable_van_der_waals);
-        builder.enable_gilmore =            get_value<bool>                     (j, "enable_gilmore",           builder.enable_gilmore);
+        builder.enable_gilmore =            get_value<bool>                     (j, "enable_gilmore",           builder.enable_gilmore, false);
         builder.enable_nasg =               get_value<bool>                     (j, "enable_nasg",              builder.enable_nasg, false);
         builder.enable_rate_thresholding =  get_value<bool>                     (j, "enable_rate_thresholding", builder.enable_rate_thresholding);
         builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
