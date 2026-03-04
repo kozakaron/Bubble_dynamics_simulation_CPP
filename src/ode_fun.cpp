@@ -8,7 +8,7 @@
 #include "ode_fun.h"
 
 BubbleState interpolate_state(
-	std::size_t R_dot_from_file,
+	std::size_t R_and_R_dot_from_file,
     const std::vector<double>& data,
     std::size_t rows,
     std::size_t cols,
@@ -67,7 +67,7 @@ BubbleState interpolate_state(
 
 
 	//Ṙ(t)
-	if(R_dot_from_file==1)
+	if(R_and_R_dot_from_file==2)
 	{
 		const double R_dot_0 = at(idx - 1, 2);
 		const double R_dot_1 = at(idx, 2);
@@ -1098,10 +1098,16 @@ is_success OdeFun::operator()(
     double* x_dimensional_dot = x_dimless_dot;
 
 // Common variables
-    BubbleState s = interpolate_state(cpar.R_dot_from_file,cpar.importdata,cpar.rows,cpar.cols,t);
+    BubbleState s = interpolate_state(cpar.R_and_R_dot_from_file,cpar.importdata,cpar.rows,cpar.cols,t);
 
-    const double R = s.R;//x_dimensional[0];               // bubble radius [m]
-    const double R_dot = s.R_dot;//x_dimensional[1];//s.R_dot;       // bubble radius derivative [m/s]
+    const double R = 
+	(cpar.R_and_R_dot_from_file) < 1
+	? x_dimensional[0]
+	: s.R;                                                 // bubble radius [m]
+    const double R_dot = 
+	(cpar.R_and_R_dot_from_file) < 1
+	? x_dimensional[1]
+	: s.R_dot;                                               // bubble radius derivative [m/s]
 	const double V = (4.0 / 3.0 * std::numbers::pi) * R * R * R;
 	
     const double T = x_dimensional[2];                     // temperature [K]
