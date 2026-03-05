@@ -727,7 +727,11 @@ std::string ParameterCombinator::to_string(const bool with_code) const
     ss << "    },\n";
     ss << format_field_name << ".excitation_cycles" << " = " << format_range(this->excitation_cycles.get()) << "\n";
     ss << format_field_name << ".ramp_up_cycles" << " = " << format_range(this->ramp_up_cycles.get(), true) << "\n";
-
+	ss << format_field_name << ".R_and_R_dot_from_file" << " = " << format_range(this->R_and_R_dot_from_file.get(), true) << "\n";
+	ss << format_field_name << ".rows" << " = " << format_range(this->rows.get(), true) << "\n";
+	ss << format_field_name << ".cols" << " = " << format_range(this->cols.get(), true) << "\n";
+	ss << format_field_name << ".file_name" << " = " << ::to_string((std::string*)this->file_name.data(), this->file_name.size()) << "\n";
+	
     if (with_code) ss << "}";
     ss << std::right;
     return ss.str();
@@ -766,7 +770,11 @@ ordered_json ParameterCombinator::to_json() const
     }
     j["excitation_cycles"] = this->excitation_cycles->to_json();
     j["ramp_up_cycles"] = this->ramp_up_cycles->to_json();
-
+	j["R_and_R_dot_from_file"] = this->R_and_R_dot_from_file->to_json();
+	j["rows"] = this->rows->to_json();
+	j["cols"] = this->cols->to_json();
+	j["file_name"] = this->file_name;
+	
     return {{"parameter_study", j}};
 }
 
@@ -832,9 +840,13 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         .excitation_type = this->excitation_type,
         .excitation_params = excitation_values,
         .excitation_cycles = get_value(this->excitation_cycles),
-        .ramp_up_cycles = get_value(this->ramp_up_cycles)
-    }};
-
+        .ramp_up_cycles = get_value(this->ramp_up_cycles),
+		.R_and_R_dot_from_file = get_value(this->R_and_R_dot_from_file),
+		.rows = get_value(this->rows),
+		.cols = get_value(this->cols),
+		.file_name = this->file_name
+	}};
+		
     is_success success = combination_ID < this->total_combination_count;
 
     return {success, cpar};
