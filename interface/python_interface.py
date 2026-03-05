@@ -691,6 +691,10 @@ def line_to_dict(line):
         excitation_params = excitation_params,
         excitation_cycles = int(line['excitation_cycles']),
         ramp_up_cycles = int(line['ramp_up_cycles']),
+        R_and_R_dot_from_file = int(line['R_and_R_dot_from_file']),
+        rows = int(line['rows']),
+        cols = int(line['cols']),
+        file_name = int(line['file_name']),
     )
 
 

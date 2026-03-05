@@ -76,22 +76,18 @@
         "ramp_up_cycles": {
             "type": "Const",
             "value": 0.0
-        },
-        "R_and_R_dot_from_file": {
-            "type": "Const",
-            "value": 0
-        },
-        "rows": {
-            "type": "Const",
-            "value": 1
-        },
-        "cols": {
-            "type": "Const",
-            "value": 1
-        },
-        "file_name": {
-            "type": "Const",
-            "value": "alap_kemia_nelkul_minta.csv"
         }
+    },
+    "info": {
+        "version": "1.7",
+        "datetime": "2026.03.05 17:13:40",
+        "total_combination_count": 600,
+        "t_max": 1.0,
+        "timeout": 60.0,
+        "max_threads": 12,
+        "mechanism": "chemkin_elte2016_hydrogen",
+        "number_of_species": 12,
+        "number_of_reactions": 30,
+        "species": "{H, H2, O, O2, OH, H2O, N2, HO2, H2O2, AR, HE, OHEX}"
     }
 }

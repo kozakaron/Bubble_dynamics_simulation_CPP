@@ -31,6 +31,10 @@
             30000.0
         ],
         "excitation_cycles": 1.0,
-        "ramp_up_cycles": 0.0
+        "ramp_up_cycles": 0.0,
+        "R_and_R_dot_from_file": 1,
+        "rows": 1,
+        "cols": 1,
+        "file_name": "alap_kemia_nelkul_minta.csv"
     }
 }
