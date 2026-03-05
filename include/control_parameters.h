@@ -46,17 +46,18 @@ public:
     bool enable_rate_thresholding;
     index_t target_specie;
     
-    size_t R_and_R_dot_from_file;
-    size_t rows;
-    size_t cols;
-	std::string file_name;
-	std::vector<double> importdata;
-    
     // Excitation parameters:
     Parameters::excitation excitation_type;             // type of excitation
     double excitation_params[max_excitation_params];    // parameters for excitation (pointer to array of doubles)
     double excitation_cycles;                           // number of excitation cycles to use (according to freq/freq1 in excitation_params) [-]
     double ramp_up_cycles;                              // number of cycles until the excitation reaches full amplitude (0<=ramp_up_cycles<=excitation_cycles/2) [-]
+
+	// Some extra parameters:
+    size_t R_and_R_dot_from_file;
+    size_t rows;
+    size_t cols;
+	std::string file_name;
+	std::vector<double> importdata;
 
     // Reference values for dimensionless parameters: A_dimless = A / A_ref
     static constexpr double t_ref = 1e-9;               // reference time [s]
@@ -116,17 +117,17 @@ public:
         bool enable_van_der_waals               = true;
         bool enable_rate_thresholding           = true;
 
-		size_t R_and_R_dot_from_file			= 0;
-		size_t rows 							= 0;
-		size_t cols 							= 0;
-		std::string file_name						= "";
-		std::vector<double> importdata;
-		
         std::string target_specie               = "H2";
         Parameters::excitation excitation_type  = Parameters::excitation::sinusoid;
         std::vector<double> excitation_params   = {-2.0e5, 30000.0};
         double excitation_cycles                = 1.0;
         double ramp_up_cycles                   = 0.0;
+
+        size_t R_and_R_dot_from_file			= 0;
+        size_t rows 							= 0;
+        size_t cols 							= 0;
+        std::string file_name						= "";
+        std::vector<double> importdata;
     };
     
 // Methods
