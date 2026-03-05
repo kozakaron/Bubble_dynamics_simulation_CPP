@@ -119,6 +119,11 @@ private:
     std::vector<std::unique_ptr<Range>> excitation_params;
     std::unique_ptr<Range> excitation_cycles;
     std::unique_ptr<Range> ramp_up_cycles;
+	std::unique_ptr<Range> R_and_R_dot_from_file;
+	std::unique_ptr<Range> rows;
+	std::unique_ptr<Range> cols;
+	std::vector<std::string> file_name;
+	
 public:
     typedef std::variant<Const, LinearRange, LogRange, GeomRange> AnyRange;
     struct Builder {
@@ -146,6 +151,10 @@ public:
         std::vector<AnyRange> excitation_params = {Const(-2.0e5), Const(30000.0)};
         AnyRange excitation_cycles              = Const(1.0);
         AnyRange ramp_up_cycles                 = Const(0.0);
+		AnyRange R_and_R_dot_from_file 			= Const(0.0);
+		AnyRange rows 							= Const(1);
+		AnyRange cols 							= Const(1);
+		std::string file_name 					= "temp.csv";
     };
 
     ParameterCombinator(const Builder &builder);

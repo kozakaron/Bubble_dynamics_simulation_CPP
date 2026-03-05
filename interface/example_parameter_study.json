@@ -89,9 +89,6 @@
             "type": "Const",
             "value": 1
         },
-        "file_name": {
-            "type": "Const",
-            "value": "alap_kemia_nelkul_minta.csv"
-        }
+        "file_name": "test.csv"
     }
 }

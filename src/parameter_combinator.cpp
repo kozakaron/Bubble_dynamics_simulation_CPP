@@ -290,6 +290,11 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
     this->excitation_type =             builder.excitation_type;
     this->excitation_cycles =           get_unique_ptr(builder.excitation_cycles);
     this->ramp_up_cycles =              get_unique_ptr(builder.ramp_up_cycles);
+	this->R_and_R_dot_from_file =		get_unique_ptr(builder.R_and_R_dot_from_file);
+	this->rows =						get_unique_ptr(builder.rows);
+	this->cols =						get_unique_ptr(builder.cols);
+	this->file_name =					std::vector<std::string>{builder.file_name};
+	
 
     this->excitation_params.reserve(builder.excitation_params.size());
     for (const auto &excitation_param : builder.excitation_params)
@@ -555,6 +560,10 @@ void ParameterCombinator::init(const ordered_json& j)
         );
         builder.excitation_cycles =         get_range                           (j, "excitation_cycles",        builder.excitation_cycles);
         builder.ramp_up_cycles =            get_range                           (j, "ramp_up_cycles",           builder.ramp_up_cycles);
+		builder.R_and_R_dot_from_file =		get_range							(j, "R_and_R_dot_from_file", 	builder.R_and_R_dot_from_file);
+		builder.rows =						get_range							(j, "rows", 					builder.rows);
+		builder.cols =						get_range							(j, "cols", 					builder.cols);
+		builder.file_name =					get_value<std::string>				(j, "file_name", 				builder.file_name);
 
         if (j.contains("excitation_params"))
         {
