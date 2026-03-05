@@ -151,7 +151,7 @@ public:
         std::vector<AnyRange> excitation_params = {Const(-2.0e5), Const(30000.0)};
         AnyRange excitation_cycles              = Const(1.0);
         AnyRange ramp_up_cycles                 = Const(0.0);
-		AnyRange R_and_R_dot_from_file 			= Const(0.0);
+		AnyRange R_and_R_dot_from_file 			= Const(0);
 		AnyRange rows 							= Const(1);
 		AnyRange cols 							= Const(1);
 		std::string file_name 					= "temp.csv";

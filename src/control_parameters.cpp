@@ -237,15 +237,15 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->enable_van_der_waals = builder.enable_van_der_waals;
     this->enable_rate_thresholding = builder.enable_rate_thresholding;
 	
-	this->R_and_R_dot_from_file = builder.R_and_R_dot_from_file;
-	this->rows = builder.rows;
-	this->cols = builder.cols;
-	this->file_name = builder.file_name;
-	
     this->target_specie = par->get_species(builder.target_specie);
     this->excitation_type = builder.excitation_type;
     this->excitation_cycles = builder.excitation_cycles;
     this->ramp_up_cycles = builder.ramp_up_cycles;
+
+	this->R_and_R_dot_from_file = builder.R_and_R_dot_from_file;
+	this->rows = builder.rows;
+	this->cols = builder.cols;
+	this->file_name = builder.file_name;
 
     if (this->target_specie == par->invalid_index)
     {
@@ -420,8 +420,8 @@ std::string ControlParameters::to_csv() const
     ss << Parameters::excitation_names[this->excitation_type] << ",";
     for (size_t index = 0; index < Parameters::excitation_arg_nums[this->excitation_type]; ++index)
         ss << format_double << this->excitation_params[index] << ";";
-    ss << "," << format_double << this->excitation_cycles << "," << format_double << this->ramp_up_cycles;
-
+    ss << "," << format_double << this->excitation_cycles << "," << format_double << this->ramp_up_cycles << "," << format_double << 
+	this->R_and_R_dot_from_file << "," << format_double << this->rows << "," << format_double << this->cols << "," << this->file_name;
     return ss.str();
 }
 
@@ -480,6 +480,10 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << format_string << ".excitation_params"          << " = " << ::to_string((double*)this->excitation_params, Parameters::excitation_arg_nums[this->excitation_type]) << ",\n";
     ss << format_string << ".excitation_cycles"          << " = " << format_double << this->excitation_cycles         << ",    // number of excitation cycles [-]\n";
     ss << format_string << ".ramp_up_cycles"             << " = " << format_double << this->ramp_up_cycles            << "     // number of ramp-up cycles until full amplitude is reached [-]\n";
+	ss << format_string << ".R_and_R_dot_from_file"      << " = " << format_double << this->R_and_R_dot_from_file     << "     // 0: nothing to read in, chemistry is coupled to bubble dynamics; 1: R_dot is calculated here, 2: it is read from *.csv\n";
+	ss << format_string << ".rows"                       << " = " << format_double << this->rows                      << "     // number of rows in .csv file (placeholder) [-]\n";
+	ss << format_string << ".cols"                       << " = " << format_double << this->cols                      << "     // number of columns in .csv file (placeholder) [-]\n";
+	ss << format_string << ".file_name"                  << " = " <<                  this->file_name                 << "     // input .csv file name [-]\n";
 
     if (with_code) ss << "}";
     ss << std::right;
@@ -527,6 +531,10 @@ ordered_json ControlParameters::to_json() const
     j["excitation_params"] = std::vector<double>(this->excitation_params, this->excitation_params + Parameters::excitation_arg_nums.at(this->excitation_type));
     j["excitation_cycles"] = this->excitation_cycles;
     j["ramp_up_cycles"] = this->ramp_up_cycles;
+    j["R_and_R_dot_from_file"] = this->R_and_R_dot_from_file;
+    j["rows"] = this->rows;
+    j["cols"] = this->cols;
+    j["file_name"] = this->file_name;
 
     return j;
 }
