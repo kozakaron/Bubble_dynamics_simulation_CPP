@@ -32,7 +32,7 @@ public:
     ParameterStudy(
         ParameterCombinator &parameter_combinator,
         std::string save_folder,
-        const double t_max = 1.0,
+        const double t_max = 0.0004, //1.0,
         const double timeout = 60.0
     );
     ~ParameterStudy();
