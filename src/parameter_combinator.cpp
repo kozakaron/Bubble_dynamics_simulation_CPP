@@ -841,10 +841,10 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         .excitation_params = excitation_values,
         .excitation_cycles = get_value(this->excitation_cycles),
         .ramp_up_cycles = get_value(this->ramp_up_cycles),
-		.R_and_R_dot_from_file = get_value(this->R_and_R_dot_from_file),
-		.rows = get_value(this->rows),
-		.cols = get_value(this->cols),
-		.file_name = this->file_name
+		.R_and_R_dot_from_file = static_cast<size_t>(get_value(this->R_and_R_dot_from_file)),
+		.rows = static_cast<size_t>(get_value(this->rows)),
+		.cols = static_cast<size_t>(get_value(this->cols)),
+		.file_name = this->file_name[0]
 	}};
 		
     is_success success = combination_ID < this->total_combination_count;
