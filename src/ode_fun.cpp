@@ -1098,29 +1098,38 @@ is_success OdeFun::operator()(
     double* x_dimensional_dot = x_dimless_dot;
 
 // Common variables
-    BubbleState s = interpolate_state(cpar.R_and_R_dot_from_file,cpar.importdata,cpar.rows,cpar.cols,t);
+    BubbleState s;
+
+    if (cpar.R_and_R_dot_from_file > 0)
+    {
+        s = interpolate_state(cpar.R_and_R_dot_from_file,
+                          cpar.importdata,
+                          cpar.rows,
+                          cpar.cols,
+                          t);
+    }
 
     const double R = 
-	(cpar.R_and_R_dot_from_file) < 1
-	? x_dimensional[0]
-	: s.R;                                                 // bubble radius [m]
+    (cpar.R_and_R_dot_from_file) < 1
+    ? x_dimensional[0]
+    : s.R;                                                 // bubble radius [m]
     const double R_dot = 
-	(cpar.R_and_R_dot_from_file) < 1
-	? x_dimensional[1]
-	: s.R_dot;                                               // bubble radius derivative [m/s]
-	const double V = (4.0 / 3.0 * std::numbers::pi) * R * R * R;
-	
+    (cpar.R_and_R_dot_from_file) < 1
+    ? x_dimensional[1]
+    : s.R_dot;                                               // bubble radius derivative [m/s]
+    const double V = (4.0 / 3.0 * std::numbers::pi) * R * R * R;
+
     const double T = x_dimensional[2];                     // temperature [K]
-	const double* n_dimensional = x_dimensional + 3;
-		
-	double conc_dimensional[par->num_species];// molar concentrations [mol/m^3]
-	const double re_V = 1.0 / V;
-	for (index_t k = 0; k < par->num_species; ++k) 
-	{
-		conc_dimensional[k] = n_dimensional[k] * re_V;
-	}	
-	
-    double conc_dot [par->num_species];              	   // molar concentrations derivative [mol/m^3/s]
+    const double* n_dimensional = x_dimensional + 3;
+
+    double conc_dimensional[par->num_species];// molar concentrations [mol/m^3]
+    const double re_V = 1.0 / V;
+    for (index_t k = 0; k < par->num_species; ++k) 
+    {
+        conc_dimensional[k] = n_dimensional[k] * re_V;
+    }
+    
+    double conc_dot [par->num_species];                    // molar concentrations derivative [mol/m^3/s]
     double M = 0.0;                                        // sum of molar concentrations [mol/m^3]
     double C_p_avg = 0.0;                                  // average molar heat capacity at constant pressure [J/mol/K]
     double lambda_avg = 0.0;                               // average thermal conductivity [W/m/K]
