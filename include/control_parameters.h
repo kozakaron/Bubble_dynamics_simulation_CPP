@@ -15,7 +15,7 @@ class ControlParameters {
 public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
-    static constexpr size_t max_species = 10;
+    static constexpr size_t max_species = 40;
     static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,enable_van_der_waals,enable_rate_thresholding,target_specie,excitation_type,excitation_params,excitation_cycles,ramp_up_cycles";
 // Members
     size_t ID;                          // ID of control parameter
