@@ -9,6 +9,7 @@
 #include "ode_fun.h"
 
 
+// Computes saturated vapour pressure of water at temperature T [K] using the Arden-Buck equation.
 double vapour_pressure(const double T)
 {
     double T_C = T - 273.15; // [°C]
@@ -16,6 +17,8 @@ double vapour_pressure(const double T)
 }
 
 
+
+// Computes dynamic viscosity of water [Pa*s] at temperature T [K] using 4 parameter exponential formula.
 double viscosity(const double T)
 {
     return 1.856e-14 * std::exp(4209.0/T + 0.04527*T - 3.376e-5*T*T); // [Pa*s]
@@ -585,6 +588,7 @@ std::tuple<double, double, double, double> OdeFun::liquid_properties(const doubl
         const double h_L     = Gamma_L / (Gamma_L - 1.0) * (p_L   + B_L) / rho_L   - Gamma_L / (Gamma_L - 1.0) * b_L * (p_L   + B_L) + b_L * p_L;
         const double h_inf   = Gamma_L / (Gamma_L - 1.0) * (P_inf + B_L) / rho_inf - Gamma_L / (Gamma_L - 1.0) * b_L * (P_inf + B_L) + b_L * P_inf;
         const double H       = h_L - h_inf;
+        //const double T_L   = cpar.T_inf * std::pow((p_L + B_L) / (cpar.P_amb + B_L), (Gamma_L - 1.0) / Gamma_L);
 
         return {c_L, rho_L, rho_inf, H};
     } else {

@@ -72,8 +72,11 @@ function text = print_data(data, print_it)
     text = text + sprintf("  p_internal_max = %.6g [Pa]\n", getfield_or_default(postproc, 'p_internal_max', NaN));
     text = text + sprintf("  p_internal_min = %.6g [Pa]\n", getfield_or_default(postproc, 'p_internal_min', NaN));
     text = text + sprintf("  Ma_max = %.6g [-]\n", getfield_or_default(postproc, 'Ma_max', NaN));
-    text = text + sprintf("  c_L_max = %.6g [m/s]\n", getfield_or_default(postproc, 'c_L_max', NaN));
-    text = text + sprintf("  rho_L_max = %.6g [kg/m^3]\n", getfield_or_default(postproc, 'rho_L_max', NaN));
+    if getfield_or_default(cpar, 'enable_gilmore', false)
+        text = text + sprintf("  T_L_max = %.6g [K]\n", getfield_or_default(postproc, 'T_L_max', NaN));
+        text = text + sprintf("  c_L_max = %.6g [m/s]\n", getfield_or_default(postproc, 'c_L_max', NaN));
+        text = text + sprintf("  rho_L_max = %.6g [kg/m^3]\n", getfield_or_default(postproc, 'rho_L_max', NaN));
+    end
 
     % Results
     text = text + sprintf("\nResults:\n");

@@ -420,8 +420,10 @@ def _print_data(data, print_it=True):
     text += f"  p_internal_max = {postproc.get('p_internal_max', nan):.6g} [Pa]\n"
     text += f"  p_internal_min = {postproc.get('p_internal_min', nan):.6g} [Pa]\n"
     text += f"  Ma_max = {postproc.get('Ma_max', nan):.6g} [-]\n"
-    text += f"  c_L_max = {postproc.get('c_L_max', nan):.6g} [m/s]\n"
-    text += f"  rho_L_max = {postproc.get('rho_L_max', nan):.6g} [kg/m^3]\n"
+    if cpar.get('enable_gilmore', False):
+        text += f"  T_L_max = {postproc.get('T_L_max', nan):.6g} [K]\n"
+        text += f"  c_L_max = {postproc.get('c_L_max', nan):.6g} [m/s]\n"
+        text += f"  rho_L_max = {postproc.get('rho_L_max', nan):.6g} [kg/m^3]\n"
 
     # Results
     text += "\nResults:\n"
