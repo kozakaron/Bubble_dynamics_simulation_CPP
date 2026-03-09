@@ -63,6 +63,7 @@ public:
         static constexpr double b_L       = 6.72e-4;    // co-volume (volume of molecules) [m^3/kg]
         static constexpr double p_L_ref   = 1.0e5;      // reference pressure [Pa]
         static constexpr double rho_L_ref = 997.0;      // reference density [kg/m^3]
+        static constexpr double C_vL      = 3610.0;     // specific isochoric heat capacity of liquid water [J/(kg*K)]
     };
 // Water Tait parameters (for Gilmore + Tait EoS)
     struct tait {

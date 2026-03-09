@@ -222,7 +222,7 @@ std::ostream &operator<<(std::ostream &os, const OdeSolution &ode)
 }
 
 
-const std::string SimulationData::csv_header = std::string("dissipated_energy,expansion_work,n_target_specie,energy_demand,R_max,T_max,t_peak,R_min,T_min,v_max,p_internal_max,p_internal_min,Ma_max,c_L_max,rho_L_max,")
+const std::string SimulationData::csv_header = std::string("dissipated_energy,expansion_work,n_target_specie,energy_demand,R_max,T_max,t_peak,R_min,T_min,v_max,p_internal_max,p_internal_min,Ma_max,T_L_max,c_L_max,rho_L_max,")
                                              + std::string(ControlParameters::csv_header) + std::string(",")
                                              + std::string(OdeSolution::csv_header) + std::string(",") + std::string(Error::csv_header);
 
@@ -240,6 +240,7 @@ SimulationData::SimulationData(const ControlParameters &cpar):
     p_internal_max(0.0),
     p_internal_min(cpar.P_amb),
     Ma_max(0.0),
+    T_L_max(cpar.T_inf),
     c_L_max(cpar.c_L),
     rho_L_max(cpar.rho_L),
     dissipated_energy(0.0),
@@ -275,6 +276,9 @@ void SimulationData::midprocess(const double t_dimless, const double* x_dimless,
     const double p_L = p_int - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
     auto [c_L, rho_L, rho_inf, H_unused] = ode_ptr->liquid_properties(p_L, P_inf);
     const double Ma = std::abs(R_dot) / c_L;
+    constexpr double Gamma_L = Parameters::nasg::Gamma_L;
+    constexpr double B_L = Parameters::nasg::B_L;
+    const double T_L = cpar.T_inf * std::pow((p_L + B_L) / (cpar.P_amb + B_L), (Gamma_L - 1.0) / Gamma_L); // Only for NASG
     (void)P_inf_dot;
     (void)rho_inf; (void)H_unused;
 
@@ -293,6 +297,7 @@ void SimulationData::midprocess(const double t_dimless, const double* x_dimless,
     if (c_L   > c_L_max)   c_L_max   = c_L;
     if (rho_L > rho_L_max) rho_L_max = rho_L;
     if (Ma > Ma_max) Ma_max = Ma;
+    if (T_L > T_L_max) T_L_max = T_L;
 }
 
 
@@ -402,6 +407,7 @@ std::string SimulationData::to_csv() const
     ss << format_double << this->p_internal_max << ",";
     ss << format_double << this->p_internal_min << ",";
     ss << format_double << this->Ma_max << ",";
+    ss << format_double << this->T_L_max << ",";
     ss << format_double << this->c_L_max << ",";
     ss << format_double << this->rho_L_max << ",";
     ss << this->cpar.to_csv() << ",";
@@ -444,6 +450,7 @@ std::string SimulationData::to_string() const
     ss << std::setw(strw) << "    .p_internal_max"     << " = " << format_double << this->p_internal_max       << ",    // [Pa]\n";
     ss << std::setw(strw) << "    .p_internal_min"     << " = " << format_double << this->p_internal_min       << ",    // [Pa]\n";
     ss << std::setw(strw) << "    .Ma_max"             << " = " << format_double << this->Ma_max               << ",    // [-]\n";
+    ss << std::setw(strw) << "    .T_L_max"            << " = " << format_double << this->T_L_max              << ",    // [K]\n";
     ss << std::setw(strw) << "    .c_L_max"            << " = " << format_double << this->c_L_max              << ",    // [m/s]\n";
     ss << std::setw(strw) << "    .rho_L_max"          << " = " << format_double << this->rho_L_max            << ",    // [kg/m^3]\n";
     ss << "    .cpar = ControlParameters{";
@@ -555,6 +562,7 @@ nlohmann::ordered_json SimulationData::to_json() const
     postproc["p_internal_max"] = this->p_internal_max;
     postproc["p_internal_min"] = this->p_internal_min;
     postproc["Ma_max"] = this->Ma_max;
+    postproc["T_L_max"] = this->T_L_max;
     postproc["c_L_max"] = this->c_L_max;
     postproc["rho_L_max"] = this->rho_L_max;
     j["postproc"] = postproc;

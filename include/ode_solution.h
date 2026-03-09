@@ -66,6 +66,7 @@ public:
     double p_internal_max;     // [Pa]
     double p_internal_min;     // [Pa]
     double Ma_max;             // [-]
+    double T_L_max;            // [K]  (only relevant for Gilmore)
     double c_L_max;            // [m/s] (only relevant for Gilmore)
     double rho_L_max;          // [kg/m^3] (only relevant for Gilmore)
 // Post-processing results

@@ -215,10 +215,11 @@ Content of return value of `run_simulation()` (`data`):
 | | `t_peak` | $t_{peak}$ | Time of collapse (maximal temperature) | $s$ |
 | | `v_max` | $v_{max}$ | Maximum bubble wall velocity | $m/s$ |
 | | `Ma_max` | $Ma_{max}$ | Maximum Mach number of the bubble wall (using local $c_L$) | $1$ |
+| | `T_L_max` | $T_{L,max}$ | Maximum liquid temperature at the bubble wall (only relevant for Gilmore) | $K$ |
 | | `p_internal_max` | $p_{int,max}$ | Maximum internal pressure | $Pa$ |
 | | `p_internal_min` | $p_{int,min}$ | Minimum internal pressure | $Pa$ |
-| | `c_L_max` | $c_{L,max}$ | Maximum liquid sound speed | $m/s$ |
-| | `rho_L_max` | $\rho_{L,max}$ | Maximum liquid density | $kg/m^3$ |
+| | `c_L_max` | $c_{L,max}$ | Maximum liquid sound speed (only relevant for Gilmore) | $m/s$ |
+| | `rho_L_max` | $\rho_{L,max}$ | Maximum liquid density (only relevant for Gilmore) | $kg/m^3$ |
 | | `n_target_specie` | $n_{target}$ | Final molar amount of `target_species` | $mol$ |
 | | `energy_demand` | | Energy demand for `target_species` production. Not SI! | $MJ/kg$ |
 | | `dissipated_energy` | $E_{diss}$ | Total dissipated energy (acoustic, thermal, viscous) | $J$ |
@@ -507,7 +508,7 @@ When parsed, these structs are turned into const static members of the `Paramete
 Available mechanisms:
 | Name                         | Reagent atoms | Non-reagent molecules | Number of species [-] | Number of reactions [-] |
 |------------------------------|----------------|------------------------|------------------------|--------------------------|
-| chemkin_noreaction_air       | -              | N2, O2, H2O, Ar        | 4                      | 0                        |
+| noreaction_air               | -              | N2, O2, H2O, Ar        | 4                      | 0                        |
 | uson2022_hydrogen            | H, O           | -                      | 10                     | 34                       |
 | elte2016_hydrogen            | H, O           | He, N2, Ar             | 12                     | 30                       |
 | elte2016_syngas              | H, C, O        | He, N2, Ar             | 15                     | 44                       |
