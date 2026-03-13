@@ -488,7 +488,7 @@ is_success OdeFun::initial_conditions(
 }
 
 
-double OdeFun::internal_pressure(
+double OdeFun::internal_pressure(const double t,
     const double T,
     const double M,
     const double* conc
@@ -506,6 +506,12 @@ double OdeFun::internal_pressure(
         A_tot = A_tot * A_tot; 
 		
 		// A_tot = 0 ; 
+
+		double t1=0.0; double t2 = 14.99e-6; double t3 = 15e-6; double t4=19.2689999e-6; double t5=19.269e-6; double t6 = 399e-6;
+		if (t == t1 || (t > t2 && t < t3) || (t > t4 && t < t5) || t > t6) 
+		{
+			std::cout << "t = " << t << ", a_tot = " << A_tot << ", b_tot = " << B_tot << "\n";
+		}
 
         return (M * par->R_g * T) / (1.0 - B_tot) - A_tot;
     }
@@ -731,6 +737,12 @@ std::tuple<double, double, double> OdeFun::pressures_excitation(
     const double c_L=std::sqrt( (par->Gamma_L*(p_L+par->B_L)/(rho_L-par->b_L*rho_L*rho_L)) );
     const double nom=((1.0+R_dot/c_L)*H-3.0/2.0*(1.0-R_dot/(3.0*c_L))*R_dot*R_dot)/((1.0-R_dot/c_L)*R)+H_dot_e/c_L;
     const double den=1.0+4.0*par->mu_L/(rho_L*R*c_L);
+	
+	double t1=0.0; double t2 = 14.99e-6; double t3 = 15e-6; double t4=19.2689999e-6; double t5=19.269e-6; double t6 = 399e-6;
+	if (t == t1 || (t > t2 && t < t3) || (t > t4 && t < t5) || t > t6)  
+	{
+		std::cout << "t = " << t << ", rho_L = " << rho_L << ", c_L = " << c_L << "\n";
+	}
 	
 	return std::tuple(nom, den, c_L);
 }
@@ -1091,7 +1103,7 @@ is_success OdeFun::operator()(
         double* x_dimless_dot
     )
 {
-	std::cout << std::scientific << std::setprecision(8); // 8 tizedesjegy
+	std::cout << std::scientific << std::setprecision(10); // 8 tizedesjegy
     if (!this->check_before_call(x_dimless))
         return false;
 
@@ -1156,8 +1168,17 @@ is_success OdeFun::operator()(
         C_p_avg += C_p[k] * X_k;
         lambda_avg += par->thermal_conductivities[k] * X_k;
     }
-    const double p = this->internal_pressure(T, M, conc_dimensional);
+
+    const double p = this->internal_pressure(t, T, M, conc_dimensional);
     const double C_v_avg = C_p_avg - par->R_g;     // average molar heat capacity at constant volume [J/mol/K]
+	
+	
+	double t1=0.0; double t2 = 14.99e-6; double t3 = 15e-6; double t4=19.2689999e-6; double t5=19.269e-6; double t6 = 399e-6;
+		if (t == t1 || (t > t2 && t < t3) || (t > t4 && t < t5) || t > t6) 
+	{
+		std::cout << "t = " << t << ", lambda_avg = " << lambda_avg << ", C_v_avg = " << C_v_avg << "\n";
+	}
+	
 
 // Heat transfer
     double Q_th_dot = 0.0;

@@ -39,7 +39,7 @@ private:
     double* omega_dot;                  // production rates (length: Parameters::num_species)
 
 // Methods
-    double internal_pressure(
+    double internal_pressure(const double t,
         const double T,
         const double M,
         const double* conc
