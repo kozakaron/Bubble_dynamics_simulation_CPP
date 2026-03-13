@@ -391,7 +391,7 @@ is_success OdeFun::initial_conditions(
         a_tot = a_tot * a_tot;
 		
 		//a_tot = 0;
-		std::cout << "a_tot is temporarily set to zero. Check also line ~508 and ~544.\n";
+		//std::cout << "a_tot is temporarily set to zero. Check also line ~508 and ~544.\n";
     }   
 
 // Equilibrium state pressure
