@@ -389,6 +389,9 @@ is_success OdeFun::initial_conditions(
             // fraction of water is ignored
         }
         a_tot = a_tot * a_tot;
+		
+		//a_tot = 0;
+		std::cout << "a_tot is temporarily set to zero. Check also line ~508 and ~544.\n";
     }   
 
 // Equilibrium state pressure
@@ -500,7 +503,9 @@ double OdeFun::internal_pressure(
             A_tot += conc[k] * par->sqrt_van_der_waals_a[k];
             B_tot += conc[k] * par->van_der_waals_b[k];
         }
-        A_tot = A_tot * A_tot;
+        A_tot = A_tot * A_tot; 
+		
+		// A_tot = 0 ; 
 
         return (M * par->R_g * T) / (1.0 - B_tot) - A_tot;
     }
@@ -534,7 +539,9 @@ double OdeFun::internal_pressure_derivative(
             B_tot_dot += conc_dot[k] * par->van_der_waals_b[k];
         }
         A_tot_dot = 2.0 * A_tot * A_tot_dot;
-        A_tot = A_tot * A_tot;
+        A_tot = A_tot * A_tot; 
+		
+		//A_tot = 0; 
 
         const double nom     = par->R_g * T * M;
         const double nom_dot = par->R_g * (T_dot * M + T * M_dot);
