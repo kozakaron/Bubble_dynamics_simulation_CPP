@@ -86,6 +86,7 @@ public:
 	static constexpr double cV_L		  = 3657.19;
 	static constexpr double rho_L_ref	  = 998.2;
 	static constexpr double p_L_ref		  = 1.0e5;
+	static constexpr double L_25_degC	  = 2441.742; 			// enthalpy of vaporization of water at 298.15 K [J/kg] http://kkft.bme.hu/attachments/article/88/Vizgoz.tablazat.pdf
 
 // MECHANISM DEPENDENT PARAMETERS
 

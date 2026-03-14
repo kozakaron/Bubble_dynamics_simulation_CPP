@@ -292,8 +292,11 @@ is_success OdeFun::init(const ControlParameters& cpar)
         const double T2 = T1 * T1;
         const double T3 = T2 * T1;
         const double T4 = T2 * T2;
+		const double T5 = T3 * T2;
 
-        this->C_v_inf = par->R_g * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4 - 1.0);
+        //this->C_v_inf = par->R_g * (a[0] + a[1]*T1 + a[2]*T2 + a[3]*T3 + a[4]*T4 - 1.0);
+		this->h_steam_T_0 = par->R_g * (a[0]*T1 + a[1]*T2/2.0 + a[2]*T3/3.0 + a[3]*T4/4.0 + a[4]*T5/5.0 + a[5]);
+		std::cout<<"h_steam_T_0: "<< h_steam_T_0 << "\n";
     }
     else
     {
@@ -811,11 +814,13 @@ std::pair<double, double> OdeFun::evaporation(
     const double n_con_dot = cpar.alpha_M * p_H2O    / (par->W[par->index_of_water] * std::sqrt(2.0 * std::numbers::pi * par->R_v * T));
     const double n_net_dot = n_eva_dot - n_con_dot;
 // Evaporation energy [J/mol]
-    const double& C_v = this->C_p[par->index_of_water] - par->R_g; // Molar heat capacity of water at constant volume (isochoric) [J/mol/K]
-    double e_eva = this->C_v_inf * cpar.T_inf;
-    double e_con = C_v * T;
+    //const double& C_v = this->C_p[par->index_of_water] - par->R_g; // Molar heat capacity of water at constant volume (isochoric) [J/mol/K]
+    
+	
+	double e_eva = par->L_25_degC;//this->C_v_inf * cpar.T_inf;
+    double e_con = par->L_25_degC + this->H[par->index_of_water] - this->h_steam_T_0;//C_v * T;
     double evap_energy = n_eva_dot * e_eva - n_con_dot * e_con;    // [W/m^2]
-
+	evap_energy=0.0;
     return std::make_pair(n_net_dot, evap_energy);
 }
 

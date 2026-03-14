@@ -27,6 +27,7 @@ private:
     double* x_dimensional;              // state vector (x) in SI units (length: Parameters::num_species+4) [mol/m^3]
     // evaporation
     double C_v_inf;                     // molar heat capacity of water at constant volume of ambient temperature [J/mol/K]
+	double h_steam_T_0;					// enthalpy of water steam at T_0 [J/kg]
     // thermodynamic
     double* C_p;                        // molar heat capacities at constant pressure (length: Parameters::num_species) [J/mol/K]
     double* H;                          // enthalpies (length: Parameters::num_species) [J/mol]
