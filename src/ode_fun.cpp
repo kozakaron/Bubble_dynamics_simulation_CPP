@@ -510,7 +510,7 @@ double OdeFun::internal_pressure(const double t,
 		double t1=0.0; double t2 = 13.542e-6; double t3 = 13.543e-6; double t4=19.269e-6; double t5=19.269009020607022e-6; double t6 = 399e-6;
 		if (t == t1 || (t > t2 && t < t3) || (t > t4 && t < t5) || t > t6) 
 		{
-			std::cout << "t = " << t << ", a_tot = " << A_tot << ", b_tot = " << B_tot << "\n";
+			std::cout << "t = " << t << ", a_tot = " << A_tot/(M*M) << ", b_tot = " << B_tot/M << "\n";
 		}
 
         return (M * par->R_g * T) / (1.0 - B_tot) - A_tot;
