@@ -32,6 +32,13 @@ enable_reaction_rate_threshold = True
 enable_time_evaluation_limit = False
 target_specie = 'NH3' # Specie to calculate energy demand for
 excitation_type = 'no_excitation' # function to calculate pressure excitation (see excitation.py for options)
+excitation_cycles = 1.0,
+ramp_up_cycles = 0.0,
+R_and_R_dot_from_file = 0, #0: nothing to read in, chemistry is coupled to bubble dynamics; 1: R_dot is calculated here, 2: it is read from *.csv
+# 'rows': 1,
+# 'cols': 1,
+file_name = 'test.csv', #'output_01.csv',#'output_50.csv'
+const_V = 0      # 0: V is not constant, 1: V is constant";
 
 """________________________________Libraries________________________________"""
 
@@ -933,6 +940,11 @@ def get_data(cpar, num_sol, error_code, elapsed_time):
     data.enable_time_evaluation_limit = enable_time_evaluation_limit
     data.excitation_type = excitation_type
     data.target_specie = target_specie
+    data.excitation_cycles = excitation_cycles
+    data.ramp_up_cycles = ramp_up_cycles
+    data.R_and_R_dot_from_file = R_and_R_dot_from_file
+    data.file_name = file_name
+    data.const_V = const_V
     errors, success = get_errors(error_code)
     data.success = num_sol.success
     if num_sol is None:
