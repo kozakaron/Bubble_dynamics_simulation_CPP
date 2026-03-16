@@ -1253,7 +1253,7 @@ is_success OdeFun::operator()(
     const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);*/
 
 	const double R_dot_dot =
-	(cpar.enable_dissipated_energy)
+	(cpar.const_V)
 	? nom /denom
 	: 0.0; //0, if dissipated energy is not needed
 

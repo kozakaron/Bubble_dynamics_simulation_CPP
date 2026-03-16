@@ -294,6 +294,7 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
 	this->rows =						get_unique_ptr(builder.rows);
 	this->cols =						get_unique_ptr(builder.cols);
 	this->file_name =					std::vector<std::string>{builder.file_name};
+	this->const_V =						get_unique_ptr(builder.const_V);
 	
 
     this->excitation_params.reserve(builder.excitation_params.size());
@@ -564,6 +565,7 @@ void ParameterCombinator::init(const ordered_json& j)
 		builder.rows =						get_range							(j, "rows", 					builder.rows);
 		builder.cols =						get_range							(j, "cols", 					builder.cols);
 		builder.file_name =					get_value<std::string>				(j, "file_name", 				builder.file_name);
+		builder.const_V =					get_range							(j, "const_V", 					builder.const_V);
 
         if (j.contains("excitation_params"))
         {
@@ -731,6 +733,7 @@ std::string ParameterCombinator::to_string(const bool with_code) const
 	ss << format_field_name << ".rows" << " = " << format_range(this->rows.get(), true) << "\n";
 	ss << format_field_name << ".cols" << " = " << format_range(this->cols.get(), true) << "\n";
 	ss << format_field_name << ".file_name" << " = " << ::to_string((std::string*)this->file_name.data(), this->file_name.size()) << "\n";
+	ss << format_field_name << ".const_V" << " = " << format_range(this->const_V.get(), true) << "\n";
 	
     if (with_code) ss << "}";
     ss << std::right;
@@ -774,6 +777,7 @@ ordered_json ParameterCombinator::to_json() const
 	j["rows"] = this->rows->to_json();
 	j["cols"] = this->cols->to_json();
 	j["file_name"] = this->file_name;
+	j["const_V"] = this->const_V->to_json();
 	
     return {{"parameter_study", j}};
 }
@@ -844,7 +848,8 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
 		.R_and_R_dot_from_file = static_cast<size_t>(get_value(this->R_and_R_dot_from_file)),
 		.rows = static_cast<size_t>(get_value(this->rows)),
 		.cols = static_cast<size_t>(get_value(this->cols)),
-		.file_name = this->file_name[0]
+		.file_name = this->file_name[0],
+		.const_V = static_cast<size_t>(get_value(this->const_V))
 	}};
 		
     is_success success = combination_ID < this->total_combination_count;

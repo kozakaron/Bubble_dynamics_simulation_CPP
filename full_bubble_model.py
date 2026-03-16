@@ -986,7 +986,7 @@ def get_data(cpar, num_sol, error_code, elapsed_time):
 keys = ['ID', 'R_E', 'ratio', 'P_amb', 'alfa_M', 'Gamma', 'sigma_evap', 'T_inf', 'P_v', 'mu_L', 'rho_L_ref', 'gases', 'fractions', 'surfactant', 'c_L_ref', 'kappa', 'r_hc', 'Gamma_L', 'B_L', 'b_L', 'cV_L', 'p_L_ref',
         'error_code', 'success', 'elapsed_time', 'steps', #'collapse_time', 'T_max', 
         f'n_{target_specie}', 'expansion_work', 'dissipated_acoustic_energy', 'energy_demand',
-        'enable_heat_transfer', 'enable_evaporation', 'enable_reactions', 'enable_dissipated_energy', 'excitation_type', 'target_specie'] + excitation_args
+        'enable_heat_transfer', 'enable_evaporation', 'enable_reactions', 'enable_dissipated_energy', 'excitation_type', 'target_specie','excitation_cycles','ramp_up_cycles','R_and_R_dot_from_file','file_name','const_V'] + excitation_args
 
 def _print_line(name, value, comment, print_it=False):
     """Prints a name=value pair in an organised way, with nicely formatted floats. Arguments:

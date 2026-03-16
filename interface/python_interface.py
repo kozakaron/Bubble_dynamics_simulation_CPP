@@ -695,6 +695,7 @@ def line_to_dict(line):
         rows = int(line['rows']),
         cols = int(line['cols']),
         file_name = int(line['file_name']),
+        const_V = int(line['const_V'])
     )
 
 

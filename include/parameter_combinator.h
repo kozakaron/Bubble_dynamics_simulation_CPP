@@ -123,6 +123,7 @@ private:
 	std::unique_ptr<Range> rows;
 	std::unique_ptr<Range> cols;
 	std::vector<std::string> file_name;
+	std::unique_ptr<Range> const_V;
 	
 public:
     typedef std::variant<Const, LinearRange, LogRange, GeomRange> AnyRange;
@@ -155,6 +156,7 @@ public:
 		AnyRange rows 							= Const(1);
 		AnyRange cols 							= Const(1);
 		std::string file_name 					= "temp.csv";
+		AnyRange const_V						= Const(0);
     };
 
     ParameterCombinator(const Builder &builder);
