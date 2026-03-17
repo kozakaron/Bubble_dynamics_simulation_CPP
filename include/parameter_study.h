@@ -32,8 +32,8 @@ public:
     ParameterStudy(
         ParameterCombinator &parameter_combinator,
         std::string save_folder,
-        const double t_max = 0.0004, //1.0,
-        const double timeout = 300.0
+        const double t_max = 1.0e10,//0.0004, //1.0,
+        const double timeout = 1000.0//300.0
     );
     ~ParameterStudy();
     void run(const size_t num_threads, const bool print_output=true);

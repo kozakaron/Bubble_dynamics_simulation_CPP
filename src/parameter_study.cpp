@@ -66,7 +66,8 @@ ParameterStudy::ParameterStudy(
     successful_simulations(0),
     total_simulations(0)
 {
-    // save general information
+    std::cout << "t_max: " << this->t_max<<"\n";
+	// save general information
     if (this->save_folder.empty()) return;
     std::filesystem::path save_folder_path(this->save_folder);
     std::filesystem::path general_info_file_path = save_folder_path / "bruteforce_parameter_study_settings.txt";

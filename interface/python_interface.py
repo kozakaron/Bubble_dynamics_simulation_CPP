@@ -550,9 +550,9 @@ def plot(data, n=5.0, base_name='', format='png',
     ax2 = ax1.twinx()
     #excitation_args = ['p_A', 'freq', 'n']
     #ex_args = np.array([cpar[name] for name in excitation_args], dtype=np.float64)
-    [cpar['p_A'],cpar['freq']]=[cpar['excitation_params'][0],cpar['excitation_params'][1]]
-    external_pressure = [1e-3*Excitation(time/1e6, cpar['P_amb'], [cpar['p_A'],cpar['freq'],cpar['excitation_cycles']])[0] for time in t]#[:end_index]] # [MPa]
-    ax1.plot(t, external_pressure, color='darkorange', label='external pressure', linewidth=linewidth)
+    #[cpar['p_A'],cpar['freq']]=[cpar['excitation_params'][0],cpar['excitation_params'][1]]
+    #external_pressure = [1e-3*Excitation(time/1e6, cpar['P_amb'], [cpar['p_A'],cpar['freq'],cpar['excitation_cycles']])[0] for time in t]#[:end_index]] # [MPa]
+    #ax1.plot(t, external_pressure, color='darkorange', label='external pressure', linewidth=linewidth)
     ax2.plot(t, internal_pressure/1e6, color='g', label='internal pressure', linewidth=linewidth)
     
     if t[-1] < 1e-3:
