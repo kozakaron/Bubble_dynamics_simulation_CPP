@@ -1179,8 +1179,15 @@ is_success OdeFun::operator()(
 	
 	/*double t1=0.0; double t2 = 13.542e-6; double t3 = 13.543e-6; double t4=19.269e-6; double t5=19.269009020607022e-6; double t6 = 399e-6;
 		if (t == t1 || (t > t2 && t < t3) || (t > t4 && t < t5) || t > t6) 
-	{
-		std::cout << "t = " << t << ", lambda_avg = " << lambda_avg << ", C_v_avg = " << C_v_avg << "\n";
+	{	
+		double W_avg = 0.0;
+		for (index_t k = 0; k < par->num_species; ++k)
+		{
+			const double X_k = conc_dimensional[k] / M;
+			W_avg += par->W[k] * X_k;
+		}
+		
+		std::cout << "t = " << t << ", lambda_avg = " << lambda_avg << ", C_v_avg (J/mol/K)= " << C_v_avg << ", C_v_avg (J/kg/K)= " << C_v_avg*W_avg << ", W_avg = " << W_avg <<"\n";
 	}*/
 	
 
