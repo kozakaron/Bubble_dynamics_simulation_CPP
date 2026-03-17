@@ -510,11 +510,11 @@ double OdeFun::internal_pressure(const double t,
 		
 		// A_tot = 0 ; 
 
-		/*double t1=0.0; double t2 = 13.542e-6; double t3 = 13.543e-6; double t4=19.269e-6; double t5=19.269009020607022e-6; double t6 = 399e-6;
+		double t1=0.0; double t2 = 25e-6; double t3 = 25.721e-6; double t4=31.9753e-6; double t5=31.975335053800173e-6; double t6 = 399e-6;
 		if (t == t1 || (t > t2 && t < t3) || (t > t4 && t < t5) || t > t6) 
 		{
 			std::cout << "t = " << t << ", a_tot = " << A_tot/(M*M) << ", b_tot = " << B_tot/M << "\n";
-		}*/
+		}
 
         return (M * par->R_g * T) / (1.0 - B_tot) - A_tot;
     }
@@ -741,11 +741,11 @@ std::tuple<double, double, double> OdeFun::pressures_excitation(
     const double nom=((1.0+R_dot/c_L)*H-3.0/2.0*(1.0-R_dot/(3.0*c_L))*R_dot*R_dot)/((1.0-R_dot/c_L)*R)+H_dot_e/c_L;
     const double den=1.0+4.0*par->mu_L/(rho_L*R*c_L);
 	
-	/*double t1=0.0; double t2 = 13.542e-6; double t3 = 13.543e-6; double t4=19.269e-6; double t5=19.269009020607022e-6; double t6 = 399e-6;
+	double t1=0.0; double t2 = 25e-6; double t3 = 25.721e-6; double t4=31.9753e-6; double t5=31.975335053800173e-6; double t6 = 399e-6;
 	if (t == t1 || (t > t2 && t < t3) || (t > t4 && t < t5) || t > t6)  
 	{
 		std::cout << "t = " << t << ", rho_L = " << rho_L << ", c_L = " << c_L << "\n";
-	}*/
+	}
 	
 	return std::tuple(nom, den, c_L);
 }
@@ -1177,7 +1177,7 @@ is_success OdeFun::operator()(
     const double p = this->internal_pressure(t, T, M, conc_dimensional);
     const double C_v_avg = C_p_avg - par->R_g;     // average molar heat capacity at constant volume [J/mol/K]
 	
-	/*double t1=0.0; double t2 = 13.542e-6; double t3 = 13.543e-6; double t4=19.269e-6; double t5=19.269009020607022e-6; double t6 = 399e-6;
+	double t1=0.0; double t2 = 25e-6; double t3 = 25.721e-6; double t4=31.9753e-6; double t5=31.975335053800173e-6; double t6 = 399e-6;
 		if (t == t1 || (t > t2 && t < t3) || (t > t4 && t < t5) || t > t6) 
 	{	
 		double W_avg = 0.0;
@@ -1187,8 +1187,8 @@ is_success OdeFun::operator()(
 			W_avg += par->W[k] * X_k;
 		}
 		
-		std::cout << "t = " << t << ", lambda_avg = " << lambda_avg << ", C_v_avg (J/mol/K)= " << C_v_avg << ", C_v_avg (J/kg/K)= " << C_v_avg*W_avg << ", W_avg = " << W_avg <<"\n";
-	}*/
+		std::cout << "t = " << t << ", lambda_avg = " << lambda_avg << ", C_v_avg (J/mol/K)= " << C_v_avg << ", C_v_avg (J/kg/K)= " << C_v_avg/W_avg << ", W_avg = " << W_avg <<"\n";
+	}
 	
 
 // Heat transfer
@@ -1260,8 +1260,8 @@ is_success OdeFun::operator()(
 
 	const double R_dot_dot =
 	(cpar.const_V)
-	? nom /denom
-	: 0.0; //0, if dissipated energy is not needed
+	? 0.0
+	: nom /denom;
 
 	x_dimensional_dot[1] = R_dot_dot;
 
