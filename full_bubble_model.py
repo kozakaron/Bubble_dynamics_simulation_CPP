@@ -969,8 +969,9 @@ def get_data(cpar, num_sol, error_code, elapsed_time):
 
     #mask = new_R > 1e-15
     #new_R_dot[mask] = V_dot_interp[mask] / (4.0 * np.pi * np.power(new_R[mask], 2))
-
-    num_sol.y[0, :] = new_R(num_sol.t)
+    
+    if(cpar.R_and_R_dot_from_file>0):
+        num_sol.y[0, :] = new_R(num_sol.t)
     #num_sol.y[1, :] = new_R_dot(num_sol.t)
     
     data.x_initial = num_sol.y[:, 0] # initial values of [R, R_dot, T, c_1, ... c_K]
