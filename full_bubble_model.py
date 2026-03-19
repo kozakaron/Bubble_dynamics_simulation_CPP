@@ -974,7 +974,7 @@ def get_data(cpar, num_sol, error_code, elapsed_time):
         num_sol.y[0, :] = new_R(num_sol.t)
     #num_sol.y[1, :] = new_R_dot(num_sol.t)
     
-    data.x_initial = num_sol.y[:, 0] # initial values of [R, R_dot, T, c_1, ... c_K]
+    data.x_initial = num_sol.y[:, 0] # initial values of [R, R_dot, T, n_1, ... n_K]
     # collapse time (first loc min of R)    TODO fix
     #loc_min = argrelmin(num_sol.y[:][0])
     #data.collapse_time = 0.0
@@ -983,7 +983,7 @@ def get_data(cpar, num_sol, error_code, elapsed_time):
         
     # Energy calculations
     #data.T_max = np.max(num_sol.y[2,:]) # maximum of temperature peaks [K]
-    data.x_final = num_sol.y[:,-1] # final values of [R, R_dot, T, c_1, ... c_K]
+    data.x_final = num_sol.y[:,-1] # final values of [R, R_dot, T, n_1, ... n_K]
     last_V = 4.0 / 3.0 * (100.0 * data.x_final[0]) ** 3#((100.0 * data.x_final[0]) ** 3 - (100.0 * cpar.r_hc) ** 3) * np.pi # [cm^3]
     data[f'n_{target_specie}'] = data.x_final[3+par.index[target_specie]] # [mol]
     m_target = 1.0e-3 * data[f'n_{target_specie}'] * par.W[par.index[target_specie]] # [kg]
@@ -1481,7 +1481,7 @@ class Make_dir:
         file = os.path.join(self.save_dir, file_base_name + '_data.csv')
         file = open(file, 'w')
         # write header line
-        line = self._list_to_string(keys + ['R_0', 'R_dot_0', 'T_0'] + ['c_' + specie + '_0' for specie in par.species] + ['R_last', 'R_dot_last', 'T_last'] + ['c_' + specie + '_last' for specie in par.species])
+        line = self._list_to_string(keys + ['R_0', 'R_dot_0', 'T_0'] + ['n_' + specie + '_0' for specie in par.species] + ['R_last', 'R_dot_last', 'T_last'] + ['n_' + specie + '_last' for specie in par.species])
         file.write(line + '\n')
         # write data
         line = self._list_to_string([data[key]] for key in keys)
@@ -1493,7 +1493,7 @@ class Make_dir:
         file = os.path.join(self.save_dir, file_base_name + '_num_sol.csv')
         file = open(file, 'w')
         # write header line
-        line = self._list_to_string(['t', 'R', 'R_dot', 'T'] + ['c_' + specie for specie in par.species] + ['dissipated_acoustic_energy']) 
+        line = self._list_to_string(['t', 'R', 'R_dot', 'T'] + ['n_' + specie for specie in par.species] + ['dissipated_acoustic_energy']) 
         file.write(line + '\n')
         # write data
         for i in range(len(num_sol.t)):
@@ -1532,7 +1532,7 @@ class Make_dir:
         self.number += 1
         self.lines = 0
         # write header line:
-        line = self._list_to_string(keys + ['R_0', 'R_dot_0', 'T_0'] + ['c_' + specie + '_0' for specie in par.species] + ['R_last', 'R_dot_last', 'T_last'] + ['c_' + specie + '_last' for specie in par.species])
+        line = self._list_to_string(keys + ['R_0', 'R_dot_0', 'T_0'] + ['n_' + specie + '_0' for specie in par.species] + ['R_last', 'R_dot_last', 'T_last'] + ['n_' + specie + '_last' for specie in par.species])
         self.file.write(line + '\n')
     
     def close(self):
