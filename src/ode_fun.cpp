@@ -14,7 +14,7 @@ BubbleState interpolate_state(
     std::size_t cols,
     double t
 ) {
-    if (cols < 2) {
+	if (cols < 2) {
         throw std::runtime_error("importdata must have at least 2 columns");
     }
 
@@ -1124,7 +1124,7 @@ is_success OdeFun::operator()(
 // Common variables
     BubbleState s;
 
-    if (cpar.R_and_R_dot_from_file > 0)
+    if (cpar.R_and_R_dot_from_file > 0) //std::cout<<cpar.rows<<" "<<cpar.cols<<"\n";
     {
         s = interpolate_state(cpar.R_and_R_dot_from_file,
                           cpar.importdata,

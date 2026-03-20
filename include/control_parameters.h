@@ -125,8 +125,8 @@ public:
         double ramp_up_cycles                   = 0.0;
 
         size_t R_and_R_dot_from_file			= 0;
-        size_t rows 							= 0;
-        size_t cols 							= 0;
+        size_t rows 							= 2;
+        size_t cols 							= 2;
         std::string file_name					= "";
         std::vector<double> importdata;
 		size_t const_V;
