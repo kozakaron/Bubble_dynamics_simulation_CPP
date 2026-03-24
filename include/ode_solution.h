@@ -58,6 +58,7 @@ public:
     double t_peak;             // [s]
     double R_min;              // [m]
     double T_min;              // [K]
+	double t_E;				   // [s] -> time at the equilibrium of target species
 // Post-processing results
     double dissipated_energy;  // [J]
     double expansion_work;     // [J]

@@ -202,7 +202,7 @@ std::ostream &operator<<(std::ostream &os, const OdeSolution &ode)
 }
 
 
-const std::string SimulationData::csv_header = std::string("dissipated_energy,expansion_work,n_target_specie,energy_demand,R_max,T_max,t_peak,R_min,T_min,")
+const std::string SimulationData::csv_header = std::string("dissipated_energy,expansion_work,n_target_specie,energy_demand,R_max,T_max,t_peak,R_min,T_min,t_E,")
                                              + std::string(ControlParameters::csv_header) + std::string(",")
                                              + std::string(OdeSolution::csv_header) + std::string(",") + std::string(Error::csv_header);
 
@@ -216,6 +216,7 @@ SimulationData::SimulationData(const ControlParameters &cpar):
     t_peak(0.0),
     R_min(std::numeric_limits<double>::infinity()),
     T_min(std::numeric_limits<double>::infinity()),
+	t_E(0.0),
     dissipated_energy(0.0),
     expansion_work(0.0),
     n_target_specie(0.0),
@@ -234,12 +235,38 @@ void SimulationData::midprocess(const double t, const double* x)
     {
         T_max = x[2] * cpar.T_ref;
         t_peak = t * cpar.t_ref;
-    }
+    }	
 }
-
 
 void SimulationData::postprocess()
 {
+	double x_final = sol.x.back()[cpar.target_specie + 3];
+	t_E = -1.0;
+	//Time of equilibrium (for target species)
+	const double tol = 0.01;   // 1%
+	const double n_steps = sol.t.size();
+    for (int i = n_steps - 1; i >= 0; --i) {
+
+        bool stable = true;
+        double xj = sol.x[i][cpar.target_specie+3];
+
+        double error;
+        if (std::abs(x_final) > 1e-12) {
+            error = std::abs((xj - x_final) / x_final);
+        } else {
+            error = std::abs(xj - x_final);
+        }
+
+        if (error >= tol) {
+            stable = false;
+            break;
+        }
+
+        if (stable) {
+            t_E = sol.t[i];
+        }
+    }
+	
 // dissipated energy [J]
     if (sol.x.empty()) dissipated_energy = 0.0;
     else if (sol.x.back().empty()) dissipated_energy = 0.0;
@@ -340,6 +367,7 @@ std::string SimulationData::to_csv() const
     ss << format_double << this->t_peak << ",";
     ss << format_double << this->R_min << ",";
     ss << format_double << this->T_min << ",";
+	ss << format_double << this->t_E << ",";
     ss << this->cpar.to_csv() << ",";
     ss << this->sol.to_csv() << ",";
 
@@ -376,6 +404,7 @@ std::string SimulationData::to_string() const
     ss << std::setw(strw) << "    .t_peak"             << " = " << format_double << this->t_peak               << ",    // [s]\n";
     ss << std::setw(strw) << "    .R_min"              << " = " << format_double << this->R_min                << ",    // [m]\n";
     ss << std::setw(strw) << "    .T_min"              << " = " << format_double << this->T_min                << ",    // [K]\n";
+	ss << std::setw(strw) << "    .t_E"                << " = " << format_double << this->t_E                  << ",    // [s]\n";
     ss << "    .cpar = ControlParameters{";
     ss << std::regex_replace(this->cpar.to_string(true), std::regex("\n"), "\n    ");
     ss << "},\n    .sol = ";
@@ -480,6 +509,7 @@ nlohmann::ordered_json SimulationData::to_json() const
     j["t_peak"] = this->t_peak;
     j["R_min"] = this->R_min;
     j["T_min"] = this->T_min;
+	j["t_E"] = this->t_E;
     j["cpar"] = this->cpar.to_json();
     j["sol"] = this->sol.to_json();
     j["excitation"] = nlohmann::ordered_json::object({
