@@ -3,6 +3,7 @@
 
 #include "parameters.h"
 #include "control_parameters.h"
+#include "interpolator.h"
 
 // Calculate the vapour pressure of water [Pa] as a function of temperature [K]
 double vapour_pressure(const double T);
@@ -17,6 +18,8 @@ public:
     // generic
     const Parameters* par;              // reaction mechanism
     ControlParameters cpar;             // control parameters
+	Interpolator radius_interp;
+	
     size_t num_species;                 // number of species (to check if init was called properly)
 #if defined TEST || defined BENCHMARK
 public:

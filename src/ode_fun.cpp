@@ -6,6 +6,7 @@
 
 #include "common.h"
 #include "ode_fun.h"
+#include "interpolator.h"
 
 BubbleState interpolate_state(
 	std::size_t R_and_R_dot_from_file,
@@ -134,7 +135,6 @@ OdeFun::~OdeFun()
     this->delete_memory();
 }
 
-
 void OdeFun::delete_memory()
 {
     if (this->x_dimensional != nullptr)  delete[] this->x_dimensional;
@@ -236,6 +236,7 @@ is_success OdeFun::check_after_call(
 is_success OdeFun::init(const ControlParameters& cpar)
 {
     this->cpar = cpar;
+	this->radius_interp = Interpolator(cpar.file_name);
     const Parameters *old_par = this->par;
     this->par = cpar.par;
     if (this->par == nullptr) return false;
@@ -1126,11 +1127,17 @@ is_success OdeFun::operator()(
 
     if (cpar.R_and_R_dot_from_file > 0) //std::cout<<cpar.rows<<" "<<cpar.cols<<"\n";
     {
-        s = interpolate_state(cpar.R_and_R_dot_from_file,
+		//1st order formula
+        /*s = interpolate_state(cpar.R_and_R_dot_from_file,
                           cpar.importdata,
                           cpar.rows,
                           cpar.cols,
-                          t);
+                          t);*/
+		/*auto [temp_R, temp_dR, temp_ddR] = radius_interp.interpolate(t);
+		s.R        = temp_R;
+		s.R_dot    = temp_dR;
+		s.R_dot_dot = temp_ddR;*/
+		[s.R,s.R_dot,s.R_dot_dot] = radius_interp.interpolate(t);
     }
 
     const double R = 
