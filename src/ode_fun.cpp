@@ -1133,11 +1133,11 @@ is_success OdeFun::operator()(
                           cpar.rows,
                           cpar.cols,
                           t);*/
-		/*auto [temp_R, temp_dR, temp_ddR] = radius_interp.interpolate(t);
+		auto [temp_R, temp_dR, temp_ddR] = radius_interp.interpolate(t);
 		s.R        = temp_R;
 		s.R_dot    = temp_dR;
-		s.R_dot_dot = temp_ddR;*/
-		[s.R,s.R_dot,s.R_dot_dot] = radius_interp.interpolate(t);
+		s.R_dot_dot = temp_ddR;
+		//[s.R,s.R_dot,s.R_dot_dot] = radius_interp.interpolate(t);
     }
 
     const double R = 
