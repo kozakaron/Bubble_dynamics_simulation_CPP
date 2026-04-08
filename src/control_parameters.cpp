@@ -154,6 +154,7 @@ ControlParameters::ControlParameters(const ordered_json& j)
 		builder.file_name = 				get_value<std::string>				(j, "file_name",				builder.file_name);
 		//importdata, if needed
 		builder.const_V = 					get_value<size_t>					(j, "const_V",					builder.const_V);
+		builder.const_T = 					get_value<size_t>					(j, "const_T",					builder.const_T);
     }
     catch(const std::exception& e)
     {
@@ -250,6 +251,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
 	this->file_name = builder.file_name;
 	//importdata, if needed
 	this->const_V = builder.const_V;
+	this->const_T = builder.const_T;
 
     if (this->target_specie == par->invalid_index)
     {
@@ -425,7 +427,7 @@ std::string ControlParameters::to_csv() const
     for (size_t index = 0; index < Parameters::excitation_arg_nums[this->excitation_type]; ++index)
         ss << format_double << this->excitation_params[index] << ";";
     ss << "," << format_double << this->excitation_cycles << "," << format_double << this->ramp_up_cycles << "," << format_double << 
-	this->R_and_R_dot_from_file << "," << format_double << this->rows << "," << format_double << this->cols << "," << this->file_name /*<<importdata*/	<< "," << this->const_V;
+	this->R_and_R_dot_from_file << "," << format_double << this->rows << "," << format_double << this->cols << "," << this->file_name /*<<importdata*/	<< "," << this->const_V << "," << this->const_T;;
     
 	return ss.str();
 }
@@ -491,6 +493,7 @@ std::string ControlParameters::to_string(const bool with_code) const
 	ss << format_string << ".file_name"                  << " = " <<                  this->file_name                 << "     // input .csv file name [-]\n";
 	//importdata, if needed
 	ss << format_string << ".const_V"					 << " = " << format_double << this->const_V 				  << " 	   // 0: V is not constant, 1: V is constant";
+	ss << format_string << ".const_T"					 << " = " << format_double << this->const_T 				  << " 	   // 0: T is not constant, 1: T is constant";
 
     if (with_code) ss << "}";
     ss << std::right;
@@ -544,6 +547,7 @@ ordered_json ControlParameters::to_json() const
     j["file_name"] = this->file_name;
 	//importdata, if needed
 	j["const_V"] = this->const_V;
+	j["const_T"] = this->const_T;
 
     return j;
 }

@@ -1251,7 +1251,10 @@ is_success OdeFun::operator()(
 		x_dimensional_dot [3+k] = this->omega_dot[k] * V;//V; //6.8
     }
 
-    const double T_dot = (Q_r_dot + 3.0 / R * (-p * R_dot + Q_th_dot + evap_energy)) / (M * C_v_avg);	
+    const double T_dot = 
+	(cpar.const_T)
+	? 0.0
+	: (Q_r_dot + 3.0 / R * (-p * R_dot + Q_th_dot + evap_energy)) / (M * C_v_avg);	
     const double M_dot = sum_omega_dot - 3.0 * R_dot / R * M + n_net_dot * 3.0 / R;
     const double p_dot = this->internal_pressure_derivative(T, T_dot, M, M_dot, conc_dimensional, conc_dot);
 	//p_dot = p * (sum_omega_dot/M + T_dot/T - V_dot/V)

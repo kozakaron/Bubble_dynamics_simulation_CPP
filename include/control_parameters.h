@@ -59,6 +59,7 @@ public:
 	std::string file_name;
 	std::vector<double> importdata;
 	size_t const_V;
+	size_t const_T;
 
     // Reference values for dimensionless parameters: A_dimless = A / A_ref
     static constexpr double t_ref = 1e-9;               // reference time [s]
@@ -129,7 +130,8 @@ public:
         size_t cols 							= 2;
         std::string file_name					= "";
         std::vector<double> importdata;
-		size_t const_V;
+		size_t const_V							= 0;
+		size_t const_T							= 0;
     };
     
 // Methods

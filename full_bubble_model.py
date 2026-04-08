@@ -39,6 +39,7 @@ R_and_R_dot_from_file = 0, #0: nothing to read in, chemistry is coupled to bubbl
 # 'cols': 1,
 file_name = 'test.csv', #'output_01.csv',#'output_50.csv'
 const_V = 0      # 0: V is not constant, 1: V is constant";
+const_T = 1      # 0: T is not constant, 1: T is constant";
 
 """________________________________Libraries________________________________"""
 
@@ -946,6 +947,7 @@ def get_data(cpar, num_sol, error_code, elapsed_time):
     data.R_and_R_dot_from_file = R_and_R_dot_from_file
     data.file_name = file_name
     data.const_V = const_V
+    data.const_T = const_T
     errors, success = get_errors(error_code)
     data.success = num_sol.success
     if num_sol is None:
@@ -1001,7 +1003,7 @@ def get_data(cpar, num_sol, error_code, elapsed_time):
 keys = ['ID', 'R_E', 'ratio', 'P_amb', 'alfa_M', 'Gamma', 'sigma_evap', 'T_inf', 'P_v', 'mu_L', 'rho_L_ref', 'gases', 'fractions', 'surfactant', 'c_L_ref', 'kappa', 'r_hc', 'Gamma_L', 'B_L', 'b_L', 'cV_L', 'p_L_ref',
         'error_code', 'success', 'elapsed_time', 'steps', 't_E',#'collapse_time', 'T_max', 
         f'n_{target_specie}', 'expansion_work', 'dissipated_acoustic_energy', 'energy_demand',
-        'enable_heat_transfer', 'enable_evaporation', 'enable_reactions', 'enable_dissipated_energy', 'excitation_type', 'target_specie','excitation_cycles','ramp_up_cycles','R_and_R_dot_from_file','file_name','const_V'] + excitation_args
+        'enable_heat_transfer', 'enable_evaporation', 'enable_reactions', 'enable_dissipated_energy', 'excitation_type', 'target_specie','excitation_cycles','ramp_up_cycles','R_and_R_dot_from_file','file_name','const_V','const_T'] + excitation_args
 
 def _print_line(name, value, comment, print_it=False):
     """Prints a name=value pair in an organised way, with nicely formatted floats. Arguments:

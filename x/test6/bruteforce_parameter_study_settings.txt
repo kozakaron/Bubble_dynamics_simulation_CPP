@@ -1,0 +1,43 @@
+version: 1.7
+datetime: 2026.03.24 15:10:39
+total_combination_count: 10000
+t_max: 0.01
+timeout: 3000
+max_threads: 8
+mechanism: chemkin_kaust2023_ammonia_oxygenless
+number_of_species: 14
+number_of_reactions: 49
+species: {AR, H, H2, H2NN, HE, N, N2, N2H2, N2H3, N2H4, NH, NH2, NH3, NNH}
+
+ParameterCombinator::Builder{
+    .mechanism                   = Parameters::mechanism::chemkin_kaust2023_ammonia_oxygenless,
+    .R_E                         = Const(0.062100),                                    // {0.0621}
+    .ratio                       = Const(1.000000),                                    // {1}
+    .species                     = {"H2", "N2"},
+    .fractions                   = {7.50000000000000000e-01, 2.50000000000000000e-01},
+    .P_amb                       = LogRange(100000.000000, 10000000000.000000, 100),    // {100000, 112332, 126186, 141747, 159228, 178865, 200923, ..., 8.90215e+09, 1e+10}
+    .T_inf                       = LinearRange(1000.000000, 6000.000000, 100),         // {1000, 1050.51, 1101.01, 1151.52, 1202.02, 1252.53, 1303.03, ..., 5949.49, 6000}
+    .alpha_M                     = Const(0.350000),                                    // {0.35}
+    .P_v                         = Const(2338.100000),                                 // {2338.1}
+    .mu_L                        = Const(0.001000),                                    // {0.001}
+    .rho_L                       = Const(998.200000),                                  // {998.2}
+    .c_L                         = Const(1483.000000),                                 // {1483}
+    .surfactant                  = Const(1.000000),                                    // {1}
+    .enable_heat_transfer        = false,
+    .enable_evaporation          = false,
+    .enable_reactions            = true,
+    .enable_dissipated_energy    = false,
+    .enable_van_der_waals        = true,
+    .enable_rate_thresholding    = true,
+    .target_specie               = "NH3",
+    .excitation_type             = Parameters::excitation::no_excitation
+    .excitation_params           = {
+    },
+    .excitation_cycles           = Const(1.000000),                                    // {1}
+    .ramp_up_cycles              = Const(0.000000)                                     // {0}
+    .R_and_R_dot_from_file       = Const(0.000000)                                     // {0}
+    .rows                        = Const(1.000000)                                     // {1}
+    .cols                        = Const(1.000000)                                     // {1}
+    .file_name                   = {test.csv}
+    .const_V                     = Const(1.000000)                                     // {1}
+}
