@@ -728,27 +728,37 @@ std::tuple<double, double, double> OdeFun::pressures_excitation(
     c_L=(Gamma_L*(p_L+B_L)/(rho_L-b_L*rho_L*rho_L))**0.5
     Nom=((1.0+R_dot/c_L)*H-3.0/2.0*(1.0-R_dot/(3.0*c_L))*R_dot*R_dot)/((1.0-R_dot/c_L)*R)+H_dot_e/c_L
     Den=1.0+4.0*mu_L/(rho_L*R*c_L)	
-	*/
-	
-	//Gilmore:
-	const double p_L = p - (2.0 * par->surfactant * par->sigma + 4.0 * par->mu_L * R_dot) / R;
+    */
+    
+    //Gilmore:
+    const double p_L = p - (2.0 * par->surfactant * par->sigma + 4.0 * par->mu_L * R_dot) / R;
     const double p_L_dot_e = p_dot + (2.0 * par->surfactant * par->sigma * R_dot + 4.0 * par->mu_L * R_dot * R_dot)/ (R * R);
-	const double K_L = par->rho_L_ref / ( std::pow(par->p_L_ref + par->B_L, 1.0 / par->Gamma_L) * (1.0 - par->b_L * par->rho_L_ref) );
-	const double rho_L=K_L* std::pow((p_L+par->B_L),(1.0/par->Gamma_L))/(1.0+par->b_L*K_L*std::pow((p_L+par->B_L),(1.0/par->Gamma_L)));
-	const double rho_Inf=K_L*std::pow((p_Inf+par->B_L),(1.0/par->Gamma_L))/(1.0+par->b_L*K_L*std::pow((p_Inf+par->B_L),(1.0/par->Gamma_L)));
+    const double K_L = par->rho_L_ref / ( std::pow(par->p_L_ref + par->B_L, 1.0 / par->Gamma_L) * (1.0 - par->b_L * par->rho_L_ref) );
+    //NASG:
+    /*const double rho_L=K_L* std::pow((p_L+par->B_L),(1.0/par->Gamma_L))/(1.0+par->b_L*K_L*std::pow((p_L+par->B_L),(1.0/par->Gamma_L)));
+    const double rho_Inf=K_L*std::pow((p_Inf+par->B_L),(1.0/par->Gamma_L))/(1.0+par->b_L*K_L*std::pow((p_Inf+par->B_L),(1.0/par->Gamma_L)));
     const double H=(par->Gamma_L/(par->Gamma_L-1.0)*(p_L+par->B_L)/rho_L-par->Gamma_L*par->b_L/(par->Gamma_L-1.0)*(p_L+par->B_L)+par->b_L*p_L)-(par->Gamma_L/(par->Gamma_L-1.0)*(p_Inf+par->B_L)/rho_Inf-par->Gamma_L*par->b_L/(par->Gamma_L-1.0)*(p_Inf+par->B_L)+par->b_L*p_Inf); //h_L-h_Inf
-    const double H_dot_e=p_L_dot_e/rho_L-p_Inf_dot/rho_Inf;
-    const double c_L=std::sqrt( (par->Gamma_L*(p_L+par->B_L)/(rho_L-par->b_L*rho_L*rho_L)) );
+    const double H_dot_e=p_L_dot_e/rho_L-p_Inf_dot/rho_Inf; ->not OK!
+    const double c_L=std::sqrt( (par->Gamma_L*(p_L+par->B_L)/(rho_L-par->b_L*rho_L*rho_L)) );*/
+
+    //Tait:
+    const double rho_L=par->rho_L_ref * std::pow((p_L+par->B_L)/(par->p_L_ref+par->B_L),1.0/par->Gamma_L);
+    const double rho_Inf=par->rho_L_ref * std::pow((p_Inf+par->B_L)/(par->p_L_ref+par->B_L),1.0/par->Gamma_L);
+    const double h_L = par->Gamma_L/(par->Gamma_L-1.0)*(p_L+par->B_L)/rho_L;
+    const double H=h_L - par->Gamma_L/(par->Gamma_L-1.0)*(p_Inf+par->B_L)/rho_Inf; //h_L-h_Inf
+    const double H_dot_e=par->Gamma_L/(par->Gamma_L-1.0)*(p_L_dot_e/rho_L-p_Inf_dot/rho_Inf);
+    const double c_L=std::sqrt((par->Gamma_L-1.0)*h_L);
+
     const double nom=((1.0+R_dot/c_L)*H-3.0/2.0*(1.0-R_dot/(3.0*c_L))*R_dot*R_dot)/((1.0-R_dot/c_L)*R)+H_dot_e/c_L;
     const double den=1.0+4.0*par->mu_L/(rho_L*R*c_L);
-	
-	/*double t1=0.0; double t2 = 25e-6; double t3 = 25.721e-6; double t4=31.9753e-6; double t5=31.975335053800173e-6; double t6 = 399e-6;
-	if (t == t1 || (t > t2 && t < t3) || (t > t4 && t < t5) || t > t6)  
-	{
-		std::cout << "t = " << t << ", rho_L = " << rho_L << ", c_L = " << c_L << "\n";
-	}*/
-	
-	return std::tuple(nom, den, c_L);
+    
+    /*double t1=0.0; double t2 = 25e-6; double t3 = 25.721e-6; double t4=31.9753e-6; double t5=31.975335053800173e-6; double t6 = 399e-6;
+    if (t == t1 || (t > t2 && t < t3) || (t > t4 && t < t5) || t > t6)  
+    {
+        std::cout << "t = " << t << ", rho_L = " << rho_L << ", c_L = " << c_L << "\n";
+    }*/
+    
+    return std::tuple(nom, den, c_L);
 }
 
 
