@@ -737,8 +737,26 @@ std::tuple<double, double, double> OdeFun::pressures_excitation(
     //NASG:
     /*const double rho_L=K_L* std::pow((p_L+par->B_L),(1.0/par->Gamma_L))/(1.0+par->b_L*K_L*std::pow((p_L+par->B_L),(1.0/par->Gamma_L)));
     const double rho_Inf=K_L*std::pow((p_Inf+par->B_L),(1.0/par->Gamma_L))/(1.0+par->b_L*K_L*std::pow((p_Inf+par->B_L),(1.0/par->Gamma_L)));
-    const double H=(par->Gamma_L/(par->Gamma_L-1.0)*(p_L+par->B_L)/rho_L-par->Gamma_L*par->b_L/(par->Gamma_L-1.0)*(p_L+par->B_L)+par->b_L*p_L)-(par->Gamma_L/(par->Gamma_L-1.0)*(p_Inf+par->B_L)/rho_Inf-par->Gamma_L*par->b_L/(par->Gamma_L-1.0)*(p_Inf+par->B_L)+par->b_L*p_Inf); //h_L-h_Inf
-    const double H_dot_e=p_L_dot_e/rho_L-p_Inf_dot/rho_Inf; ->not OK!
+	double p_star = p_L + par->B_L;
+	double pow_term = std::pow(p_star, (1.0 / par->Gamma_L));
+	double du_dt = K_L * (1.0 / par->Gamma_L) * std::pow(p_star, (1.0 / par->Gamma_L - 1.0)) * dp_L_dt;
+	double denom = 1.0 + par->b_L * K_L * pow_term;
+	const double rho_L_dot = du_dt / (denom * denom);
+	
+	p_star = p_Inf + par->B_L;
+	pow_term = std::pow(p_star, (1.0 / par->Gamma_L));
+	du_dt = K_L * (1.0 / par->Gamma_L) * std::pow(p_star, (1.0 / par->Gamma_L - 1.0)) * p_Inf_dot;
+	denom = 1.0 + par->b_L * K_L * pow_term;
+	const double rho_Inf_dot = du_dt / (denom * denom);
+	
+    const double H=(par->Gamma_L/(par->Gamma_L-1.0)*(p_L+par->B_L)/rho_L-par->Gamma_L*par->b_L/(par->Gamma_L-1.0)*(p_L+par->B_L)+par->b_L*p_L)-(par->Gamma_L/(par->Gamma_L-1.0)*(p_Inf+par->B_L)/rho_Inf-par->Gamma_L*par->b_L/(par->Gamma_L-1.0)*(p_Inf+par->B_L)+par->b_L*p_Inf); //h_L-h_Inf 
+	const double term_L = -(par->Gamma_L / (par->Gamma_L - 1.0)) * ((p_L + par->B_L) / (rho_L * rho_L)) * rho_L_dot
+                + (par->Gamma_L / ((par->Gamma_L - 1.0) * rho_L) - par->b_L / (par->Gamma_L - 1.0)) * dp_L_dt;
+	const double term_Inf = -(par->Gamma_L / (par->Gamma_L - 1.0)) * ((p_Inf + par->B_L) / (rho_Inf * rho_Inf)) * rho_Inf_dot 
+                  + (par->Gamma_L / ((par->Gamma_L - 1.0) * rho_Inf) - par->b_L / (par->Gamma_L - 1.0)) * dp_Inf_dt;
+	const double H_dot_e= term_L - term_Inf;
+	
+	//p_L_dot_e/rho_L-p_Inf_dot/rho_Inf; ->not OK!
     const double c_L=std::sqrt( (par->Gamma_L*(p_L+par->B_L)/(rho_L-par->b_L*rho_L*rho_L)) );*/
 
     //Tait:
