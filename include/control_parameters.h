@@ -60,6 +60,7 @@ public:
 	std::vector<double> importdata;
 	size_t const_V;
 	size_t const_T;
+	std::string EoS_liquid;
 
     // Reference values for dimensionless parameters: A_dimless = A / A_ref
     static constexpr double t_ref = 1e-9;               // reference time [s]
@@ -132,6 +133,7 @@ public:
         std::vector<double> importdata;
 		size_t const_V							= 0;
 		size_t const_T							= 0;
+		std::string EoS_liquid					= "";
     };
     
 // Methods

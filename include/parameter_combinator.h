@@ -125,6 +125,7 @@ private:
 	std::vector<std::string> file_name;
 	std::unique_ptr<Range> const_V;
 	std::unique_ptr<Range> const_T;
+	std::vector<std::string> EoS_liquid;
 	
 public:
     typedef std::variant<Const, LinearRange, LogRange, GeomRange> AnyRange;
@@ -159,6 +160,7 @@ public:
 		std::string file_name 					= "temp.csv";
 		AnyRange const_V						= Const(0);
 		AnyRange const_T						= Const(0);
+		std::string EoS_liquid 					= "Tait";
     };
 
     ParameterCombinator(const Builder &builder);

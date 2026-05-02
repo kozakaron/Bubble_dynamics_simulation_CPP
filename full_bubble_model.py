@@ -924,6 +924,7 @@ def get_data(cpar, num_sol, error_code, elapsed_time):
     # default values
     data.steps = 0
     data.t_E = 0
+    data.EoS_liquid = ""
     #data.collapse_time = 0.0
     #data.T_max = 0.0
     data.x_initial = np.zeros((4+par.K), dtype=np.float64)
@@ -997,11 +998,12 @@ def get_data(cpar, num_sol, error_code, elapsed_time):
     data.energy_efficiency = data.energy_demand # legacy for data.energy_demand
     data.target_specie = target_specie
     data.t_E = num_sol.t_E
+    data.EoS_liquid = num_sol.EoS_liquid
     return data
 
 # keys of data: (except x_final and x_initial)
 keys = ['ID', 'R_E', 'ratio', 'P_amb', 'alfa_M', 'Gamma', 'sigma_evap', 'T_inf', 'P_v', 'mu_L', 'rho_L_ref', 'gases', 'fractions', 'surfactant', 'c_L_ref', 'kappa', 'r_hc', 'Gamma_L', 'B_L', 'b_L', 'cV_L', 'p_L_ref',
-        'error_code', 'success', 'elapsed_time', 'steps', 't_E',#'collapse_time', 'T_max', 
+        'error_code', 'success', 'elapsed_time', 'steps', 't_E','EoS_liquid',#'collapse_time', 'T_max', 
         f'n_{target_specie}', 'expansion_work', 'dissipated_acoustic_energy', 'energy_demand',
         'enable_heat_transfer', 'enable_evaporation', 'enable_reactions', 'enable_dissipated_energy', 'excitation_type', 'target_specie','excitation_cycles','ramp_up_cycles','R_and_R_dot_from_file','file_name','const_V','const_T'] + excitation_args
 

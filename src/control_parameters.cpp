@@ -155,6 +155,7 @@ ControlParameters::ControlParameters(const ordered_json& j)
 		//importdata, if needed
 		builder.const_V = 					get_value<size_t>					(j, "const_V",					builder.const_V);
 		builder.const_T = 					get_value<size_t>					(j, "const_T",					builder.const_T);
+		builder.EoS_liquid = 				get_value<std::string>				(j, "EoS_liquid",				builder.EoS_liquid);
     }
     catch(const std::exception& e)
     {
@@ -252,6 +253,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
 	//importdata, if needed
 	this->const_V = builder.const_V;
 	this->const_T = builder.const_T;
+	this->EoS_liquid = builder.EoS_liquid;
 
     if (this->target_specie == par->invalid_index)
     {
@@ -427,7 +429,7 @@ std::string ControlParameters::to_csv() const
     for (size_t index = 0; index < Parameters::excitation_arg_nums[this->excitation_type]; ++index)
         ss << format_double << this->excitation_params[index] << ";";
     ss << "," << format_double << this->excitation_cycles << "," << format_double << this->ramp_up_cycles << "," << format_double << 
-	this->R_and_R_dot_from_file << "," << format_double << this->rows << "," << format_double << this->cols << "," << this->file_name /*<<importdata*/	<< "," << this->const_V << "," << this->const_T;;
+	this->R_and_R_dot_from_file << "," << format_double << this->rows << "," << format_double << this->cols << "," << this->file_name /*<<importdata*/	<< "," << this->const_V << "," << this->const_T <<","<<this->EoS_liquid;
     
 	return ss.str();
 }
@@ -494,6 +496,7 @@ std::string ControlParameters::to_string(const bool with_code) const
 	//importdata, if needed
 	ss << format_string << ".const_V"					 << " = " << format_double << this->const_V 				  << " 	   // 0: V is not constant, 1: V is constant";
 	ss << format_string << ".const_T"					 << " = " << format_double << this->const_T 				  << " 	   // 0: T is not constant, 1: T is constant";
+	ss << format_string << ".EoS_liquid"				 << " = " << format_double << this->EoS_liquid 				  << " 	   // Equation of state for the liquid";
 
     if (with_code) ss << "}";
     ss << std::right;
@@ -548,6 +551,7 @@ ordered_json ControlParameters::to_json() const
 	//importdata, if needed
 	j["const_V"] = this->const_V;
 	j["const_T"] = this->const_T;
+	j["EoS_liquid"] = this->EoS_liquid;
 
     return j;
 }
