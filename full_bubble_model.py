@@ -901,8 +901,10 @@ def get_data(cpar, num_sol, error_code, elapsed_time):
         T_inf=cpar.T_inf,
         P_v=cpar.P_v,
         mu_L=cpar.mu_L,
-        rho_L_ref=cpar.rho_L_ref,
-        c_L_ref=cpar.c_L_ref,
+        nu_L=cpar.nu_L,
+        rho_0=cpar.rho_0,
+        c_0=cpar.c_0,
+        sigma_var=cpar.sigma_var,
         surfactant=cpar.surfactant,
         gases=cpar.gases,
         fractions=cpar.fractions,
@@ -1002,7 +1004,7 @@ def get_data(cpar, num_sol, error_code, elapsed_time):
     return data
 
 # keys of data: (except x_final and x_initial)
-keys = ['ID', 'R_E', 'ratio', 'P_amb', 'alfa_M', 'Gamma', 'sigma_evap', 'T_inf', 'P_v', 'mu_L', 'rho_L_ref', 'gases', 'fractions', 'surfactant', 'c_L_ref', 'kappa', 'r_hc', 'Gamma_L', 'B_L', 'b_L', 'cV_L', 'p_L_ref',
+keys = ['ID', 'R_E', 'ratio', 'P_amb', 'alfa_M', 'Gamma', 'sigma_evap', 'T_inf', 'P_v', 'mu_L', 'nu_L','rho_0', 'gases', 'fractions', 'sigma_var', 'surfactant', 'c_0', 'kappa', 'r_hc', 'Gamma_L', 'B_L', 'b_L', 'cV_L', 'p_L_ref',
         'error_code', 'success', 'elapsed_time', 'steps', 't_E','EoS_liquid',#'collapse_time', 'T_max', 
         f'n_{target_specie}', 'expansion_work', 'dissipated_acoustic_energy', 'energy_demand',
         'enable_heat_transfer', 'enable_evaporation', 'enable_reactions', 'enable_dissipated_energy', 'excitation_type', 'target_specie','excitation_cycles','ramp_up_cycles','R_and_R_dot_from_file','file_name','const_V','const_T'] + excitation_args

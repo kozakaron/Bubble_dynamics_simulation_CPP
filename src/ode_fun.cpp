@@ -378,6 +378,9 @@ is_success OdeFun::initial_conditions(
     double* x_dimless
 )
 {
+	cpar.rho_0 = 969.05 - 156.11 * std::pow(cpar.nu_L,-0.6661); //kg/m^3
+	cpar.c_0 = 1001.86 - 83.97 * std::pow(cpar.nu_L,-0.6281); //m/s
+	cpar.sigma_var = (21.3876 - 4.2173 * std::pow(cpar.nu_L,-0.5287))*0.001; //mN/m -> N/m
 // Van der Waals mixture
     double a_tot = 0.0;
     double b_tot = 0.0;
@@ -710,30 +713,17 @@ std::tuple<double, double, double> OdeFun::pressures_excitation(
 	//Keller-Miksis:
     /*const double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
     const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // + 4.0 * cpar.mu_L * R_ddot / R;
-    const double delta = (p_L - p_Inf) / cpar.rho_L;
-    const double delta_dot = (p_L_dot - p_Inf_dot) / cpar.rho_L;
+    const double delta = (p_L - p_Inf) / cpar.rho_0;
+    const double delta_dot = (p_L_dot - p_Inf_dot) / cpar.rho_0;
 	const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
-    const double den = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
+    const double den = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_0);
 	const double c_L = cpar.c_L;
     return std::make_pair(delta, delta_dot);*/
-	
-	/*Template from python, should be deleted:
-	p_L = p - (2.0 * surfactant * par.sigma + 4.0 * mu_L * R_dot) / R
-    p_L_dot_e = p_dot + (2.0 * surfactant * par.sigma * R_dot + 4.0 * mu_L * R_dot ** 2) / (R ** 2)
-    K_L=rho_L_ref/((p_L_ref+B_L)**(1.0/Gamma_L)*(1.0-b_L*rho_L_ref))
-    rho_L=K_L*(p_L+B_L)**(1.0/Gamma_L)/(1.0+b_L*K_L*(p_L+B_L)**(1.0/Gamma_L))
-    rho_Inf=K_L*(p_Inf+B_L)**(1.0/Gamma_L)/(1.0+b_L*K_L*(p_Inf+B_L)**(1.0/Gamma_L))
-    H=(Gamma_L/(Gamma_L-1.0)*(p_L+B_L)/rho_L-Gamma_L*b_L/(Gamma_L-1.0)*(p_L+B_L)+b_L*p_L)-(Gamma_L/(Gamma_L-1.0)*(p_Inf+B_L)/rho_Inf-Gamma_L*b_L/(Gamma_L-1.0)*(p_Inf+B_L)+b_L*p_Inf) #h_L-h_Inf
-    H_dot_e=p_L_dot_e/rho_L-p_Inf_dot/rho_Inf
-    c_L=(Gamma_L*(p_L+B_L)/(rho_L-b_L*rho_L*rho_L))**0.5
-    Nom=((1.0+R_dot/c_L)*H-3.0/2.0*(1.0-R_dot/(3.0*c_L))*R_dot*R_dot)/((1.0-R_dot/c_L)*R)+H_dot_e/c_L
-    Den=1.0+4.0*mu_L/(rho_L*R*c_L)	
-    */
     
     //Gilmore:
     const double p_L = p - (2.0 * par->surfactant * par->sigma + 4.0 * par->mu_L * R_dot) / R;
     const double p_L_dot_e = p_dot + (2.0 * par->surfactant * par->sigma * R_dot + 4.0 * par->mu_L * R_dot * R_dot)/ (R * R);
-    const double K_L = par->rho_L_ref / ( std::pow(par->p_L_ref + par->B_L, 1.0 / par->Gamma_L) * (1.0 - par->b_L * par->rho_L_ref) );
+    const double K_L = cpar.rho_0 / ( std::pow(par->p_L_ref + par->B_L, 1.0 / par->Gamma_L) * (1.0 - par->b_L * cpar.rho_0) );//const double K_L = par->rho_L_ref / ( std::pow(par->p_L_ref + par->B_L, 1.0 / par->Gamma_L) * (1.0 - par->b_L * par->rho_L_ref) );
     
 	
 	double nom = 0.0;
@@ -770,8 +760,8 @@ std::tuple<double, double, double> OdeFun::pressures_excitation(
 	else
 	{
 		//Tait:
-		const double rho_L=par->rho_L_ref * std::pow((p_L+par->B_L)/(par->p_L_ref+par->B_L),1.0/par->Gamma_L);
-		const double rho_Inf=par->rho_L_ref * std::pow((p_Inf+par->B_L)/(par->p_L_ref+par->B_L),1.0/par->Gamma_L);
+		const double rho_L=cpar.rho_0 * std::pow((p_L+par->B_L)/(par->p_L_ref+par->B_L),1.0/par->Gamma_L);
+		const double rho_Inf=cpar.rho_0 * std::pow((p_Inf+par->B_L)/(par->p_L_ref+par->B_L),1.0/par->Gamma_L);
 		const double h_L = par->Gamma_L/(par->Gamma_L-1.0)*(p_L+par->B_L)/rho_L;
 		const double H=h_L - par->Gamma_L/(par->Gamma_L-1.0)*(p_Inf+par->B_L)/rho_Inf; //h_L-h_Inf
 		const double H_dot_e=par->Gamma_L/(par->Gamma_L-1.0)*(p_L_dot_e/rho_L-p_Inf_dot/rho_Inf);
@@ -1324,7 +1314,7 @@ is_success OdeFun::operator()(
         const double integrand_r = 4.0 * std::numbers::pi / cpar.c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar.rho_L * R_dot * R_dot * R_dot - cpar.rho_L * R * R_dot * R_dot_dot);*/
 		const double integrand_th = -(p * (1 + R_dot / c_L) + R / c_L * p_dot) * V_dot;
         const double integrand_v = 16.0 * std::numbers::pi * cpar.mu_L * (R * R_dot*R_dot + R * R * R_dot * R_dot_dot / c_L);
-        const double integrand_r = 4.0 * std::numbers::pi / c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * par->rho_L_ref * R_dot * R_dot * R_dot - par->rho_L_ref * R * R_dot * R_dot_dot);
+        const double integrand_r = 4.0 * std::numbers::pi / c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar.rho_0 * R_dot * R_dot * R_dot - cpar.rho_0 * R * R_dot * R_dot_dot);
 
         x_dimensional_dot[par->num_species+3] = integrand_th + integrand_v + integrand_r;
     } else {

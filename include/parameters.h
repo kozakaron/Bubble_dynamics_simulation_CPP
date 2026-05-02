@@ -53,9 +53,9 @@ public:
 
 // PHYSICAL CONSTANTS
 
-    static constexpr double c_L           = 1483.0;             // Liquid sound speed at 30 °C [m/s]
-    static constexpr double rho_L         = 998.2;              // Liquid density [kg/m^3]
-    static constexpr double sigma         = 0.0728;            // Surface tension [N/m]
+    static constexpr double c_0           = 1483.0;             // Liquid sound speed at 30 °C [m/s]
+    static constexpr double rho_0         = 998.2;              // Liquid density [kg/m^3]
+    static constexpr double sigma     = 0.0728;            // Surface tension [N/m]
     static constexpr double mu_L          = 0.001;              // Dynamic viscosity at 30 °C and 1 atm [Pa*s]
     static constexpr double P_v           = 2338.1;             // Saturated vapour pressure at 30 °C [Pa]
     static constexpr double alpha_M       = 0.35;               // Water accommodation coefficient [-]

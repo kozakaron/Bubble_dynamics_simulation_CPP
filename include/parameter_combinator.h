@@ -105,8 +105,10 @@ private:
     std::unique_ptr<Range> alpha_M;
     std::unique_ptr<Range> P_v;
     std::unique_ptr<Range> mu_L;
-    std::unique_ptr<Range> rho_L;
-    std::unique_ptr<Range> c_L;
+	std::unique_ptr<Range> nu_L;
+    std::unique_ptr<Range> rho_0;
+    std::unique_ptr<Range> c_0;
+	std::unique_ptr<Range> sigma_var;
     std::unique_ptr<Range> surfactant;
     bool enable_heat_transfer;
     bool enable_evaporation;
@@ -140,8 +142,10 @@ public:
         AnyRange alpha_M                        = Const(0.35);
         AnyRange P_v                            = Const(2338.1);
         AnyRange mu_L                           = Const(0.001);
-        AnyRange rho_L                          = Const(998.2);
-        AnyRange c_L                            = Const(1483.0);
+		AnyRange nu_L                           = Const(1.0);
+        AnyRange rho_0                          = Const(998.2);
+        AnyRange c_0                            = Const(1483.0);
+		AnyRange sigma_var                      = Const(-1.0);
         AnyRange surfactant                     = Const(1.0);
         bool enable_heat_transfer               = true;
         bool enable_evaporation                 = true;

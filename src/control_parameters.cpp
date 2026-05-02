@@ -122,8 +122,9 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.alpha_M =                   get_value<double>                   (j, "alpha_M",                  builder.alpha_M);
         builder.P_v =                       get_value<double>                   (j, "P_v",                      builder.P_v);
         builder.mu_L =                      get_value<double>                   (j, "mu_L",                     builder.mu_L);
-        builder.rho_L =                     get_value<double>                   (j, "rho_L",                    builder.rho_L);
-        builder.c_L =                       get_value<double>                   (j, "c_L",                      builder.c_L);
+		builder.nu_L =                      get_value<double>                   (j, "nu_L",                     builder.nu_L);
+        builder.rho_0 =                     get_value<double>                   (j, "rho_0",                    builder.rho_0);
+        builder.c_0 =                       get_value<double>                   (j, "c_0",                      builder.c_0);
 		/*builder.Gamma_L =					get_value<double>                   (j, "Gamma_L",                  builder.Gamma_L);
 		builder.c_L_ref =					get_value<double>                   (j, "c_L_ref",                  builder.c_L_ref);
 		builder.kappa =						get_value<double>                   (j, "kappa",                  	builder.kappa);
@@ -133,6 +134,7 @@ ControlParameters::ControlParameters(const ordered_json& j)
 		builder.cV_L =						get_value<double>                   (j, "cV_L",                  	builder.cV_L);
 		builder.rho_L_ref =					get_value<double>                   (j, "rho_L_ref",                builder.rho_L_ref);
 		builder.p_L_ref =					get_value<double>                   (j, "p_L_ref",                	builder.p_L_ref);*/
+		builder.sigma_var =                 get_value<double>                   (j, "sigma_var",                builder.sigma_var);
         builder.surfactant =                get_value<double>                   (j, "surfactant",               builder.surfactant);
         builder.enable_heat_transfer =      get_value<bool>                     (j, "enable_heat_transfer",     builder.enable_heat_transfer);
         builder.enable_evaporation =        get_value<bool>                     (j, "enable_evaporation",       builder.enable_evaporation);
@@ -231,8 +233,10 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->alpha_M = builder.alpha_M;
     this->P_v = builder.P_v;
     this->mu_L = builder.mu_L;
-    this->rho_L = builder.rho_L;
-    this->c_L = builder.c_L;
+	this->nu_L = builder.nu_L;
+    this->rho_0 = builder.rho_0;
+    this->c_0 = builder.c_0;
+	this->sigma_var = builder.sigma_var;
     this->surfactant = builder.surfactant;
     this->enable_heat_transfer = builder.enable_heat_transfer;
     this->enable_evaporation = builder.enable_evaporation;
@@ -266,7 +270,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->set_excitation_params(std::vector<double>(builder.excitation_params));
 
     // Set reference values
-    const double p_E = this->P_amb + 2.0 * this->surfactant * par->sigma / this->R_E;   // [Pa]
+    const double p_E = this->P_amb + 2.0 * this->surfactant * this->sigma_var / this->R_E;/* * par->sigma / this->R_E;   // [Pa]*/
     const double V_E = 4.0 / 3.0 * std::numbers::pi * this->R_E * this->R_E * this->R_E;    // [m^3]
     const double n_tot = p_E * V_E / (par->R_g * this->T_inf);    // [mol]
 
@@ -419,8 +423,8 @@ std::string ControlParameters::to_csv() const
         ss << format_double << this->fractions[index] << ";";
     ss << "," << format_double << this->P_amb << "," << format_double << this->T_inf << ",";
     ss << format_double << this->alpha_M << "," << format_double << this->P_v << ",";
-    ss << format_double << this->mu_L << "," << format_double << this->rho_L << ",";
-    ss << format_double << this->c_L << "," << format_double << this->surfactant << ",";
+    ss << format_double << this->mu_L << "," << format_double << this->nu_L << ","<< format_double << this->rho_0 << ",";
+    ss << format_double << this->c_0 << "," << format_double << this->sigma_var << ","<< format_double << this->surfactant << ",";
     ss << std::boolalpha << this->enable_heat_transfer << "," << std::boolalpha << this->enable_evaporation << ",";
     ss << std::boolalpha << this->enable_reactions << "," << std::boolalpha << this->enable_dissipated_energy << ",";
     ss << std::boolalpha << this->enable_van_der_waals << "," << std::boolalpha << this->enable_rate_thresholding << ",";
@@ -475,8 +479,10 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << format_string << ".alpha_M"                    << " = " << format_double << this->alpha_M                   << ",    // water accommodation coefficient [-]\n";
     ss << format_string << ".P_v"                        << " = " << format_double << this->P_v                       << ",    // vapour pressure [Pa]\n";
     ss << format_string << ".mu_L"                       << " = " << format_double << this->mu_L                      << ",    // dynamic viscosity [Pa*s]\n";
-    ss << format_string << ".rho_L"                      << " = " << format_double << this->rho_L                     << ",    // liquid density [kg/m^3]\n";
-    ss << format_string << ".c_L"                        << " = " << format_double << this->c_L                       << ",    // sound speed [m/s]\n";
+	ss << format_string << ".nu_L"                       << " = " << format_double << this->nu_L                      << ",    // kinematic viscosity [cSt]\n";
+    ss << format_string << ".rho_0"                      << " = " << format_double << this->rho_0                     << ",    // liquid density [kg/m^3]\n";
+    ss << format_string << ".c_0"                        << " = " << format_double << this->c_0                       << ",    // sound speed [m/s]\n";
+	ss << format_string << ".sigma_var"                  << " = " << format_double << this->sigma_var                 << ",    // surface tension [N/m]\n";
     ss << format_string << ".surfactant"                 << " = " << format_double << this->surfactant                << ",    // surface tension modifier [-]\n";
     ss << format_string << ".enable_heat_transfer"       << " = " << format_bool   << this->enable_heat_transfer      << ",\n";
     ss << format_string << ".enable_evaporation"         << " = " << format_bool   << this->enable_evaporation        << ",\n";
@@ -530,8 +536,10 @@ ordered_json ControlParameters::to_json() const
     j["alpha_M"] = this->alpha_M;
     j["P_v"] = this->P_v;
     j["mu_L"] = this->mu_L;
-    j["rho_L"] = this->rho_L;
-    j["c_L"] = this->c_L;
+	j["nu_L"] = this->nu_L;
+    j["rho_0"] = this->rho_0;
+    j["c_0"] = this->c_0;
+	j["sigma_var"] = this->sigma_var;
     j["surfactant"] = this->surfactant;
     j["enable_heat_transfer"] = this->enable_heat_transfer;
     j["enable_evaporation"] = this->enable_evaporation;

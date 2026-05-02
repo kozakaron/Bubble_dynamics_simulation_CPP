@@ -16,7 +16,7 @@ public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
     static constexpr size_t max_species = 40;
-    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,enable_van_der_waals,enable_rate_thresholding,target_specie,excitation_type,excitation_params,excitation_cycles,ramp_up_cycles,R_and_R_dot_from_file,rows,cols,file_name,const_V,const_T,EoS_liquid";
+    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,nu_L,rho_0,c_0,sigma_var,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,enable_van_der_waals,enable_rate_thresholding,target_specie,excitation_type,excitation_params,excitation_cycles,ramp_up_cycles,R_and_R_dot_from_file,rows,cols,file_name,const_V,const_T,EoS_liquid";
 // Members
     size_t ID;                          // ID of control parameter
     const Parameters* par;              // reaction mechanism (pointer to Parameters instance)
@@ -34,8 +34,10 @@ public:
     double alpha_M;                     // water accommodation coefficient [-]
     double P_v;                         // vapour pressure [Pa]
     double mu_L;                        // dynamic viscosity [Pa*s]
-    double rho_L;                       // liquid density [kg/m^3]
-    double c_L;                         // sound speed [m/s]
+	double nu_L;                        // kinematic viscosity [cSt]
+    double rho_0;                       // liquid density [kg/m^3]
+    double c_0;                         // sound speed [m/s]
+	double sigma_var;                   // surface tension [N/m]
     double surfactant;                  // surface tension modifier [-]
     // Simulation settings:
     bool enable_heat_transfer;
@@ -101,8 +103,10 @@ public:
         double alpha_M                          = 0.35;
         double P_v                              = 2338.1;
         double mu_L                             = 0.001;
-        double rho_L                            = 998.2;
-        double c_L                              = 1483.0;
+		double nu_L                             = 1.0;
+        double rho_0                            = 998.2;
+        double c_0                              = 1483.0;
+		double sigma_var 						= -1.0;
         double surfactant                       = 1.0;
 		/*double Gamma_L							= 1.19;
 		double c_L_ref							= 1496.0;

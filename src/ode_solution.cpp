@@ -445,10 +445,12 @@ std::string SimulationData::to_small_string(const ParameterCombinator &ps, const
         ss << "P_v=" << format_double << this->cpar.P_v << " Pa; ";
     if (ps.mu_L->get_num_steps() > 1)
         ss << "mu_L=" << format_double << this->cpar.mu_L << " Pa*s; ";
-    if (ps.rho_L->get_num_steps() > 1)
-        ss << "rho_L=" << format_double << this->cpar.rho_L << " kg/m^3; ";
-    if (ps.c_L->get_num_steps() > 1)
-        ss << "c_L=" << format_double << this->cpar.c_L << " m/s; ";
+	if (ps.mu_L->get_num_steps() > 1)
+        ss << "nu_L=" << format_double << this->cpar.nu_L << " cSt; ";
+    if (ps.rho_0->get_num_steps() > 1)
+        ss << "rho_0=" << format_double << this->cpar.rho_0 << " kg/m^3; ";
+    if (ps.c_0->get_num_steps() > 1)
+        ss << "c_0=" << format_double << this->cpar.c_0 << " m/s; ";
     if (ps.surfactant->get_num_steps() > 1)
         ss << "surfactant=" << format_double << this->cpar.surfactant << "; ";
     if (ps.excitation_cycles->get_num_steps() > 1)
