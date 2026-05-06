@@ -421,3 +421,20 @@ std::tuple<double, double, double> Interpolator::interpolate(const double t)
     // Use blended quartic Lagrange interpolation with smooth stencil transitions
     return lagrange_quartic_blended(t, this->t_data, this->x_data);
 }
+/*
+std::tuple<double, double, double> Interpolator::interpolate(const double t)
+{
+    if (t <= this->t_data.front())
+        return {x_data.front(), v_data.front(), 0.0};
+
+    if (t >= this->t_data.back())
+        return {x_data.back(), v_data.back(), 0.0};
+
+    auto [R, Rdot_num, Rddot_num] =
+        lagrange_quartic_blended(t, t_data, x_data);
+
+    auto [Rdot, junk1, junk2] =
+        lagrange_quartic_blended(t, t_data, v_data);
+
+    return {R, Rdot, Rdot_num};
+}*/
