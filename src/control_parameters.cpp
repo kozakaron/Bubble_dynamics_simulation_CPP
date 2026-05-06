@@ -505,7 +505,7 @@ std::string ControlParameters::to_string(const bool with_code) const
 	//importdata, if needed
 	ss << format_string << ".const_V"					 << " = " << format_double << this->const_V 				  << " 	   // 0: V is not constant, 1: V is constant";
 	ss << format_string << ".const_T"					 << " = " << format_double << this->const_T 				  << " 	   // 0: T is not constant, 1: T is constant";
-	ss << format_string << ".EoS_liquid"				 << " = " << format_double << this->EoS_liquid 				  << " 	   // Equation of state for the liquid";
+	ss << format_string << ".EoS_liquid"				 << " = " << 			      this->EoS_liquid 				  << " 	   // Equation of state for the liquid";
 
     if (with_code) ss << "}";
     ss << std::right;

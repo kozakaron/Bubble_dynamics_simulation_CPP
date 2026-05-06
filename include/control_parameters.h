@@ -133,11 +133,11 @@ public:
         size_t R_and_R_dot_from_file			= 0;
         size_t rows 							= 2;
         size_t cols 							= 2;
-        std::string file_name					= "";
+        std::string file_name					= "test.csv";
         std::vector<double> importdata;
 		size_t const_V							= 0;
 		size_t const_T							= 0;
-		std::string EoS_liquid					= "";
+		std::string EoS_liquid					= "Tait";
     };
     
 // Methods
