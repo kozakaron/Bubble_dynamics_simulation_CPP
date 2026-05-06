@@ -378,9 +378,9 @@ is_success OdeFun::initial_conditions(
     double* x_dimless
 )
 {
-	cpar.rho_0 = 969.05 - 156.11 * std::pow(cpar.nu_L,-0.6661); //kg/m^3
+	/*cpar.rho_0 = 969.05 - 156.11 * std::pow(cpar.nu_L,-0.6661); //kg/m^3
 	cpar.c_0 = 1001.86 - 83.97 * std::pow(cpar.nu_L,-0.6281); //m/s
-	cpar.sigma_var = (21.3876 - 4.2173 * std::pow(cpar.nu_L,-0.5287))*0.001; //mN/m -> N/m
+	cpar.sigma_var = (21.3876 - 4.2173 * std::pow(cpar.nu_L,-0.5287))*0.001; //mN/m -> N/m */
 // Van der Waals mixture
     double a_tot = 0.0;
     double b_tot = 0.0;

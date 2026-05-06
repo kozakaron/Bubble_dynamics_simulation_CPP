@@ -312,11 +312,12 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
     this->total_combination_count *= this->T_inf->get_num_steps();
     this->total_combination_count *= this->alpha_M->get_num_steps();
     this->total_combination_count *= this->P_v->get_num_steps();
-    this->total_combination_count *= this->mu_L->get_num_steps();
+    //mu_L, rho_0 and c_0 depend on nu_L
+	/*this->total_combination_count *= this->mu_L->get_num_steps();*/
 	this->total_combination_count *= this->nu_L->get_num_steps();
-    this->total_combination_count *= this->rho_0->get_num_steps();
+    /*this->total_combination_count *= this->rho_0->get_num_steps();
     this->total_combination_count *= this->c_0->get_num_steps();
-	this->total_combination_count *= this->sigma_var->get_num_steps();
+	this->total_combination_count *= this->sigma_var->get_num_steps();*/
     this->total_combination_count *= this->surfactant->get_num_steps();
     this->total_combination_count *= this->excitation_cycles->get_num_steps();
     this->total_combination_count *= this->ramp_up_cycles->get_num_steps();
