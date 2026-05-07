@@ -16,6 +16,7 @@ class Interpolator {
 public:
     std::vector<double> t_data;
     std::vector<double> x_data;
+	std::vector<double> v_data; // R_dot
     size_t error_ID;
     std::string filename;  // Stored filename with normalized path separators (/ only)
 
