@@ -575,7 +575,7 @@ void ParameterCombinator::init(const ordered_json& j)
 		builder.file_name =					get_value<std::string>				(j, "file_name", 				builder.file_name);
 		builder.const_V =					get_range							(j, "const_V", 					builder.const_V);
 		builder.const_T =					get_range							(j, "const_T", 					builder.const_T);
-		builder.EoS_liquid =				get_value<std::string>				(j, "EoS_liquid ", 				builder.EoS_liquid );
+		builder.EoS_liquid =				get_value<std::string>				(j, "EoS_liquid", 				builder.EoS_liquid);
 
         if (j.contains("excitation_params"))
         {
