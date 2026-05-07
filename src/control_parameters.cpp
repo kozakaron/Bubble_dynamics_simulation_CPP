@@ -235,10 +235,10 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     
 	this->nu_L = builder.nu_L; //cSt
 	
-    this->rho_0 = 969.05 - 156.11 * std::pow(this->nu_L,-0.6661); //kg/m^3   //builder.rho_0;
-	this->mu_L = this->nu_L * 1.0e-6 * this->rho_0;//builder.mu_L;
-    this->c_0 = 1001.86 - 83.97 * std::pow(this->nu_L,-0.6281); //m/s //builder.c_0;
-	this->sigma_var = (21.3876 - 4.2173 * std::pow(this->nu_L,-0.5287))*0.001; //mN/m -> N/m  //builder.sigma_var;
+    this->rho_0 = builder.rho_0;//969.05 - 156.11 * std::pow(this->nu_L,-0.6661); //kg/m^3   //builder.rho_0;
+	this->mu_L = builder.mu_L;//this->nu_L * 1.0e-6 * this->rho_0;//builder.mu_L;
+    this->c_0 = builder.c_0;//1001.86 - 83.97 * std::pow(this->nu_L,-0.6281); //m/s //builder.c_0;
+	this->sigma_var = builder.sigma_var;//(21.3876 - 4.2173 * std::pow(this->nu_L,-0.5287))*0.001; //mN/m -> N/m  //builder.sigma_var;
 	
     this->surfactant = builder.surfactant;
     this->enable_heat_transfer = builder.enable_heat_transfer;
