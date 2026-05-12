@@ -155,7 +155,7 @@ public:
         bool enable_rate_thresholding           = true;
         std::string target_specie               = "H2";
         Parameters::excitation excitation_type  = Parameters::excitation::sinusoid;
-        std::vector<AnyRange> excitation_params = {Const(-2.0e5), Const(30000.0)};
+        std::vector<AnyRange> excitation_params = {Const(-2.0e5), Const(30000.0)};	
         AnyRange excitation_cycles              = Const(1.0);
         AnyRange ramp_up_cycles                 = Const(0.0);
 		AnyRange R_and_R_dot_from_file 			= Const(0);

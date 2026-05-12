@@ -147,6 +147,13 @@ ControlParameters::ControlParameters(const ordered_json& j)
                                             get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
         );
         builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params);
+		/*builder.p_A1 =         				get_value<double>      				(j, "p_A1",        				builder.p_A1);
+		builder.freq1 =         			get_value<double>      				(j, "freq1",        			builder.freq1);
+		builder.p_A2 =         				get_value<double>      				(j, "p_A2",        				builder.p_A2);
+		builder.freq2 =         			get_value<double>      				(j, "freq2",        			builder.freq2);		
+		builder.theta =         			get_value<double>  					(j, "theta",        			builder.theta);
+		builder.harmonics =         		get_value<double>      				(j, "harmonics",        		builder.harmonics);	*/	
+		
         builder.excitation_cycles =         get_value<double>                   (j, "excitation_cycles",        builder.excitation_cycles);
         builder.ramp_up_cycles =            get_value<double>                   (j, "ramp_up_cycles",           builder.ramp_up_cycles);
 		
@@ -433,8 +440,13 @@ std::string ControlParameters::to_csv() const
     ss << std::boolalpha << this->enable_van_der_waals << "," << std::boolalpha << this->enable_rate_thresholding << ",";
     ss << par->species_names[this->target_specie] << ",";
     ss << Parameters::excitation_names[this->excitation_type] << ",";
+	
+	ss << ",";
     for (size_t index = 0; index < Parameters::excitation_arg_nums[this->excitation_type]; ++index)
-        ss << format_double << this->excitation_params[index] << ";";
+        ss << format_double << this->excitation_params[index] << ",";//";";
+	for (size_t index = 0; index < this->max_excitation_params-Parameters::excitation_arg_nums[this->excitation_type]; ++index)
+        ss << ",";//";";
+	
     ss << "," << format_double << this->excitation_cycles << "," << format_double << this->ramp_up_cycles << "," << format_double << 
 	this->R_and_R_dot_from_file << "," << format_double << this->rows << "," << format_double << this->cols << "," << this->file_name /*<<importdata*/	<< "," << this->const_V << "," << this->const_T <<","<<this->EoS_liquid;
     
@@ -553,6 +565,12 @@ ordered_json ControlParameters::to_json() const
     j["target_specie"] = par->species_names.at(this->target_specie);
     j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
     j["excitation_params"] = std::vector<double>(this->excitation_params, this->excitation_params + Parameters::excitation_arg_nums.at(this->excitation_type));
+	/*j["p_A1"] = this->p_A1;
+	j["freq1"] = this->freq1;
+	j["p_A2"] = this->p_A2;
+	j["freq2"] = this->freq2;
+	j["theta"] = this->theta;
+	j["harmonics"] = this->harmonics;	*/
     j["excitation_cycles"] = this->excitation_cycles;
     j["ramp_up_cycles"] = this->ramp_up_cycles;
     j["R_and_R_dot_from_file"] = this->R_and_R_dot_from_file;

@@ -16,7 +16,7 @@ public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
     static constexpr size_t max_species = 40;
-    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,nu_L,rho_0,c_0,sigma_var,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,enable_van_der_waals,enable_rate_thresholding,target_specie,excitation_type,excitation_params,excitation_cycles,ramp_up_cycles,R_and_R_dot_from_file,rows,cols,file_name,const_V,const_T,EoS_liquid";
+    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,nu_L,rho_0,c_0,sigma_var,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,enable_van_der_waals,enable_rate_thresholding,target_specie,excitation_type,excitation_params,p_A1,freq1,p_A2,freq2,theta,harmonic,excitation_cycles,ramp_up_cycles,R_and_R_dot_from_file,rows,cols,file_name,const_V,const_T,EoS_liquid";
 // Members
     size_t ID;                          // ID of control parameter
     const Parameters* par;              // reaction mechanism (pointer to Parameters instance)
@@ -51,6 +51,13 @@ public:
     // Excitation parameters:
     Parameters::excitation excitation_type;             // type of excitation
     double excitation_params[max_excitation_params];    // parameters for excitation (pointer to array of doubles)
+	/*double p_A1;
+	double freq1;
+	double p_A2;
+	double freq2;
+	double theta;
+	double harmonics;*/
+	
     double excitation_cycles;                           // number of excitation cycles to use (according to freq/freq1 in excitation_params) [-]
     double ramp_up_cycles;                              // number of cycles until the excitation reaches full amplitude (0<=ramp_up_cycles<=excitation_cycles/2) [-]
 
@@ -127,6 +134,13 @@ public:
         std::string target_specie               = "H2";
         Parameters::excitation excitation_type  = Parameters::excitation::sinusoid;
         std::vector<double> excitation_params   = {-2.0e5, 30000.0};
+		/*double p_A1							= -2.0e5;
+		double freq1							= 30000.0;
+		double p_A2								= 0.0;
+		double freq2							= -1.0;
+		double theta							= 0.0;
+		double harmonics						= 0.0;*/
+		
         double excitation_cycles                = 1.0;
         double ramp_up_cycles                   = 0.0;
 
