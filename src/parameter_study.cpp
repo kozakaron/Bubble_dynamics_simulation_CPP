@@ -174,7 +174,7 @@ void ParameterStudy::parameter_study_task(const bool print_output, const size_t 
             this->t_max,                // t_max [s]
             &ode,                       // ode_ptr
             this->timeout,              // timeout [s]
-            true            			// save solution
+            false            			// save solution
         );
 
         // save and print data

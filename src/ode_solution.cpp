@@ -459,8 +459,6 @@ std::string SimulationData::to_small_string(const ParameterCombinator &ps, const
     if (ps.ramp_up_cycles->get_num_steps() > 1)
         ss << "ramp_up_cycles=" << format_double << this->cpar.ramp_up_cycles << "; ";
 
-	ss <<"t_E: " <<t_E;
-
     std::string excitation_arg_names = Parameters::excitation_arg_names.at(ps.excitation_type);
     std::string excitation_arg_units = Parameters::excitation_arg_units.at(ps.excitation_type);
     auto name_begin = excitation_arg_names.begin();
@@ -480,11 +478,14 @@ std::string SimulationData::to_small_string(const ParameterCombinator &ps, const
     }
 
     ss << "   |   ";
+	ss <<"t_E: " <<t_E<<"; ";
     ss << "energy_demand=" << format_double << this->energy_demand << " MJ/kg ";
     if (colored)
         ss << colors::bold << "(best=" << format_double << best_energy_demand << " MJ/kg)" << colors::reset;
     else
         ss << "(best=" << format_double << best_energy_demand << " MJ/kg)";
+
+	
 
     return ss.str();
 }
