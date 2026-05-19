@@ -106,6 +106,8 @@ private:
     std::unique_ptr<Range> P_v;
     std::unique_ptr<Range> mu_L;
 	std::unique_ptr<Range> nu_L;
+	std::unique_ptr<Range> Gamma_L;
+	std::unique_ptr<Range> B_L;
     std::unique_ptr<Range> rho_0;
     std::unique_ptr<Range> c_0;
 	std::unique_ptr<Range> sigma_var;
@@ -143,6 +145,8 @@ public:
         AnyRange P_v                            = Const(2338.1);
         AnyRange mu_L                           = Const(0.001);
 		AnyRange nu_L                           = Const(1.0);
+		AnyRange Gamma_L                        = Const(8.46);
+		AnyRange B_L                            = Const(616640000.0);
         AnyRange rho_0                          = Const(998.2);
         AnyRange c_0                            = Const(1483.0);
 		AnyRange sigma_var                      = Const(-1.0);
