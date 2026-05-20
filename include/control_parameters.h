@@ -16,7 +16,7 @@ public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
     static constexpr size_t max_species = 40;
-    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,nu_L,Gamma_L,B_L,rho_0,c_0,sigma_var,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,enable_van_der_waals,enable_rate_thresholding,target_specie,excitation_type,excitation_params,p_A1,freq1,p_A2,freq2,theta,harmonic,excitation_cycles,ramp_up_cycles,R_and_R_dot_from_file,rows,cols,file_name,const_V,const_T,EoS_liquid";
+    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,nu_L,Gamma_L,B_L,b_L,rho_0,c_0,sigma_var,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,enable_van_der_waals,enable_rate_thresholding,target_specie,excitation_type,excitation_params,p_A1,freq1,p_A2,freq2,theta,harmonic,excitation_cycles,ramp_up_cycles,R_and_R_dot_from_file,rows,cols,file_name,const_V,const_T,EoS_liquid";
 // Members
     size_t ID;                          // ID of control parameter
     const Parameters* par;              // reaction mechanism (pointer to Parameters instance)
