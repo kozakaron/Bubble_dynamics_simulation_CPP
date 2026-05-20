@@ -280,6 +280,7 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
 	this->nu_L =                        get_unique_ptr(builder.nu_L);
 	this->Gamma_L =                     get_unique_ptr(builder.Gamma_L);
 	this->B_L =                         get_unique_ptr(builder.B_L);
+	this->b_L =                         get_unique_ptr(builder.b_L);
     this->rho_0 =                       get_unique_ptr(builder.rho_0);
     this->c_0 =                         get_unique_ptr(builder.c_0);
 	this->sigma_var =                   get_unique_ptr(builder.sigma_var);
@@ -319,6 +320,7 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
 	this->total_combination_count *= this->nu_L->get_num_steps();
 	this->total_combination_count *= this->Gamma_L->get_num_steps();
 	this->total_combination_count *= this->B_L->get_num_steps();
+	this->total_combination_count *= this->b_L->get_num_steps();
     /*this->total_combination_count *= this->rho_0->get_num_steps();
     this->total_combination_count *= this->c_0->get_num_steps();
 	this->total_combination_count *= this->sigma_var->get_num_steps();*/
@@ -559,6 +561,7 @@ void ParameterCombinator::init(const ordered_json& j)
 		builder.nu_L =                      get_range                           (j, "nu_L",                     builder.nu_L);
 		builder.Gamma_L =                   get_range                           (j, "Gamma_L",                  builder.Gamma_L);
 		builder.B_L =                       get_range                           (j, "B_L",                      builder.B_L);
+		builder.b_L =                       get_range                           (j, "b_L",                      builder.b_L);
         builder.rho_0 =                     get_range                           (j, "rho_0",                    builder.rho_0);
         builder.c_0 =                       get_range                           (j, "c_0",                      builder.c_0);
 		builder.sigma_var =                	get_range                           (j, "sigma_var",                builder.sigma_var);
@@ -728,6 +731,7 @@ std::string ParameterCombinator::to_string(const bool with_code) const
 	ss << format_field_name << ".nu_L" << " = " << format_range(this->nu_L.get()) << "\n";
 	ss << format_field_name << ".Gamma_L" << " = " << format_range(this->Gamma_L.get()) << "\n";
 	ss << format_field_name << ".B_L" << " = " << format_range(this->B_L.get()) << "\n";
+	ss << format_field_name << ".b_L" << " = " << format_range(this->b_L.get()) << "\n";
     ss << format_field_name << ".rho_0" << " = " << format_range(this->rho_0.get()) << "\n";
     ss << format_field_name << ".c_0" << " = " << format_range(this->c_0.get()) << "\n";
 	ss << format_field_name << ".sigma_var" << " = " << format_range(this->sigma_var.get()) << "\n";
@@ -780,6 +784,7 @@ ordered_json ParameterCombinator::to_json() const
 	j["nu_L"] = this->nu_L->to_json();
 	j["Gamma_L"] = this->Gamma_L->to_json();
 	j["B_L"] = this->B_L->to_json();
+	j["b_L"] = this->b_L->to_json();
     j["rho_0"] = this->rho_0->to_json();
     j["c_0"] = this->c_0->to_json();
 	j["sigma_var"] = this->sigma_var->to_json();
@@ -862,6 +867,7 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
 		.nu_L = get_value(this->nu_L),
 		.Gamma_L = get_value(this->Gamma_L),
 		.B_L = get_value(this->B_L),
+		.b_L = get_value(this->b_L),
         .rho_0 = get_value(this->rho_0),
         .c_0 = get_value(this->c_0),
 		.sigma_var = get_value(this->sigma_var),

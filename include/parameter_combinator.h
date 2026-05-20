@@ -108,6 +108,7 @@ private:
 	std::unique_ptr<Range> nu_L;
 	std::unique_ptr<Range> Gamma_L;
 	std::unique_ptr<Range> B_L;
+	std::unique_ptr<Range> b_L;
     std::unique_ptr<Range> rho_0;
     std::unique_ptr<Range> c_0;
 	std::unique_ptr<Range> sigma_var;
@@ -147,9 +148,10 @@ public:
 		AnyRange nu_L                           = Const(1.0);
 		AnyRange Gamma_L                        = Const(8.46);
 		AnyRange B_L                            = Const(616640000.0);
+		AnyRange b_L                            = Const(6.72e-4);
         AnyRange rho_0                          = Const(998.2);
         AnyRange c_0                            = Const(1483.0);
-		AnyRange sigma_var                      = Const(-1.0);
+		AnyRange sigma_var                      = Const(0.0728);
         AnyRange surfactant                     = Const(1.0);
         bool enable_heat_transfer               = true;
         bool enable_evaporation                 = true;

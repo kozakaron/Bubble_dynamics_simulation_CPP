@@ -37,6 +37,7 @@ public:
 	double nu_L;                        // kinematic viscosity [cSt]
 	double Gamma_L;						// exponent for Tait EoS [-]
 	double B_L;                         // Tait parameter [Pa]
+	double b_L;                         // NASG parameter [Pa]
     double rho_0;                       // liquid density [kg/m^3]
     double c_0;                         // sound speed [m/s]
 	double sigma_var;                   // surface tension [N/m]
@@ -80,17 +81,6 @@ public:
     double R_ref;                                       // reference radius [m]
     double T_ref;                                       // reference temperature [K]
     double E_diss_ref;                                  // reference dissipated energy [J] (instead of R_ref^2 * t_ref_inv^2)
-	
-	//Reference values for Gilmore:
-	/*double Gamma_L;
-	double c_L_ref;    
-	double kappa;
-	double r_hc;
-	double B_L;
-	double b_L;
-	double cV_L;
-	double rho_L_ref;
-	double p_L_ref;*/
 
 // Builder struct, defaults
     /* Usage in initialization: ControlParameters cpar{ControlParameters::Builder{
@@ -115,9 +105,10 @@ public:
 		double nu_L                             = 1.0;
 		double Gamma_L 							= 8.46;
 		double B_L 								= 616640000.0;
+		double b_L 								= 6.72e-4;
         double rho_0                            = 998.2;
         double c_0                              = 1483.0;
-		double sigma_var 						= -1.0;
+		double sigma_var 						= 0.0728;
         double surfactant                       = 1.0;
 		/*double Gamma_L							= 1.19;
 		double c_L_ref							= 1496.0;

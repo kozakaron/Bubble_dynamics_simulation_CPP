@@ -125,6 +125,7 @@ ControlParameters::ControlParameters(const ordered_json& j)
 		builder.nu_L =                      get_value<double>                   (j, "nu_L",                     builder.nu_L);
 		builder.Gamma_L =                   get_value<double>                   (j, "Gamma_L",                  builder.Gamma_L);
 		builder.B_L =                       get_value<double>                   (j, "B_L",                      builder.B_L);
+		builder.b_L =                       get_value<double>                   (j, "b_L",                      builder.b_L);
         builder.rho_0 =                     get_value<double>                   (j, "rho_0",                    builder.rho_0);
         builder.c_0 =                       get_value<double>                   (j, "c_0",                      builder.c_0);
 		/*builder.Gamma_L =					get_value<double>                   (j, "Gamma_L",                  builder.Gamma_L);
@@ -245,6 +246,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
 	this->nu_L = builder.nu_L; //cSt
 	this->Gamma_L = builder.Gamma_L;
 	this->B_L = builder.B_L;
+	this->b_L = builder.b_L;
 		
     this->rho_0 = builder.rho_0;//969.05 - 156.11 * std::pow(this->nu_L,-0.6661); //kg/m^3   //builder.rho_0;
 	this->mu_L = builder.mu_L;//this->nu_L * 1.0e-6 * this->rho_0;//builder.mu_L;
@@ -437,7 +439,7 @@ std::string ControlParameters::to_csv() const
         ss << format_double << this->fractions[index] << ";";
     ss << "," << format_double << this->P_amb << "," << format_double << this->T_inf << ",";
     ss << format_double << this->alpha_M << "," << format_double << this->P_v << ",";
-    ss << format_double << this->mu_L << "," << format_double << this->nu_L << "," << format_double << this->Gamma_L << "," << format_double << this->B_L << "," << format_double << this->rho_0 << ",";
+    ss << format_double << this->mu_L << "," << format_double << this->nu_L << "," << format_double << this->Gamma_L << "," << format_double << this->B_L << "," << format_double << this->b_L << "," << format_double << this->rho_0 << ",";
     ss << format_double << this->c_0 << "," << format_double << this->sigma_var << ","<< format_double << this->surfactant << ",";
     ss << std::boolalpha << this->enable_heat_transfer << "," << std::boolalpha << this->enable_evaporation << ",";
     ss << std::boolalpha << this->enable_reactions << "," << std::boolalpha << this->enable_dissipated_energy << ",";
@@ -501,6 +503,7 @@ std::string ControlParameters::to_string(const bool with_code) const
 	ss << format_string << ".nu_L"                       << " = " << format_double << this->nu_L                      << ",    // kinematic viscosity [cSt]\n";
 	ss << format_string << ".Gamma_L"                    << " = " << format_double << this->Gamma_L                   << ",    // exponent for Tait EoS\n";
 	ss << format_string << ".B_L"                        << " = " << format_double << this->B_L                       << ",    // Tait parameter [Pa]\n";
+	ss << format_string << ".b_L"                        << " = " << format_double << this->b_L                       << ",    // NASG parameter [Pa]\n";
     ss << format_string << ".rho_0"                      << " = " << format_double << this->rho_0                     << ",    // liquid density [kg/m^3]\n";
     ss << format_string << ".c_0"                        << " = " << format_double << this->c_0                       << ",    // sound speed [m/s]\n";
 	ss << format_string << ".sigma_var"                  << " = " << format_double << this->sigma_var                 << ",    // surface tension [N/m]\n";
@@ -560,6 +563,7 @@ ordered_json ControlParameters::to_json() const
 	j["nu_L"] = this->nu_L;
 	j["Gamma_L"] = this->Gamma_L;
 	j["B_L"] = this->B_L;
+	j["b_L"] = this->b_L;
     j["rho_0"] = this->rho_0;
     j["c_0"] = this->c_0;
 	j["sigma_var"] = this->sigma_var;

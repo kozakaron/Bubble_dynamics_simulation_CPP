@@ -399,7 +399,7 @@ is_success OdeFun::initial_conditions(
     }   
 
 // Equilibrium state pressure
-    const double p_E = cpar.P_amb + 2.0 * cpar.surfactant * par->sigma / cpar.R_E;   // [Pa]
+    const double p_E = cpar.P_amb + 2.0 * cpar.surfactant * cpar.sigma_var / cpar.R_E;   // [Pa]
     const double V_E = 4.0 / 3.0 * std::numbers::pi * cpar.R_E * cpar.R_E * cpar.R_E;    // [m^3]
     double p_gas = cpar.enable_evaporation ? p_E - cpar.P_v : p_E;   // [Pa]
 
@@ -439,7 +439,7 @@ is_success OdeFun::initial_conditions(
     c_H2O = n_H2O / V_0;   // [mol/m^3]
     c_gas = n_gas / V_0;   // [mol/m^3]
     p_gas = c_gas * par->R_g * cpar.T_inf; // [Pa]
-    const double P_amb_min = (cpar.enable_evaporation ? cpar.P_v : 0.0) + p_gas - 2.0 * cpar.surfactant * par->sigma / R_0; // [Pa]
+    const double P_amb_min = (cpar.enable_evaporation ? cpar.P_v : 0.0) + p_gas - 2.0 * cpar.surfactant * cpar.sigma_var / R_0; // [Pa]
     if (P_amb_min < (cpar.enable_evaporation ? cpar.P_v : 0.0))
     {
         LOG_ERROR(Error::severity::warning, Error::type::odefun, "The pressure during the expansion is lower, than the saturated water pressure.", this->cpar.ID);
@@ -718,9 +718,9 @@ std::tuple<double, double, double> OdeFun::pressures_excitation(
     return std::make_pair(delta, delta_dot);*/
     
     //Gilmore:
-    const double p_L = p - (2.0 * par->surfactant * par->sigma + 4.0 * par->mu_L * R_dot) / R;
-    const double p_L_dot_e = p_dot + (2.0 * par->surfactant * par->sigma * R_dot + 4.0 * par->mu_L * R_dot * R_dot)/ (R * R);
-    const double K_L = cpar.rho_0 / ( std::pow(par->p_L_ref + par->B_L, 1.0 / par->Gamma_L) * (1.0 - par->b_L * cpar.rho_0) );//const double K_L = par->rho_L_ref / ( std::pow(par->p_L_ref + par->B_L, 1.0 / par->Gamma_L) * (1.0 - par->b_L * par->rho_L_ref) );
+    const double p_L = p - (2.0 * cpar.surfactant * cpar.sigma_var + 4.0 * cpar.mu_L * R_dot) / R;
+    const double p_L_dot_e = p_dot + (2.0 * cpar.surfactant * cpar.sigma_var * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot)/ (R * R);
+    const double K_L = cpar.rho_0 / ( std::pow(par->p_L_ref + cpar.B_L, 1.0 / cpar.Gamma_L) * (1.0 - cpar.b_L * cpar.rho_0) );
     
 	
 	double nom = 0.0;
@@ -729,30 +729,30 @@ std::tuple<double, double, double> OdeFun::pressures_excitation(
 	//NASG:
 	if(cpar.EoS_liquid == "NASG")
 	{
-		const double rho_L=K_L* std::pow((p_L+par->B_L),(1.0/par->Gamma_L))/(1.0+par->b_L*K_L*std::pow((p_L+par->B_L),(1.0/par->Gamma_L)));
-		const double rho_Inf=K_L*std::pow((p_Inf+par->B_L),(1.0/par->Gamma_L))/(1.0+par->b_L*K_L*std::pow((p_Inf+par->B_L),(1.0/par->Gamma_L)));
-		double p_star = p_L + par->B_L;
-		double pow_term = std::pow(p_star, (1.0 / par->Gamma_L));
-		double du_dt = K_L * (1.0 / par->Gamma_L) * std::pow(p_star, (1.0 / par->Gamma_L - 1.0)) * p_L_dot_e;
-		double denom = 1.0 + par->b_L * K_L * pow_term;
+		const double rho_L=K_L* std::pow((p_L+cpar.B_L),(1.0/cpar.Gamma_L))/(1.0+cpar.b_L*K_L*std::pow((p_L+cpar.B_L),(1.0/cpar.Gamma_L)));
+		const double rho_Inf=K_L*std::pow((p_Inf+cpar.B_L),(1.0/cpar.Gamma_L))/(1.0+cpar.b_L*K_L*std::pow((p_Inf+cpar.B_L),(1.0/cpar.Gamma_L)));
+		double p_star = p_L + cpar.B_L;
+		double pow_term = std::pow(p_star, (1.0 / cpar.Gamma_L));
+		double du_dt = K_L * (1.0 / cpar.Gamma_L) * std::pow(p_star, (1.0 / cpar.Gamma_L - 1.0)) * p_L_dot_e;
+		double denom = 1.0 + cpar.b_L * K_L * pow_term;
 		const double rho_L_dot = du_dt / (denom * denom);
 		
-		p_star = p_Inf + par->B_L;
-		pow_term = std::pow(p_star, (1.0 / par->Gamma_L));
-		du_dt = K_L * (1.0 / par->Gamma_L) * std::pow(p_star, (1.0 / par->Gamma_L - 1.0)) * p_Inf_dot;
-		denom = 1.0 + par->b_L * K_L * pow_term;
+		p_star = p_Inf + cpar.B_L;
+		pow_term = std::pow(p_star, (1.0 / cpar.Gamma_L));
+		du_dt = K_L * (1.0 / cpar.Gamma_L) * std::pow(p_star, (1.0 / cpar.Gamma_L - 1.0)) * p_Inf_dot;
+		denom = 1.0 + cpar.b_L * K_L * pow_term;
 		const double rho_Inf_dot = du_dt / (denom * denom);
 		
-		const double H=(par->Gamma_L/(par->Gamma_L-1.0)*(p_L+par->B_L)/rho_L-par->Gamma_L*par->b_L/(par->Gamma_L-1.0)*(p_L+par->B_L)+par->b_L*p_L)-(par->Gamma_L/(par->Gamma_L-1.0)*(p_Inf+par->B_L)/rho_Inf-par->Gamma_L*par->b_L/(par->Gamma_L-1.0)*(p_Inf+par->B_L)+par->b_L*p_Inf); //h_L-h_Inf 
-		const double term_L = -(par->Gamma_L / (par->Gamma_L - 1.0)) * ((p_L + par->B_L) / (rho_L * rho_L)) * rho_L_dot
-					+ (par->Gamma_L / ((par->Gamma_L - 1.0) * rho_L) - par->b_L / (par->Gamma_L - 1.0)) * p_L_dot_e;
-		const double term_Inf = -(par->Gamma_L / (par->Gamma_L - 1.0)) * ((p_Inf + par->B_L) / (rho_Inf * rho_Inf)) * rho_Inf_dot 
-					  + (par->Gamma_L / ((par->Gamma_L - 1.0) * rho_Inf) - par->b_L / (par->Gamma_L - 1.0)) * p_Inf_dot;
+		const double H=(cpar.Gamma_L/(cpar.Gamma_L-1.0)*(p_L+cpar.B_L)/rho_L-cpar.Gamma_L*cpar.b_L/(cpar.Gamma_L-1.0)*(p_L+cpar.B_L)+cpar.b_L*p_L)-(cpar.Gamma_L/(cpar.Gamma_L-1.0)*(p_Inf+cpar.B_L)/rho_Inf-cpar.Gamma_L*cpar.b_L/(cpar.Gamma_L-1.0)*(p_Inf+cpar.B_L)+cpar.b_L*p_Inf); //h_L-h_Inf 
+		const double term_L = -(cpar.Gamma_L / (cpar.Gamma_L - 1.0)) * ((p_L + cpar.B_L) / (rho_L * rho_L)) * rho_L_dot
+					+ (cpar.Gamma_L / ((cpar.Gamma_L - 1.0) * rho_L) - cpar.b_L / (cpar.Gamma_L - 1.0)) * p_L_dot_e;
+		const double term_Inf = -(cpar.Gamma_L / (cpar.Gamma_L - 1.0)) * ((p_Inf + cpar.B_L) / (rho_Inf * rho_Inf)) * rho_Inf_dot 
+					  + (cpar.Gamma_L / ((cpar.Gamma_L - 1.0) * rho_Inf) - cpar.b_L / (cpar.Gamma_L - 1.0)) * p_Inf_dot;
 		const double H_dot_e= term_L - term_Inf;//p_L_dot_e/rho_L-p_Inf_dot/rho_Inf; ->not OK!
-		c_L=std::sqrt( (par->Gamma_L*(p_L+par->B_L)/(rho_L-par->b_L*rho_L*rho_L)) );
+		c_L=std::sqrt( (cpar.Gamma_L*(p_L+cpar.B_L)/(rho_L-cpar.b_L*rho_L*rho_L)) );
 		
 		nom=((1.0+R_dot/c_L)*H-3.0/2.0*(1.0-R_dot/(3.0*c_L))*R_dot*R_dot)/((1.0-R_dot/c_L)*R)+H_dot_e/c_L;
-		den=1.0+4.0*par->mu_L/(rho_L*R*c_L);
+		den=1.0+4.0*cpar.mu_L/(rho_L*R*c_L);
 	}
 	else
 	{
