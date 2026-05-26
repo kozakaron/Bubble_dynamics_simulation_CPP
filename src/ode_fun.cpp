@@ -761,11 +761,17 @@ std::tuple<double, double, double> OdeFun::pressures_excitation(
 		const double rho_Inf=cpar.rho_0 * std::pow((p_Inf+cpar.B_L)/(par->p_L_ref+cpar.B_L),1.0/cpar.Gamma_L);
 		const double h_L = cpar.Gamma_L/(cpar.Gamma_L-1.0)*(p_L+cpar.B_L)/rho_L;
 		const double H=h_L - cpar.Gamma_L/(cpar.Gamma_L-1.0)*(p_Inf+cpar.B_L)/rho_Inf; //h_L-h_Inf
-		const double H_dot_e=cpar.Gamma_L/(cpar.Gamma_L-1.0)*(p_L_dot_e/rho_L-p_Inf_dot/rho_Inf);
+		
+		const double rho_L_dot = rho_L / (cpar.Gamma_L * (p_L + cpar.B_L)) * p_L_dot_e;
+		const double rho_Inf_dot = rho_Inf / (cpar.Gamma_L * (p_Inf + cpar.B_L)) * p_Inf_dot;
+
+		const double p_rho_L_dot   = (p_L_dot_e * rho_L   - (p_L + cpar.B_L) * rho_L_dot)   / (rho_L * rho_L);
+		const double p_rho_Inf_dot = (p_Inf_dot * rho_Inf - (p_Inf + cpar.B_L) * rho_Inf_dot) / (rho_Inf * rho_Inf);
+
+		const double H_dot_e = cpar.Gamma_L / (cpar.Gamma_L - 1.0) * (p_rho_L_dot - p_rho_Inf_dot);
 		c_L=std::sqrt((cpar.Gamma_L-1.0)*h_L);
 		nom=((1.0+R_dot/c_L)*H-3.0/2.0*(1.0-R_dot/(3.0*c_L))*R_dot*R_dot)/((1.0-R_dot/c_L)*R)+H_dot_e/c_L;
 		den=1.0+4.0*cpar.mu_L/(rho_L*R*c_L);
-		
 	}
 
     
