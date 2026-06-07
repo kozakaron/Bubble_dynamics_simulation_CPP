@@ -380,13 +380,13 @@ def _print_data(data, print_it=True):
     text += f"  rho_L: {cpar.get('rho_L', nan)} [kg/m³]\n"
     text += f"  c_L: {cpar.get('c_L', nan)} [m/s]\n"
     text += f"  Surfactant: {cpar.get('surfactant', nan)}\n"
+    text += f"  Bubble Dynamics: {cpar.get('bubble_dynamics', nan)}\n"
+    text += f"  Liquid EOS Params: {cpar.get('liquid_eos_params', nan)}\n"
     text += f"  Enable Heat Transfer: {cpar.get('enable_heat_transfer', nan)}\n"
     text += f"  Enable Evaporation: {cpar.get('enable_evaporation', nan)}\n"
     text += f"  Enable Reactions: {cpar.get('enable_reactions', nan)}\n"
     text += f"  Enable Dissipated Energy: {cpar.get('enable_dissipated_energy', nan)}\n"
     text += f"  Enable Van der Waals: {cpar.get('enable_van_der_waals', nan)}\n"
-    text += f"  Enable Gilmore: {cpar.get('enable_gilmore', nan)}\n"
-    text += f"  Enable NASG: {cpar.get('enable_nasg', nan)}\n"
     text += f"  Enable Rate Thresholding: {cpar.get('enable_rate_thresholding', nan)}\n"
     text += f"  Target Specie: {cpar.get('target_specie', nan)}\n"
     text += f"  Excitation Type: {cpar.get('excitation_type', nan)}\n"
@@ -420,7 +420,7 @@ def _print_data(data, print_it=True):
     text += f"  p_internal_max = {postproc.get('p_internal_max', nan):.6g} [Pa]\n"
     text += f"  p_internal_min = {postproc.get('p_internal_min', nan):.6g} [Pa]\n"
     text += f"  Ma_max = {postproc.get('Ma_max', nan):.6g} [-]\n"
-    if cpar.get('enable_gilmore', False):
+    if cpar.get('bubble_dynamics', 'keller_miksis') != 'keller_miksis':
         text += f"  T_L_max = {postproc.get('T_L_max', nan):.6g} [K]\n"
         text += f"  c_L_max = {postproc.get('c_L_max', nan):.6g} [m/s]\n"
         text += f"  rho_L_max = {postproc.get('rho_L_max', nan):.6g} [kg/m^3]\n"
@@ -712,6 +712,7 @@ def line_to_dict(line):
     fractions = str(line['fractions'])
     fractions = [float(frac) for frac in fractions.split(';') if frac != '']
     excitation_params = [float(param) for param in str(line['excitation_params']).split(';') if param != '']
+    liquid_eos_params = [float(param) for param in str(line.get('liquid_eos_params', '')).split(';') if param != '']
 
     return dict(
         ID = int(line['ID']),
@@ -728,13 +729,13 @@ def line_to_dict(line):
         rho_L = float(line['rho_L']),
         c_L = float(line['c_L']),
         surfactant = float(line['surfactant']),
+        bubble_dynamics = str(line.get('bubble_dynamics', 'keller_miksis')),
+        liquid_eos_params = liquid_eos_params,
         enable_heat_transfer = bool(line['enable_heat_transfer']),
         enable_evaporation = bool(line['enable_evaporation']),
         enable_reactions = bool(line['enable_reactions']),
         enable_dissipated_energy = bool(line['enable_dissipated_energy']),
         enable_van_der_waals = bool(line['enable_van_der_waals']),
-        enable_gilmore = bool(line['enable_gilmore']),
-        enable_nasg = bool(line['enable_nasg']),
         enable_rate_thresholding = bool(line['enable_rate_thresholding']),
         target_specie = str(line['target_specie']),
         excitation_type = str(line['excitation_type']),

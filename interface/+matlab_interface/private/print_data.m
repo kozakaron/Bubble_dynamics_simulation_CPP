@@ -29,13 +29,15 @@ function text = print_data(data, print_it)
     text = text + sprintf("  rho_L: %.2f [kg/m³]\n", getfield_or_default(cpar, 'rho_L', NaN));
     text = text + sprintf("  c_L: %.2f [m/s]\n", getfield_or_default(cpar, 'c_L', NaN));
     text = text + sprintf("  Surfactant: %.2f\n", getfield_or_default(cpar, 'surfactant', NaN));
+    bubble_dynamics = getfield_or_default(cpar, 'bubble_dynamics', 'keller_miksis');
+    text = text + sprintf("  Bubble Dynamics: %s\n", bubble_dynamics);
+    liquid_eos = getfield_or_default(cpar, 'liquid_eos_params', []);
+    text = text + sprintf("  Liquid EOS Params: %s\n", mat2str(liquid_eos));
     text = text + sprintf("  Enable Heat Transfer: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_heat_transfer', false)));
     text = text + sprintf("  Enable Evaporation: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_evaporation', false)));
     text = text + sprintf("  Enable Reactions: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_reactions', false)));
     text = text + sprintf("  Enable Dissipated Energy: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_dissipated_energy', false)));
     text = text + sprintf("  Enable Van der Waals: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_van_der_waals', false)));
-    text = text + sprintf("  Enable Gilmore: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_gilmore', false)));
-    text = text + sprintf("  Enable NASG: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_nasg', false)));
     text = text + sprintf("  Enable Rate Thresholding: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_rate_thresholding', false)));
     text = text + sprintf("  Target Specie: %s\n", getfield_or_default(cpar, 'target_specie', 'N/A'));
     text = text + sprintf("  Excitation Type: %s\n", getfield_or_default(cpar, 'excitation_type', 'N/A'));
@@ -72,7 +74,7 @@ function text = print_data(data, print_it)
     text = text + sprintf("  p_internal_max = %.6g [Pa]\n", getfield_or_default(postproc, 'p_internal_max', NaN));
     text = text + sprintf("  p_internal_min = %.6g [Pa]\n", getfield_or_default(postproc, 'p_internal_min', NaN));
     text = text + sprintf("  Ma_max = %.6g [-]\n", getfield_or_default(postproc, 'Ma_max', NaN));
-    if getfield_or_default(cpar, 'enable_gilmore', false)
+    if ~strcmp(getfield_or_default(cpar, 'bubble_dynamics', 'keller_miksis'), 'keller_miksis')
         text = text + sprintf("  T_L_max = %.6g [K]\n", getfield_or_default(postproc, 'T_L_max', NaN));
         text = text + sprintf("  c_L_max = %.6g [m/s]\n", getfield_or_default(postproc, 'c_L_max', NaN));
         text = text + sprintf("  rho_L_max = %.6g [kg/m^3]\n", getfield_or_default(postproc, 'rho_L_max', NaN));

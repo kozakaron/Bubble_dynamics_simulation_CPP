@@ -35,6 +35,8 @@ void benchmark_ode_fun()
             .rho_L                       = 9.98200000000000045e+02,    // liquid density [kg/m^3]
             .c_L                         = 1.48300000000000000e+03,    // sound speed [m/s]
             .surfactant                  = 1.00000000000000000e+00,    // surface tension modifier [-]
+            .bubble_dynamics_type        = Parameters::bubble_dynamics::keller_miksis,
+            .liquid_eos_params           = {},
             .enable_heat_transfer        = true,
             .enable_evaporation          = true,
             .enable_reactions            = true,
@@ -148,6 +150,8 @@ void benchmark_ode_fun()
         cpar.rho_L = 998.2;
         cpar.c_L = 1483.0;
         cpar.surfactant = 1.0;
+        // Bubble dynamics and liquid EOS:
+        cpar.bubble_dynamics_type = Parameters::bubble_dynamics::keller_miksis;
         // Simulation settings:
         cpar.enable_heat_transfer = true;
         cpar.enable_evaporation = true;

@@ -356,13 +356,13 @@ The `ControlParameters` class, declared in [./include/control_parameters.h](./in
      .rho_L                       = 9.98200000000000045e+02,    // liquid density [kg/m^3]
      .c_L                         = 1.48300000000000000e+03,    // sound speed [m/s]
      .surfactant                  = 1.00000000000000000e+00,    // surface tension modifier [-]
+     .bubble_dynamics             = Parameters::bubble_dynamics::gilmore_nasg,
+     .liquid_eos_params           = {1.19, 6.218e8, 6.72e-4, 1.0e5, 997.0, 3610.0},
      .enable_heat_transfer        = true,
      .enable_evaporation          = true,
      .enable_reactions            = true,
      .enable_dissipated_energy    = true,
      .enable_van_der_waals        = true,
-     .enable_gilmore              = true,
-     .enable_nasg                 = true,
      .enable_rate_thresholding    = true,
      .target_specie               = "H2",
      .excitation_type             = Parameters::excitation::sinusoid,                      // type of excitation (enum)
