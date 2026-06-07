@@ -693,6 +693,8 @@ index_t Parameters::get_species(std::string name) const
 Parameters::excitation Parameters::string_to_excitation(std::string excitation_str) {
     std::transform(excitation_str.begin(), excitation_str.end(), excitation_str.begin(), ::tolower);
     std::replace(excitation_str.begin(), excitation_str.end(), ' ', '_');
+    std::replace(excitation_str.begin(), excitation_str.end(), '-', '_');
+    
     auto it = std::find(Parameters::excitation_names.begin(), Parameters::excitation_names.end(), excitation_str);
     if (it != Parameters::excitation_names.end()) {
         return static_cast<Parameters::excitation>(std::distance(Parameters::excitation_names.begin(), it));
@@ -704,4 +706,21 @@ Parameters::excitation Parameters::string_to_excitation(std::string excitation_s
     ss << ::to_string((char**)Parameters::excitation_names.data(), Parameters::excitation_names.size());
     LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
     return Parameters::excitation::sinusoid; // Default to a known excitation type
+}
+
+Parameters::bubble_dynamics Parameters::string_to_bubble_dynamics(std::string bubble_dynamics_str) {
+    std::transform(bubble_dynamics_str.begin(), bubble_dynamics_str.end(), bubble_dynamics_str.begin(), ::tolower);
+    std::replace(bubble_dynamics_str.begin(), bubble_dynamics_str.end(), ' ', '_');
+    std::replace(bubble_dynamics_str.begin(), bubble_dynamics_str.end(), '-', '_');
+    if (bubble_dynamics_str == "") return Parameters::keller_miksis;
+
+    auto it = std::find(Parameters::bubble_dynamics_names.begin(), Parameters::bubble_dynamics_names.end(), bubble_dynamics_str);
+    if (it != Parameters::bubble_dynamics_names.end()) {
+        return static_cast<Parameters::bubble_dynamics>(std::distance(Parameters::bubble_dynamics_names.begin(), it));
+    }
+
+    std::stringstream ss;
+    ss << ::to_string((char**)Parameters::bubble_dynamics_names.data(), Parameters::bubble_dynamics_names.size());
+    LOG_ERROR(Error::severity::error, Error::type::preprocess, "Invalid bubble dynamics type: " + bubble_dynamics_str + ". Available values are: " + ss.str());
+    return Parameters::keller_miksis;
 }

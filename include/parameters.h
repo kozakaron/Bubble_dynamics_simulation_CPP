@@ -47,6 +47,30 @@ public:
         "Pa Hz -"                                      // square
     };
 
+// BUBBLE DYNAMICS AND LIQUID EOS TYPES
+
+    enum bubble_dynamics: index_t {keller_miksis=0, gilmore_nasg=1, gilmore_tait=2};
+    static constexpr std::array<index_t, 3> bubble_dynamics_arg_nums = {
+        0, // keller_miksis
+        0, // gilmore_nasg
+        0  // gilmore_tait
+    };
+    static constexpr std::array<const char*, 3> bubble_dynamics_names = {
+        "keller_miksis",
+        "gilmore_nasg",
+        "gilmore_tait"
+    };
+    static constexpr std::array<const char*, 3> bubble_dynamics_arg_names = {
+        "",                                            // keller_miksis
+        "Gamma_L B_L b_L p_L_ref rho_L_ref C_vL",     // gilmore_nasg
+        "Gamma_L B_L p_L_ref rho_L_ref"                // gilmore_tait
+    };
+    static constexpr std::array<const char*, 3> bubble_dynamics_arg_units = {
+        "",                                            // keller_miksis
+        "- Pa m^3/kg Pa kg/m^3 J/(kg*K)",              // gilmore_nasg
+        "- Pa Pa kg/m^3"                               // gilmore_tait
+    };
+
 // PHYSICAL CONSTANTS
 
 // Water reference properties at 30 °C and 1 atm
@@ -56,22 +80,6 @@ public:
     static constexpr double mu_L          = 0.001;              // Dynamic viscosity at 30 °C and 1 atm [Pa*s]
     static constexpr double P_v           = 2338.1;             // Saturated vapour pressure at 30 °C [Pa]
     static constexpr double alpha_M       = 0.35;               // Water accommodation coefficient [-]
-// Water NASG parameters (for Gilmore + NASG EoS)
-    struct nasg {
-        static constexpr double Gamma_L   = 1.19;       // NASG polytropic exponent [-]
-        static constexpr double B_L       = 6.218e8;    // pressure constant that models molecular attraction [Pa]
-        static constexpr double b_L       = 6.72e-4;    // co-volume (volume of molecules) [m^3/kg]
-        static constexpr double p_L_ref   = 1.0e5;      // reference pressure [Pa]
-        static constexpr double rho_L_ref = 997.0;      // reference density [kg/m^3]
-        static constexpr double C_vL      = 3610.0;     // specific isochoric heat capacity of liquid water [J/(kg*K)]
-    };
-// Water Tait parameters (for Gilmore + Tait EoS)
-    struct tait {
-        static constexpr double Gamma_L   = 7.15;       // Tait polytropic exponent [-]
-        static constexpr double B_L       = 3.046e8;    // stiffness constant [Pa]
-        static constexpr double p_L_ref   = 1.0e5;      // reference pressure [Pa]
-        static constexpr double rho_L_ref = 997.0;      // reference density [kg/m^3]
-    };
 // Universal constants
     static constexpr double k_B           = 1.380649e-23;       // Boltzmann constant [J/K]
     static constexpr double R_g           = 8.31446;            // Universal gas constant [J/mol/K]
@@ -159,6 +167,7 @@ public:
 
 // GETTERS
     static const Parameters *get_parameters(const std::string& mech_name);
+    static Parameters::bubble_dynamics string_to_bubble_dynamics(std::string bubble_dynamics_str);
     static Parameters::excitation string_to_excitation(std::string excitation_str);
 };
 

@@ -569,17 +569,18 @@ std::pair<double, double> OdeFun::excitation_pressures(
 
 std::tuple<double, double, double, double> OdeFun::liquid_properties(const double p_L, const double P_inf)
 {
-    if (!cpar.enable_gilmore)
+    if (cpar.bubble_dynamics_type == Parameters::bubble_dynamics::keller_miksis)
+    {
         return {cpar.c_L, cpar.rho_L, cpar.rho_L, 0.0};
-
-    if (cpar.enable_nasg)
+    } else if (cpar.bubble_dynamics_type == Parameters::bubble_dynamics::gilmore_nasg)
     {
         // Noble-Abel stiffened-gas (NASG) EoS
-        constexpr double Gamma_L   = Parameters::nasg::Gamma_L;
-        constexpr double B_L       = Parameters::nasg::B_L;
-        constexpr double b_L       = Parameters::nasg::b_L;
-        constexpr double p_L_ref   = Parameters::nasg::p_L_ref;
-        constexpr double rho_L_ref = Parameters::nasg::rho_L_ref;
+        // Validation of parameter count happens in ControlParameters::init()
+        const double Gamma_L   = cpar.liquid_eos_params[0];
+        const double B_L       = cpar.liquid_eos_params[1];
+        const double b_L       = cpar.liquid_eos_params[2];
+        const double p_L_ref   = cpar.liquid_eos_params[3];
+        const double rho_L_ref = cpar.liquid_eos_params[4];
 
         const double K_L     = rho_L_ref / (std::pow(p_L_ref + B_L, 1.0 / Gamma_L) * (1.0 - b_L * rho_L_ref));
         const double rho_L   = K_L * std::pow((p_L   + B_L), 1.0 / Gamma_L) / (1.0 + b_L * K_L * std::pow((p_L   + B_L), 1.0 / Gamma_L));
@@ -592,11 +593,12 @@ std::tuple<double, double, double, double> OdeFun::liquid_properties(const doubl
 
         return {c_L, rho_L, rho_inf, H};
     } else {
-        // Tait EoS
-        constexpr double Gamma_L   = Parameters::tait::Gamma_L;
-        constexpr double B_L       = Parameters::tait::B_L;
-        constexpr double p_L_ref   = Parameters::tait::p_L_ref;
-        constexpr double rho_L_ref = Parameters::tait::rho_L_ref;
+        // Tait EoS (default for Gilmore)
+        // Validation of parameter count happens in ControlParameters::init()
+        const double Gamma_L   = cpar.liquid_eos_params[0];
+        const double B_L       = cpar.liquid_eos_params[1];
+        const double p_L_ref   = cpar.liquid_eos_params[2];
+        const double rho_L_ref = cpar.liquid_eos_params[3];
 
         const double rho_L   = rho_L_ref * std::pow((p_L   + B_L) / (p_L_ref + B_L), 1.0 / Gamma_L);
         const double rho_inf = rho_L_ref * std::pow((P_inf + B_L) / (p_L_ref + B_L), 1.0 / Gamma_L);
@@ -628,7 +630,7 @@ double OdeFun::bubble_dynamics(
         return R_dot_dot_interp - damping_coefficient * (R_dot - R_dot_interp);
     }
 
-    if (!cpar.enable_gilmore)
+    if (cpar.bubble_dynamics_type == Parameters::bubble_dynamics::keller_miksis)
     {
         // Keller-Miksis equation
         const double p_L     = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
@@ -640,7 +642,7 @@ double OdeFun::bubble_dynamics(
         const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
         return nom / denom;
     }
-    else    // Gilmore equation with Tait EoS (https://doi.org/10.1016/j.ultsonch.2020.105307)
+    else    // Gilmore equation (NASG or Tait EoS) - https://doi.org/10.1016/j.ultsonch.2020.105307
     {
         const double p_L     = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
         const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // - 4.0 * cpar.mu_L * R_dot_dot / R;

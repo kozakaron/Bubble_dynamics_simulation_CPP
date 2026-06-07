@@ -281,18 +281,27 @@ void ParameterCombinator::init(const ParameterCombinator::Builder &builder)
     this->rho_L =                       get_unique_ptr(builder.rho_L);
     this->c_L =                         get_unique_ptr(builder.c_L);
     this->surfactant =                  get_unique_ptr(builder.surfactant);
+    this->bubble_dynamics_type =        builder.bubble_dynamics_type;
+
+    this->liquid_eos_params.clear();
+    this->liquid_eos_params.reserve(builder.liquid_eos_params.size());
+    for (const auto& param : builder.liquid_eos_params)
+    {
+        this->liquid_eos_params.push_back(get_unique_ptr(param));
+    }
+
     this->enable_heat_transfer =        builder.enable_heat_transfer;
     this->enable_evaporation =          builder.enable_evaporation;
     this->enable_reactions =            builder.enable_reactions;
     this->enable_dissipated_energy =    builder.enable_dissipated_energy;
     this->enable_van_der_waals =        builder.enable_van_der_waals;
-    this->enable_gilmore =              builder.enable_gilmore;
     this->enable_rate_thresholding =    builder.enable_rate_thresholding;
     this->target_specie =               builder.target_specie;
     this->excitation_type =             builder.excitation_type;
     this->excitation_cycles =           get_unique_ptr(builder.excitation_cycles);
     this->ramp_up_cycles =              get_unique_ptr(builder.ramp_up_cycles);
 
+    this->excitation_params.clear();
     this->excitation_params.reserve(builder.excitation_params.size());
     for (const auto &excitation_param : builder.excitation_params)
     {
@@ -545,12 +554,14 @@ void ParameterCombinator::init(const ordered_json& j)
         builder.rho_L =                     get_range                           (j, "rho_L",                    builder.rho_L);
         builder.c_L =                       get_range                           (j, "c_L",                      builder.c_L);
         builder.surfactant =                get_range                           (j, "surfactant",               builder.surfactant);
+        builder.bubble_dynamics_type = Parameters::string_to_bubble_dynamics(
+                                            get_value<std::string>              (j, "bubble_dynamics",          Parameters::bubble_dynamics_names.at(builder.bubble_dynamics_type), false)
+        );
         builder.enable_heat_transfer =      get_value<bool>                     (j, "enable_heat_transfer",     builder.enable_heat_transfer);
         builder.enable_evaporation =        get_value<bool>                     (j, "enable_evaporation",       builder.enable_evaporation);
         builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
         builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
         builder.enable_van_der_waals =      get_value<bool>                     (j, "enable_van_der_waals",     builder.enable_van_der_waals);
-        builder.enable_gilmore =            get_value<bool>                     (j, "enable_gilmore",           builder.enable_gilmore);
         builder.enable_rate_thresholding =  get_value<bool>                     (j, "enable_rate_thresholding", builder.enable_rate_thresholding);
         builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
         builder.excitation_type = Parameters::string_to_excitation(
@@ -598,11 +609,52 @@ void ParameterCombinator::init(const ordered_json& j)
             );
         }
 
+        if (j.contains("liquid_eos_params"))
+        {
+            if (!j.at("liquid_eos_params").is_array())
+            {
+                LOG_ERROR(
+                    "\"liquid_eos_params\" should be a list, instead it is " + j.at("liquid_eos_params").dump() + \
+                    ". E.g.: {\"liquid_eos_params\": [{\"type\": \"Const\", \"value\": 0.0}, ...]}"
+                );
+            }
+            else if (j.at("liquid_eos_params").size() != Parameters::bubble_dynamics_arg_nums.at(builder.bubble_dynamics_type))
+            {
+                LOG_ERROR(
+                    "Invalid number of liquid EOS parameters for bubble dynamics type " + std::string(Parameters::bubble_dynamics_names.at(builder.bubble_dynamics_type)) + \
+                    ". Expected " + std::to_string(Parameters::bubble_dynamics_arg_nums.at(builder.bubble_dynamics_type)) + \
+                    ", but got " + std::to_string(j.at("liquid_eos_params").size()) + \
+                    ". Liquid EOS params are: " + Parameters::bubble_dynamics_arg_names.at(builder.bubble_dynamics_type)
+                );
+            }
+            else
+            {
+                builder.liquid_eos_params.resize(j.at("liquid_eos_params").size(), Const(0.0));
+                for (size_t i=0; i < j.at("liquid_eos_params").size(); ++i)
+                {
+                    ordered_json param = j.at("liquid_eos_params").at(i);
+                    if (param != nullptr)
+                        builder.liquid_eos_params.at(i) = get_range(param, builder.liquid_eos_params.at(i));
+                    
+                }
+            }
+        }
+        else if (builder.bubble_dynamics_type != Parameters::bubble_dynamics::keller_miksis)
+        {
+            LOG_ERROR(
+                Error::severity::warning,
+                Error::type::preprocess,
+                std::string("Warning, key liquid_eos_params is missing for bubble dynamics ") + Parameters::bubble_dynamics_names.at(builder.bubble_dynamics_type) + \
+                ". Liquid EOS params are: " + Parameters::bubble_dynamics_arg_names.at(builder.bubble_dynamics_type)
+            );
+        }
+
         static const std::unordered_set<std::string> expected_keys = {
             "mechanism", "R_E", "ratio", "species", "fractions",
             "P_amb", "T_inf", "alpha_M", "P_v", "mu_L", "rho_L", "c_L", "surfactant",
+            "bubble_dynamics", "liquid_eos_params",
             "enable_heat_transfer", "enable_evaporation", "enable_reactions",
-            "enable_dissipated_energy", "enable_van_der_waals", "enable_gilmore",
+            "enable_dissipated_energy", "enable_van_der_waals",
             "enable_rate_thresholding", "target_specie",
             "excitation_type", "excitation_params", "excitation_cycles", "ramp_up_cycles",
         };
@@ -717,12 +769,19 @@ std::string ParameterCombinator::to_string(const bool with_code) const
     ss << format_field_name << ".rho_L" << " = " << format_range(this->rho_L.get()) << "\n";
     ss << format_field_name << ".c_L" << " = " << format_range(this->c_L.get()) << "\n";
     ss << format_field_name << ".surfactant" << " = " << format_range(this->surfactant.get()) << "\n";
+    ss << format_field_name << ".bubble_dynamics_type" << " = " << (with_code ? "Parameters::bubble_dynamics::" : "") << Parameters::bubble_dynamics_names[this->bubble_dynamics_type] << ",\n";
+    ss << format_field_name << ".liquid_eos_params" << " = {\n";
+    for (size_t i = 0; i < this->liquid_eos_params.size(); ++i)
+    {
+        auto last = (i == this->liquid_eos_params.size() - 1);
+        ss << "      " << format_range(this->liquid_eos_params[i].get(), last) << "\n";
+    }
+    ss << "    " << std::setw(strw) << "" << "},\n";
     ss << format_field_name << ".enable_heat_transfer" << " = " << std::boolalpha << this->enable_heat_transfer << ",\n";
     ss << format_field_name << ".enable_evaporation" << " = " << std::boolalpha << this->enable_evaporation << ",\n";
     ss << format_field_name << ".enable_reactions" << " = " << std::boolalpha << this->enable_reactions << ",\n";
     ss << format_field_name << ".enable_dissipated_energy" << " = " << std::boolalpha << this->enable_dissipated_energy << ",\n";
     ss << format_field_name << ".enable_van_der_waals" << " = " << std::boolalpha << this->enable_van_der_waals << ",\n";
-    ss << format_field_name << ".enable_gilmore" << " = " << std::boolalpha << this->enable_gilmore << ",\n";
     ss << format_field_name << ".enable_rate_thresholding" << " = " << std::boolalpha << this->enable_rate_thresholding << ",\n";
     ss << format_field_name << ".target_specie" << " = " << species_to_string(this->target_specie) << ",\n";
     ss << format_field_name << ".excitation_type"            << " = " << (with_code ? "Parameters::excitation::" : "") << Parameters::excitation_names[this->excitation_type] << "\n";
@@ -759,12 +818,17 @@ ordered_json ParameterCombinator::to_json() const
     j["rho_L"] = this->rho_L->to_json();
     j["c_L"] = this->c_L->to_json();
     j["surfactant"] = this->surfactant->to_json();
+    j["bubble_dynamics"] = Parameters::bubble_dynamics_names.at(this->bubble_dynamics_type);
+    j["liquid_eos_params"] = ordered_json::array();
+    for (const auto& eos_param : this->liquid_eos_params)
+    {
+        j["liquid_eos_params"].push_back(eos_param->to_json());
+    }
     j["enable_heat_transfer"] = this->enable_heat_transfer;
     j["enable_evaporation"] = this->enable_evaporation;
     j["enable_reactions"] = this->enable_reactions;
     j["enable_dissipated_energy"] = this->enable_dissipated_energy;
     j["enable_van_der_waals"] = this->enable_van_der_waals;
-    j["enable_gilmore"] = this->enable_gilmore;
     j["enable_rate_thresholding"] = this->enable_rate_thresholding;
     j["target_specie"] = this->target_specie;
     j["excitation_type"] = Parameters::excitation_names.at(this->excitation_type);
@@ -816,6 +880,12 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         excitation_values.at(i) = get_value(this->excitation_params.at(i));
     }
 
+    std::vector<double> liquid_eos_values(this->liquid_eos_params.size());
+    for (size_t i = 0; i < this->liquid_eos_params.size(); ++i)
+    {
+        liquid_eos_values.at(i) = get_value(this->liquid_eos_params.at(i));
+    }
+
     ControlParameters cpar{ControlParameters::Builder{
         .ID = combination_ID,
         .mechanism = this->mechanism,
@@ -831,12 +901,13 @@ std::pair<is_success, ControlParameters> ParameterCombinator::get_next_combinati
         .rho_L = get_value(this->rho_L),
         .c_L = get_value(this->c_L),
         .surfactant = get_value(this->surfactant),
+        .bubble_dynamics_type = this->bubble_dynamics_type,
+        .liquid_eos_params = liquid_eos_values,
         .enable_heat_transfer = this->enable_heat_transfer,
         .enable_evaporation = this->enable_evaporation,
         .enable_reactions = this->enable_reactions,
         .enable_dissipated_energy = this->enable_dissipated_energy,
         .enable_van_der_waals = this->enable_van_der_waals,
-        .enable_gilmore = this->enable_gilmore,
         .enable_rate_thresholding = this->enable_rate_thresholding,
         .target_specie = this->target_specie,
         .excitation_type = this->excitation_type,

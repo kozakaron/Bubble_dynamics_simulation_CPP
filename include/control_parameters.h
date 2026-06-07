@@ -16,36 +16,38 @@ class ControlParameters {
 public:
 // Constants
     static constexpr size_t max_excitation_params = std::ranges::max(Parameters::excitation_arg_nums);
+    static constexpr size_t max_liquid_eos_params = std::ranges::max(Parameters::bubble_dynamics_arg_nums);
     static constexpr size_t max_species = 5;
-    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,rho_L,c_L,surfactant,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,enable_van_der_waals,enable_gilmore,enable_nasg,enable_rate_thresholding,target_specie,excitation_type,excitation_params,excitation_cycles,ramp_up_cycles";
+    static constexpr char csv_header[] = "ID,mechanism,R_E,ratio,species,fractions,P_amb,T_inf,alpha_M,P_v,mu_L,rho_L,c_L,surfactant,bubble_dynamics,liquid_eos_params,enable_heat_transfer,enable_evaporation,enable_reactions,enable_dissipated_energy,enable_van_der_waals,enable_rate_thresholding,target_specie,excitation_type,excitation_params,excitation_cycles,ramp_up_cycles";
 // Members
-    size_t ID;                          // ID of control parameter
-    const Parameters* par;              // reaction mechanism (pointer to Parameters instance)
-    size_t error_ID;                    // ID of error in ErrorHandler (ErrorHandler::no_error if no error occured)
+    size_t ID;                                          // ID of control parameter
+    const Parameters* par;                              // reaction mechanism (pointer to Parameters instance)
+    size_t error_ID;                                    // ID of error in ErrorHandler (ErrorHandler::no_error if no error occured)
     // Initial conditions:
-    double R_E;                         // bubble equilibrium radius [m]
-    double ratio;                       // R_0/R_E for unforced oscillations [-]
-    index_t species[max_species];       // indexes of species in initial bubble (array of species index enum)
-    double fractions[max_species];      // molar fractions of species in initial bubble (array of doubles)
-    index_t num_initial_species;        // number of species in initial bubble
+    double R_E;                                         // bubble equilibrium radius [m]
+    double ratio;                                       // R_0/R_E for unforced oscillations [-]
+    index_t species[max_species];                       // indexes of species in initial bubble (array of species index enum)
+    double fractions[max_species];                      // molar fractions of species in initial bubble (array of doubles)
+    index_t num_initial_species;                        // number of species in initial bubble
     // Ambient parameters:
-    double P_amb;                       // ambient pressure [Pa]
-    double T_inf;                       // ambient temperature [K]
+    double P_amb;                                       // ambient pressure [Pa]
+    double T_inf;                                       // ambient temperature [K]
     // Liquid parameters:
-    double alpha_M;                     // water accommodation coefficient [-]
-    double P_v;                         // vapour pressure [Pa]
-    double mu_L;                        // dynamic viscosity [Pa*s]
-    double rho_L;                       // liquid density [kg/m^3]
-    double c_L;                         // sound speed [m/s]
-    double surfactant;                  // surface tension modifier [-]
+    double alpha_M;                                     // water accommodation coefficient [-]
+    double P_v;                                         // vapour pressure [Pa]
+    double mu_L;                                        // dynamic viscosity [Pa*s]
+    double rho_L;                                       // liquid density [kg/m^3]
+    double c_L;                                         // sound speed [m/s]
+    double surfactant;                                  // surface tension modifier [-]
+    // Bubble dynamics and liquid EOS:
+    Parameters::bubble_dynamics bubble_dynamics_type;   // type of bubble dynamics model
+    double liquid_eos_params[max_liquid_eos_params];    // parameters for liquid EOS (array of doubles)
     // Simulation settings:
     bool enable_heat_transfer;
     bool enable_evaporation;
     bool enable_reactions;
     bool enable_dissipated_energy;
     bool enable_van_der_waals;
-    bool enable_gilmore;
-    bool enable_nasg;
     bool enable_rate_thresholding;
     index_t target_specie;
     // Excitation parameters:
@@ -77,36 +79,36 @@ public:
     }};
     */
     struct Builder {
-        size_t ID                               = 0;
-        size_t error_ID                         = ErrorHandler::no_error;
-        std::string mechanism                   = "chemkin_elte2016_hydrogen";
-        std::string radius_profile_file         = "";
-        std::string excitation_profile_file     = "";
-        double R_E                              = 10.0e-6;
-        double ratio                            = 1.0;
-        std::vector<std::string> species        = {"O2"};
-        std::vector<double> fractions           = {1.0};
-        double P_amb                            = 101325.0;
-        double T_inf                            = 293.15;
-        double alpha_M                          = 0.35;
-        double P_v                              = 2338.1;
-        double mu_L                             = 0.001;
-        double rho_L                            = 998.2;
-        double c_L                              = 1483.0;
-        double surfactant                       = 1.0;
-        bool enable_heat_transfer               = true;
-        bool enable_evaporation                 = true;
-        bool enable_reactions                   = true;
-        bool enable_dissipated_energy           = true;
-        bool enable_van_der_waals               = true;
-        bool enable_gilmore                     = false;
-        bool enable_nasg                        = false;
-        bool enable_rate_thresholding           = true;
-        std::string target_specie               = "H2";
-        Parameters::excitation excitation_type  = Parameters::excitation::sinusoid;
-        std::vector<double> excitation_params   = {-2.0e5, 30000.0};
-        double excitation_cycles                = 1.0;
-        double ramp_up_cycles                   = 0.0;
+        size_t ID                                        = 0;
+        size_t error_ID                                  = ErrorHandler::no_error;
+        std::string mechanism                            = "chemkin_elte2016_hydrogen";
+        std::string radius_profile_file                  = "";
+        std::string excitation_profile_file              = "";
+        double R_E                                       = 10.0e-6;
+        double ratio                                     = 1.0;
+        std::vector<std::string> species                 = {"O2"};
+        std::vector<double> fractions                    = {1.0};
+        double P_amb                                     = 101325.0;
+        double T_inf                                     = 293.15;
+        double alpha_M                                   = 0.35;
+        double P_v                                       = 2338.1;
+        double mu_L                                      = 0.001;
+        double rho_L                                     = 998.2;
+        double c_L                                       = 1483.0;
+        double surfactant                                = 1.0;
+        Parameters::bubble_dynamics bubble_dynamics_type = Parameters::bubble_dynamics::keller_miksis;
+        std::vector<double> liquid_eos_params            = {};
+        bool enable_heat_transfer                        = true;
+        bool enable_evaporation                          = true;
+        bool enable_reactions                            = true;
+        bool enable_dissipated_energy                    = true;
+        bool enable_van_der_waals                        = true;
+        bool enable_rate_thresholding                    = true;
+        std::string target_specie                        = "H2";
+        Parameters::excitation excitation_type           = Parameters::excitation::sinusoid;
+        std::vector<double> excitation_params            = {-2.0e5, 30000.0};
+        double excitation_cycles                         = 1.0;
+        double ramp_up_cycles                            = 0.0;
     };
     
 // Methods
@@ -126,6 +128,9 @@ public:
     void set_species(const std::vector<index_t>& species_list, const std::vector<double>& fractions_list);
     void set_species(const std::initializer_list<std::string>& species_list, const std::initializer_list<double>& fractions_list);
     void set_species(const std::initializer_list<index_t>& species_list, const std::initializer_list<double>& fractions_list);
+    // Set liquid EOS parameters like this: set_liquid_eos_params({1.19, 6.218e8, 6.72e-4, 1.0e5, 997.0, 3610.0});
+    void set_liquid_eos_params(const std::vector<double>& params_list);
+    void set_liquid_eos_params(const std::initializer_list<double>& params_list);
     // Set excitation parameters like this: set_excitation_params({-2.0e5, 30000.0, 1.0});
     void set_excitation_params(const std::vector<double>& params_list);
     void set_excitation_params(const std::initializer_list<double>& params_list);
