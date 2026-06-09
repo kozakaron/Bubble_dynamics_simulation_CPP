@@ -682,6 +682,12 @@ def read_parameter_study(directory: str) -> pd.DataFrame:
             for col in current_data.columns:
                 if current_data[col].dtype == 'object' and all(current_data[col].dropna().map(lambda x: isinstance(x, bool))):
                     current_data[col] = current_data[col].astype(bool)
+            
+            # Convert NaN to empty string for parameter columns (these should be empty, not NaN)
+            if 'excitation_params' in current_data.columns:
+                current_data['excitation_params'] = current_data['excitation_params'].fillna('')
+            if 'liquid_eos_params' in current_data.columns:
+                current_data['liquid_eos_params'] = current_data['liquid_eos_params'].fillna('')
 
             subdir = os.path.join(root.removeprefix(directory), file)
             print(f'\t{subdir: <64} ({current_data.shape[0]: >4} rows)')

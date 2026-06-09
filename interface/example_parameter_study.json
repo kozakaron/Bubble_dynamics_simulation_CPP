@@ -50,10 +50,9 @@
             "value": 1.0
         },
         "bubble_dynamics": "keller_miksis",
-        "liquid_eos_params": {
-            "type": "Const",
-            "value": []
-        },
+        "liquid_eos_params": [
+            
+        ],
         "enable_heat_transfer": true,
         "enable_evaporation": true,
         "enable_reactions": true,

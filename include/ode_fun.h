@@ -60,9 +60,9 @@ public:
     );
 
 
-    // Computes liquid properties at the bubble wall using NASG or Tait EoS. Returns {c_L [m/s], rho_L [kg/m^3], rho_inf [kg/m^3], H [m^2/s^2]}.
+    // Computes liquid properties at the bubble wall using NASG or Tait EoS. Returns {c_L [m/s], rho_L [kg/m^3], rho_inf [kg/m^3], H [m^2/s^2], T_L [K]}.
     // Returns constant values for Keller-Miksis.
-    std::tuple<double, double, double, double> liquid_properties(const double p_L, const double P_inf);
+    std::tuple<double, double, double, double, double> liquid_properties(const double p_L, const double P_inf);
 
 
     // Computes the second derivative of the bubble radius using Keller-Miksis or Gilmore equation. Returns R_dot_dot [m/s^2].

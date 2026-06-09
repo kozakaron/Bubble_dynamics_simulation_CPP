@@ -133,15 +133,15 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.c_L =                       get_value<double>                   (j, "c_L",                      builder.c_L);
         builder.surfactant =                get_value<double>                   (j, "surfactant",               builder.surfactant);
         builder.bubble_dynamics_type = Parameters::string_to_bubble_dynamics(
-                                            get_value<std::string>              (j, "bubble_dynamics",          Parameters::bubble_dynamics_names.at(builder.bubble_dynamics_type))
+                                            get_value<std::string>              (j, "bubble_dynamics",          Parameters::bubble_dynamics_names.at(builder.bubble_dynamics_type), warn_radius)
         );
             bool warn_bubble_dynamics = builder.bubble_dynamics_type != Parameters::bubble_dynamics::keller_miksis;
-        builder.liquid_eos_params =         get_value<std::vector<double>>      (j, "liquid_eos_params",        builder.liquid_eos_params,  warn_bubble_dynamics);
+        builder.liquid_eos_params =         get_value<std::vector<double>>      (j, "liquid_eos_params",        builder.liquid_eos_params,  false);
         builder.enable_heat_transfer =      get_value<bool>                     (j, "enable_heat_transfer",     builder.enable_heat_transfer);
         builder.enable_evaporation =        get_value<bool>                     (j, "enable_evaporation",       builder.enable_evaporation);
         builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
-        builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
-        builder.enable_van_der_waals =      get_value<bool>                     (j, "enable_van_der_waals",     builder.enable_van_der_waals);
+        builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy, warn_radius);
+        builder.enable_van_der_waals =      get_value<bool>                     (j, "enable_van_der_waals",     builder.enable_van_der_waals, warn_radius);
         builder.enable_rate_thresholding =  get_value<bool>                     (j, "enable_rate_thresholding", builder.enable_rate_thresholding);
         builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
             bool warn_excitation = builder.excitation_profile_file.empty() && builder.radius_profile_file.empty();
@@ -149,9 +149,27 @@ ControlParameters::ControlParameters(const ordered_json& j)
                                             get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type), warn_excitation)
         );
             warn_excitation = (builder.excitation_type != Parameters::excitation::no_excitation) && warn_excitation;
-        builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params,  warn_excitation);
+        builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params,  false);
         builder.excitation_cycles =         get_value<double>                   (j, "excitation_cycles",        builder.excitation_cycles,  warn_excitation);
         builder.ramp_up_cycles =            get_value<double>                   (j, "ramp_up_cycles",           builder.ramp_up_cycles,     warn_excitation);
+
+        if (warn_excitation && !j.contains("excitation_params"))
+        {
+            LOG_ERROR(Error::severity::warning, Error::type::preprocess,
+                "Key \"excitation_params\" not found in JSON object. Excitation parameters are required forexcitation_type=\"" + std::string(Parameters::excitation_names.at(builder.excitation_type)) + 
+                "\". Defaulting both excitation_type and excitation_params.");
+            builder.excitation_type = ControlParameters::Builder{}.excitation_type;
+            builder.excitation_params = ControlParameters::Builder{}.excitation_params;
+        }
+
+        if (warn_bubble_dynamics && !j.contains("liquid_eos_params"))
+        {
+            LOG_ERROR(Error::severity::warning, Error::type::preprocess,
+                "Key \"liquid_eos_params\" not found in JSON object. Liquid EoS parameters are required for bubble_dynamics=\"" + std::string(Parameters::bubble_dynamics_names.at(builder.bubble_dynamics_type)) + 
+                "\". Defaulting both bubble_dynamics and liquid_eos_params.");
+            builder.bubble_dynamics_type = ControlParameters::Builder{}.bubble_dynamics_type;
+            builder.liquid_eos_params = ControlParameters::Builder{}.liquid_eos_params;
+        }
 
         static const std::unordered_set<std::string> expected_keys = {
             "ID", "mechanism", "radius_profile_file", "excitation_profile_file",
@@ -257,6 +275,9 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->excitation_cycles = builder.excitation_cycles;
     this->ramp_up_cycles = builder.ramp_up_cycles;
 
+    std::fill(this->excitation_params, this->excitation_params + ControlParameters::max_excitation_params, 0.0);
+    std::fill(this->liquid_eos_params, this->liquid_eos_params + ControlParameters::max_liquid_eos_params, 0.0);
+
     if (this->target_specie == par->invalid_index)
     {
         std::string message = "Invalid target specie (" + builder.target_specie + ") for mechanism " + par->mechanism_name;
@@ -275,8 +296,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     }
     if (
         this->bubble_dynamics_type != Parameters::bubble_dynamics::keller_miksis &&
-        builder.radius_profile_file.empty() &&
-        !builder.liquid_eos_params.empty()
+        builder.radius_profile_file.empty()
     )
     {
         this->set_liquid_eos_params(std::vector<double>(builder.liquid_eos_params));

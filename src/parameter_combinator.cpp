@@ -555,7 +555,7 @@ void ParameterCombinator::init(const ordered_json& j)
         builder.c_L =                       get_range                           (j, "c_L",                      builder.c_L);
         builder.surfactant =                get_range                           (j, "surfactant",               builder.surfactant);
         builder.bubble_dynamics_type = Parameters::string_to_bubble_dynamics(
-                                            get_value<std::string>              (j, "bubble_dynamics",          Parameters::bubble_dynamics_names.at(builder.bubble_dynamics_type), false)
+                                            get_value<std::string>              (j, "bubble_dynamics",          Parameters::bubble_dynamics_names.at(builder.bubble_dynamics_type))
         );
         builder.enable_heat_transfer =      get_value<bool>                     (j, "enable_heat_transfer",     builder.enable_heat_transfer);
         builder.enable_evaporation =        get_value<bool>                     (j, "enable_evaporation",       builder.enable_evaporation);
@@ -603,9 +603,9 @@ void ParameterCombinator::init(const ordered_json& j)
         else
         {
             LOG_ERROR(
-                Error::severity::warning,
+                Error::severity::error,
                 Error::type::preprocess,
-                std::string("Warning, key excitation_params is missing. Excitation params are: ") + Parameters::excitation_arg_names.at(builder.excitation_type)
+                std::string("Error, key excitation_params is missing. Excitation params are required for excitation_type=" + std::string(Parameters::excitation_names.at(builder.excitation_type)) + ".")
             );
         }
 
@@ -642,10 +642,10 @@ void ParameterCombinator::init(const ordered_json& j)
         else if (builder.bubble_dynamics_type != Parameters::bubble_dynamics::keller_miksis)
         {
             LOG_ERROR(
-                Error::severity::warning,
+                Error::severity::error,
                 Error::type::preprocess,
-                std::string("Warning, key liquid_eos_params is missing for bubble dynamics ") + Parameters::bubble_dynamics_names.at(builder.bubble_dynamics_type) + \
-                ". Liquid EOS params are: " + Parameters::bubble_dynamics_arg_names.at(builder.bubble_dynamics_type)
+                std::string("Error, key liquid_eos_params is missing for bubble dynamics ") + Parameters::bubble_dynamics_names.at(builder.bubble_dynamics_type) + \
+                ". Liquid EOS params are required."   
             );
         }
 

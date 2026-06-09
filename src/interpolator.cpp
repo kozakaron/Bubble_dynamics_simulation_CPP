@@ -25,7 +25,8 @@ static void print_interpolator_format_help()
               << "      0.0,1.0e-5\n"
               << "      1.0e-6,1.001e-5\n"
               << "      2.0e-6,1.002e-5\n"
-              << "      ...\n" << std::endl;
+              << "      ...\n"
+              << "Note: Pressure excitation should not contain ambient pressure. (Starts and ends at zero)\n" << std::endl;
 }
 
 

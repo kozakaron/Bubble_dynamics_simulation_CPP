@@ -274,11 +274,8 @@ void SimulationData::midprocess(const double t_dimless, const double* x_dimless,
     const double p_int = ode_ptr->internal_pressure(T, M, conc);
     auto [P_inf, P_inf_dot] = ode_ptr->excitation_pressures(t_dimensional);
     const double p_L = p_int - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
-    auto [c_L, rho_L, rho_inf, H_unused] = ode_ptr->liquid_properties(p_L, P_inf);
+    auto [c_L, rho_L, rho_inf, H_unused, T_L] = ode_ptr->liquid_properties(p_L, P_inf);
     const double Ma = std::abs(R_dot) / c_L;
-    constexpr double Gamma_L = Parameters::nasg::Gamma_L;
-    constexpr double B_L = Parameters::nasg::B_L;
-    const double T_L = cpar.T_inf * std::pow((p_L + B_L) / (cpar.P_amb + B_L), (Gamma_L - 1.0) / Gamma_L); // Only for NASG
     (void)P_inf_dot;
     (void)rho_inf; (void)H_unused;
 

@@ -567,11 +567,11 @@ std::pair<double, double> OdeFun::excitation_pressures(
 }
 
 
-std::tuple<double, double, double, double> OdeFun::liquid_properties(const double p_L, const double P_inf)
+std::tuple<double, double, double, double, double> OdeFun::liquid_properties(const double p_L, const double P_inf)
 {
     if (cpar.bubble_dynamics_type == Parameters::bubble_dynamics::keller_miksis)
     {
-        return {cpar.c_L, cpar.rho_L, cpar.rho_L, 0.0};
+        return {cpar.c_L, cpar.rho_L, cpar.rho_L, 0.0, cpar.T_inf};
     } else if (cpar.bubble_dynamics_type == Parameters::bubble_dynamics::gilmore_nasg)
     {
         // Noble-Abel stiffened-gas (NASG) EoS
@@ -582,16 +582,16 @@ std::tuple<double, double, double, double> OdeFun::liquid_properties(const doubl
         const double p_L_ref   = cpar.liquid_eos_params[3];
         const double rho_L_ref = cpar.liquid_eos_params[4];
 
-        const double K_L     = rho_L_ref / (std::pow(p_L_ref + B_L, 1.0 / Gamma_L) * (1.0 - b_L * rho_L_ref));
-        const double rho_L   = K_L * std::pow((p_L   + B_L), 1.0 / Gamma_L) / (1.0 + b_L * K_L * std::pow((p_L   + B_L), 1.0 / Gamma_L));
-        const double rho_inf = K_L * std::pow((P_inf + B_L), 1.0 / Gamma_L) / (1.0 + b_L * K_L * std::pow((P_inf + B_L), 1.0 / Gamma_L));
-        const double c_L     = std::sqrt(Gamma_L * (p_L + B_L) / (rho_L - b_L * rho_L * rho_L));
-        const double h_L     = Gamma_L / (Gamma_L - 1.0) * (p_L   + B_L) / rho_L   - Gamma_L / (Gamma_L - 1.0) * b_L * (p_L   + B_L) + b_L * p_L;
-        const double h_inf   = Gamma_L / (Gamma_L - 1.0) * (P_inf + B_L) / rho_inf - Gamma_L / (Gamma_L - 1.0) * b_L * (P_inf + B_L) + b_L * P_inf;
-        const double H       = h_L - h_inf;
-        //const double T_L   = cpar.T_inf * std::pow((p_L + B_L) / (cpar.P_amb + B_L), (Gamma_L - 1.0) / Gamma_L);
+        const double K_L       = rho_L_ref / (std::pow(p_L_ref + B_L, 1.0 / Gamma_L) * (1.0 - b_L * rho_L_ref));
+        const double rho_L     = K_L * std::pow((p_L   + B_L), 1.0 / Gamma_L) / (1.0 + b_L * K_L * std::pow((p_L   + B_L), 1.0 / Gamma_L));
+        const double rho_inf   = K_L * std::pow((P_inf + B_L), 1.0 / Gamma_L) / (1.0 + b_L * K_L * std::pow((P_inf + B_L), 1.0 / Gamma_L));
+        const double c_L       = std::sqrt(Gamma_L * (p_L + B_L) / (rho_L - b_L * rho_L * rho_L));
+        const double h_L       = Gamma_L / (Gamma_L - 1.0) * (p_L   + B_L) / rho_L   - Gamma_L / (Gamma_L - 1.0) * b_L * (p_L   + B_L) + b_L * p_L;
+        const double h_inf     = Gamma_L / (Gamma_L - 1.0) * (P_inf + B_L) / rho_inf - Gamma_L / (Gamma_L - 1.0) * b_L * (P_inf + B_L) + b_L * P_inf;
+        const double H         = h_L - h_inf;
+        const double T_L       = cpar.T_inf * std::pow((p_L + B_L) / (cpar.P_amb + B_L), (Gamma_L - 1.0) / Gamma_L);
 
-        return {c_L, rho_L, rho_inf, H};
+        return {c_L, rho_L, rho_inf, H, T_L};
     } else {
         // Tait EoS (default for Gilmore)
         // Validation of parameter count happens in ControlParameters::init()
@@ -600,14 +600,17 @@ std::tuple<double, double, double, double> OdeFun::liquid_properties(const doubl
         const double p_L_ref   = cpar.liquid_eos_params[2];
         const double rho_L_ref = cpar.liquid_eos_params[3];
 
-        const double rho_L   = rho_L_ref * std::pow((p_L   + B_L) / (p_L_ref + B_L), 1.0 / Gamma_L);
-        const double rho_inf = rho_L_ref * std::pow((P_inf + B_L) / (p_L_ref + B_L), 1.0 / Gamma_L);
-        const double c_L     = std::sqrt(Gamma_L * (p_L + B_L) / rho_L);
-        const double h_L     = Gamma_L / (Gamma_L - 1.0) * (p_L   + B_L) / rho_L;
-        const double h_inf   = Gamma_L / (Gamma_L - 1.0) * (P_inf + B_L) / rho_inf;
-        const double H       = h_L - h_inf;
+        const double rho_L     = rho_L_ref * std::pow((p_L   + B_L) / (p_L_ref + B_L), 1.0 / Gamma_L);
+        const double rho_inf   = rho_L_ref * std::pow((P_inf + B_L) / (p_L_ref + B_L), 1.0 / Gamma_L);
+        const double c_L       = std::sqrt(Gamma_L * (p_L + B_L) / rho_L);
+        const double h_L       = Gamma_L / (Gamma_L - 1.0) * (p_L   + B_L) / rho_L;
+        const double h_inf     = Gamma_L / (Gamma_L - 1.0) * (P_inf + B_L) / rho_inf;
+        const double H         = h_L - h_inf;
+        const double Gamma_G   = 0.1 + 1.4 * (1.0 - rho_L_ref / rho_L);
+        const double rho_ratio = rho_L_ref / rho_L;
+        const double T_L       = cpar.T_inf * std::exp(Gamma_G * (1.0 - rho_ratio));
 
-        return {c_L, rho_L, rho_inf, H};
+        return {c_L, rho_L, rho_inf, H, T_L};
     }
 }
 
@@ -646,9 +649,8 @@ double OdeFun::bubble_dynamics(
     {
         const double p_L     = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
         const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // - 4.0 * cpar.mu_L * R_dot_dot / R;
-        auto [c_L, rho_L, rho_inf, H] = liquid_properties(p_L, P_inf);
+        auto [c_L, rho_L, rho_inf, H, T_L_unused] = liquid_properties(p_L, P_inf);
         const double H_dot = p_L_dot / rho_L - P_inf_dot / rho_inf; // - 4.0 * cpar.mu_L * R_dot_dot / (rho_L * R);
-        //std::cout << "t=" << t << ";\tp=" << p << ";\trho_L=" << rho_L << "\tc_L=" << c_L << "\n";
 
         const double nom = ((1.0 + R_dot / c_L) * H - 1.5 * (1.0 - R_dot / (3.0 * c_L)) * R_dot * R_dot) / ((1.0 - R_dot / c_L) * R) + H_dot / c_L;
         const double den = 1.0 + 4.0 * cpar.mu_L / (rho_L * R * c_L);

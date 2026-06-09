@@ -128,7 +128,7 @@ public:
     void set_species(const std::vector<index_t>& species_list, const std::vector<double>& fractions_list);
     void set_species(const std::initializer_list<std::string>& species_list, const std::initializer_list<double>& fractions_list);
     void set_species(const std::initializer_list<index_t>& species_list, const std::initializer_list<double>& fractions_list);
-    // Set liquid EOS parameters like this: set_liquid_eos_params({1.19, 6.218e8, 6.72e-4, 1.0e5, 997.0, 3610.0});
+    // Set liquid EOS parameters like this: set_liquid_eos_params({1.19, 6.218e8, 6.72e-4, 1.0e5, 997.0});
     void set_liquid_eos_params(const std::vector<double>& params_list);
     void set_liquid_eos_params(const std::initializer_list<double>& params_list);
     // Set excitation parameters like this: set_excitation_params({-2.0e5, 30000.0, 1.0});
