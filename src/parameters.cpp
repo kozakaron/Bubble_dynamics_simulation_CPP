@@ -2,6 +2,8 @@
 #include <sstream>
 #include <fstream>
 #include <cmath>
+#include <limits>
+#include <numbers>
 #include <filesystem>
 
 #include "nlohmann/json.hpp"
@@ -241,7 +243,6 @@ Parameters::Parameters(const nlohmann::json& j):
     interval_derivatives(           nullptr),
     num_reactions(                  get_value<index_t>(j, "arrhenius_parameters", "num_reactions")),
     arrhenius_parameters(           nullptr),
-    reaction_order(                 nullptr),
     num_max_species_per_reaction(   get_value<index_t>(j, "arrhenius_parameters", "num_max_species_per_reaction")),
     nu_indexes(                     nullptr),
     nu_forward(                     nullptr),
@@ -268,7 +269,11 @@ Parameters::Parameters(const nlohmann::json& j):
     num_plog_levels(                get_value<index_t>(j, "plog_reactions", "num_plog_levels")),
     plog_reaction_indexes(          nullptr),
     plog_seperators(                nullptr),
-    plog_parameters(                nullptr)
+    plog_parameters(                nullptr),
+    reaction_order(                 nullptr),
+    ln_bimolecular_threshold_base(  nullptr),
+    epsilon_AB(                     nullptr),
+    ln_epsilon_AB(                  nullptr)
 {
     // Fill simple arrays
     copy_array_1d<double> (j, "species", "molar_weights", W, num_species);
@@ -388,7 +393,7 @@ Parameters::Parameters(const nlohmann::json& j):
         sum_nu      = (const stoich_t*)sum_nu_temp;
 
 
-        // Falloff reaction types
+    // Falloff reaction types
         if (!check_key_exists(j, "falloff_reactions", "falloff_reaction_types")) return;
         const nlohmann::json& falloff_types = j.at("falloff_reactions").at("falloff_reaction_types");
         if (falloff_types.size() != num_falloff_reactions) return;
@@ -414,6 +419,56 @@ Parameters::Parameters(const nlohmann::json& j):
         }
         falloff_reaction_types = (const reac_type*)falloff_reac_types_temp;
 
+
+    // Bimolecular rate threshold values
+        const double* sigma   = nullptr;   // LJ collision diameters [m] (num_species)
+        const double* epsilon = nullptr;   // LJ well-depths [J] (num_species)
+        copy_array_1d<double>(j, "species", "LJ_collision_diameters", sigma,   num_species);
+        copy_array_1d<double>(j, "species", "LJ_well_depths",         epsilon, num_species);
+        double*  ln_threshold_base_temp   = new double[num_reactions];
+        double*  epsilon_temp             = new double[num_reactions];
+        double*  ln_epsilon_temp          = new double[num_reactions];
+
+        for (index_t i = 0; i < num_reactions; ++i)
+        {
+            // Walk forward stoichiometry to find the first two reactant species
+            index_t idx_A = invalid_index, idx_B = invalid_index;
+            int molecularity = 0;
+            for (index_t j = 0; j < num_max_species_per_reaction; ++j)
+            {
+                index_t  idx   = nu_indexes_temp[i * num_max_species_per_reaction + j];
+                stoich_t coeff = nu_forward_temp[i * num_max_species_per_reaction + j];
+                if (idx == invalid_index) break;
+                if (molecularity == 0)                             idx_A = idx;
+                if (molecularity <= 1 && molecularity + coeff > 1) idx_B = idx;
+                molecularity += coeff;
+            }
+
+            // unimolecular
+            if (molecularity <= 1 || idx_A == invalid_index)
+            {
+                ln_threshold_base_temp[i] = std::numeric_limits<double>::quiet_NaN();
+                epsilon_temp[i]            = std::numeric_limits<double>::quiet_NaN();
+                ln_epsilon_temp[i]         = std::numeric_limits<double>::quiet_NaN();
+            }
+            // bimolecular
+            else
+            {
+                if (idx_B == invalid_index) idx_B = idx_A;
+                const double sigma_AB  = 0.5 * (sigma[idx_A] + sigma[idx_B]);
+                const double kappa_AB  = (idx_A == idx_B) ? 2.0 : 1.0;
+                const double W_AB_star = W[idx_A] * W[idx_B] / (W[idx_A] + W[idx_B]);
+                ln_threshold_base_temp[i] = std::log(N_A * sigma_AB*sigma_AB / kappa_AB * std::sqrt(8.0 * std::numbers::pi * R_g / W_AB_star));
+                epsilon_temp[i]    = std::sqrt(epsilon[idx_A] * epsilon[idx_B]);
+                ln_epsilon_temp[i] = std::log(epsilon_temp[i]);
+            }
+        }
+
+        ln_bimolecular_threshold_base = (const double*)ln_threshold_base_temp;
+        epsilon_AB                    = (const double*)epsilon_temp;
+        ln_epsilon_AB                 = (const double*)ln_epsilon_temp;
+        delete[] sigma;
+        delete[] epsilon;
     }
     catch(const std::exception& e)
     {
@@ -458,6 +513,9 @@ std::string strip_comments(const std::string& s) {
 
 json get_json(const std::string& json_path)
 {
+    // Normalize path separators
+    std::string normalized_path = json_path;
+    std::replace(normalized_path.begin(), normalized_path.end(), '\\', '/');
     // Open JSON file
     std::ifstream input_file(json_path);
     if (!input_file.is_open())
@@ -465,7 +523,7 @@ json get_json(const std::string& json_path)
         LOG_ERROR(
             Error::severity::error,
             Error::type::preprocess,
-            "Could not open JSON file: " + json_path
+            "Could not open JSON file: " + normalized_path
         );
         return {};
     }
@@ -529,7 +587,6 @@ Parameters::~Parameters()
     if (nu_indexes != nullptr) delete[] nu_indexes;
     if (nu_forward != nullptr) delete[] nu_forward;
     if (nu_backward != nullptr) delete[] nu_backward;
-    if (reaction_order != nullptr) delete[] reaction_order;
     if (nu != nullptr) delete[] nu;
     if (sum_nu != nullptr) delete[] sum_nu;
     if (third_body_reaction_indexes != nullptr) delete[] third_body_reaction_indexes;
@@ -545,6 +602,10 @@ Parameters::~Parameters()
     if (plog_reaction_indexes != nullptr) delete[] plog_reaction_indexes;
     if (plog_seperators != nullptr) delete[] plog_seperators;
     if (plog_parameters != nullptr) delete[] plog_parameters;
+    if (reaction_order != nullptr) delete[] reaction_order;
+    if (ln_bimolecular_threshold_base != nullptr) delete[] ln_bimolecular_threshold_base;
+    if (epsilon_AB != nullptr) delete[] epsilon_AB;
+    if (ln_epsilon_AB != nullptr) delete[] ln_epsilon_AB;
 }
 
 
@@ -565,7 +626,7 @@ const Parameters *Parameters::get_parameters(const std::string& mech_name)
     {
         LOG_ERROR(
             Error::severity::error, Error::type::preprocess,
-            "Directory \"" + mech_dir_path.string() + "\" not found. Make sure, your current working directory is correct."
+            "Directory \"" + mech_dir_path.generic_string() + "\" not found. Make sure, your current working directory is correct."
         );
         return nullptr;
     }
@@ -586,7 +647,7 @@ const Parameters *Parameters::get_parameters(const std::string& mech_name)
 
         LOG_ERROR(
             Error::severity::error, Error::type::preprocess,
-            "Mechanism JSON file \"" + json_path.string() + "\" not found. Check if the mechanism name is correct. Available: " + ::to_string((std::string*)available.data(), available.size())
+            "Mechanism JSON file \"" + json_path.generic_string() + "\" not found. Check if the mechanism name is correct. Available: " + ::to_string((std::string*)available.data(), available.size())
         );
         return nullptr;
     }
@@ -596,7 +657,7 @@ const Parameters *Parameters::get_parameters(const std::string& mech_name)
     const double runtime = timer.lap();
     LOG_ERROR(
         Error::severity::info, Error::type::preprocess,
-        "Loaded mechanism \"" + param->mechanism_name + "\" from \"" + json_path.string() + "\" in " + Timer::format_time(runtime) + "."
+        "Loaded mechanism \"" + param->mechanism_name + "\" from \"" + json_path.generic_string() + "\" in " + Timer::format_time(runtime) + "."
     );
     const std::string expected_mechanism_name = json_path.stem().string();
     if (param->mechanism_name != expected_mechanism_name)
@@ -632,6 +693,8 @@ index_t Parameters::get_species(std::string name) const
 Parameters::excitation Parameters::string_to_excitation(std::string excitation_str) {
     std::transform(excitation_str.begin(), excitation_str.end(), excitation_str.begin(), ::tolower);
     std::replace(excitation_str.begin(), excitation_str.end(), ' ', '_');
+    std::replace(excitation_str.begin(), excitation_str.end(), '-', '_');
+    
     auto it = std::find(Parameters::excitation_names.begin(), Parameters::excitation_names.end(), excitation_str);
     if (it != Parameters::excitation_names.end()) {
         return static_cast<Parameters::excitation>(std::distance(Parameters::excitation_names.begin(), it));
@@ -643,4 +706,21 @@ Parameters::excitation Parameters::string_to_excitation(std::string excitation_s
     ss << ::to_string((char**)Parameters::excitation_names.data(), Parameters::excitation_names.size());
     LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str());
     return Parameters::excitation::sinusoid; // Default to a known excitation type
+}
+
+Parameters::bubble_dynamics Parameters::string_to_bubble_dynamics(std::string bubble_dynamics_str) {
+    std::transform(bubble_dynamics_str.begin(), bubble_dynamics_str.end(), bubble_dynamics_str.begin(), ::tolower);
+    std::replace(bubble_dynamics_str.begin(), bubble_dynamics_str.end(), ' ', '_');
+    std::replace(bubble_dynamics_str.begin(), bubble_dynamics_str.end(), '-', '_');
+    if (bubble_dynamics_str == "") return Parameters::keller_miksis;
+
+    auto it = std::find(Parameters::bubble_dynamics_names.begin(), Parameters::bubble_dynamics_names.end(), bubble_dynamics_str);
+    if (it != Parameters::bubble_dynamics_names.end()) {
+        return static_cast<Parameters::bubble_dynamics>(std::distance(Parameters::bubble_dynamics_names.begin(), it));
+    }
+
+    std::stringstream ss;
+    ss << ::to_string((char**)Parameters::bubble_dynamics_names.data(), Parameters::bubble_dynamics_names.size());
+    LOG_ERROR(Error::severity::error, Error::type::preprocess, "Invalid bubble dynamics type: " + bubble_dynamics_str + ". Available values are: " + ss.str());
+    return Parameters::keller_miksis;
 }

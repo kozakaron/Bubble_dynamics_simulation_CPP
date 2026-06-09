@@ -8,6 +8,7 @@
 
 #include "nlohmann/json.hpp"
 #include "ode_solution.h"
+#include "ode_fun.h"
 
 
 OdeSolution::OdeSolution():
@@ -36,16 +37,36 @@ is_success OdeSolution::success() const
 }
 
 
-void OdeSolution::push_t_x(const double t_i, const double *x_i)
+void OdeSolution::push_t_x(const double t_dimless, const double *x_dimless, OdeFun* ode_ptr)
 {
-    t.push_back(t_i);
-    x.push_back(std::vector<double>(x_i, x_i + num_dim));
+    t.push_back(t_dimless);
+    x.push_back(std::vector<double>(x_dimless, x_dimless + num_dim));
+    ode_ptr->cpar.dimensionalize(t.back(), x.back().data());
+    
+    // Compute sum of molar concentrations
+    const double T = x.back()[2];
+    double M = 0.0;
+    for (size_t k = 3; k < num_dim; ++k) {
+        M += x.back()[k];
+    }
+    const double* conc = x.back().data() + 3;
+    
+    // Compute internal pressure (using dimensional values)
+    double p_int = ode_ptr->internal_pressure(T, M, conc);
+    p_internal.push_back(p_int);
+    
+    // Compute excitation pressure (external pressure)
+    auto [P_inf, P_inf_dot] = ode_ptr->excitation_pressures(t.back());
+    (void)P_inf_dot;
+    p_excitation.push_back(P_inf);
 }
 
 void OdeSolution::clear()
 {
     t.clear();
     x.clear();
+    p_excitation.clear();
+    p_internal.clear();
     num_dim = 0;
     num_steps = 0;
     num_repeats = 0;
@@ -186,6 +207,8 @@ nlohmann::ordered_json OdeSolution::to_json() const
     // Saved as binary data in SimulationData:
     //j["t"] = std::vector<double>({this->t.front(), this->t.back()});
     //j["x"] = std::vector<std::vector<double>>({this->x.front(), this->x.back()});
+    //j["p_excitation"] = std::vector<double>({this->p_excitation.front(), this->p_excitation.back()});
+    //j["p_internal"] = std::vector<double>({this->p_internal.front(), this->p_internal.back()});
     
     return j;
 }
@@ -199,7 +222,7 @@ std::ostream &operator<<(std::ostream &os, const OdeSolution &ode)
 }
 
 
-const std::string SimulationData::csv_header = std::string("dissipated_energy,expansion_work,n_target_specie,energy_demand,R_max,T_max,t_peak,R_min,T_min,")
+const std::string SimulationData::csv_header = std::string("dissipated_energy,expansion_work,n_target_specie,energy_demand,R_max,T_max,t_peak,R_min,T_min,v_max,p_internal_max,p_internal_min,Ma_max,T_L_max,c_L_max,rho_L_max,")
                                              + std::string(ControlParameters::csv_header) + std::string(",")
                                              + std::string(OdeSolution::csv_header) + std::string(",") + std::string(Error::csv_header);
 
@@ -213,25 +236,65 @@ SimulationData::SimulationData(const ControlParameters &cpar):
     t_peak(0.0),
     R_min(std::numeric_limits<double>::infinity()),
     T_min(std::numeric_limits<double>::infinity()),
+    v_max(0.0),
+    p_internal_max(0.0),
+    p_internal_min(cpar.P_amb),
+    Ma_max(0.0),
+    T_L_max(cpar.T_inf),
+    c_L_max(cpar.c_L),
+    rho_L_max(cpar.rho_L),
     dissipated_energy(0.0),
     expansion_work(0.0),
     n_target_specie(0.0),
     energy_demand(std::numeric_limits<double>::infinity()),
     cpar(cpar),
-    sol()
+    sol(),
+    x_dimensional()
 {}
 
 
-void SimulationData::midprocess(const double t, const double* x)
+void SimulationData::midprocess(const double t_dimless, const double* x_dimless, OdeFun* ode_ptr)
 {
-    if (x[0] * cpar.R_ref < R_min) R_min = x[0] * cpar.R_ref;
-    if (x[0] * cpar.R_ref > R_max) R_max = x[0] * cpar.R_ref;
-    if (x[2] * cpar.T_ref < T_min) T_min = x[2] * cpar.T_ref;
-    if (x[2] * cpar.T_ref > T_max)
-    {
-        T_max = x[2] * cpar.T_ref;
-        t_peak = t * cpar.t_ref;
+    const Parameters* par = cpar.par;
+    const size_t num_dim = (par != nullptr) ? (4 + par->num_species) : 4;
+
+    // Dimensionalize a local copy of the state
+    double t_dimensional = t_dimless;
+    x_dimensional.assign(x_dimless, x_dimless + num_dim);
+    cpar.dimensionalize(t_dimensional, x_dimensional.data());
+
+    const double R     = x_dimensional[0];       // [m]
+    const double R_dot = x_dimensional[1];       // [m/s]
+    const double T     = x_dimensional[2];       // [K]
+    const double* conc = x_dimensional.data() + 3;
+    double M = 0.0;
+    for (size_t k = 3; k < num_dim; ++k) {
+        M += x_dimensional[k];
     }
+    const double p_int = ode_ptr->internal_pressure(T, M, conc);
+    auto [P_inf, P_inf_dot] = ode_ptr->excitation_pressures(t_dimensional);
+    const double p_L = p_int - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
+    auto [c_L, rho_L, rho_inf, H_unused, T_L] = ode_ptr->liquid_properties(p_L, P_inf);
+    const double Ma = std::abs(R_dot) / c_L;
+    (void)P_inf_dot;
+    (void)rho_inf; (void)H_unused;
+
+    // Update fields
+    if (R < R_min) R_min = R;
+    if (R > R_max) R_max = R;
+    if (T < T_min) T_min = T;
+    if (T > T_max)
+    {
+        T_max = T;
+        t_peak = t_dimensional;
+    }
+    if (std::abs(R_dot) > v_max) v_max = std::abs(R_dot);
+    if (p_int > p_internal_max) p_internal_max = p_int;
+    if (p_int < p_internal_min) p_internal_min = p_int;
+    if (c_L   > c_L_max)   c_L_max   = c_L;
+    if (rho_L > rho_L_max) rho_L_max = rho_L;
+    if (Ma > Ma_max) Ma_max = Ma;
+    if (T_L > T_L_max) T_L_max = T_L;
 }
 
 
@@ -337,6 +400,13 @@ std::string SimulationData::to_csv() const
     ss << format_double << this->t_peak << ",";
     ss << format_double << this->R_min << ",";
     ss << format_double << this->T_min << ",";
+    ss << format_double << this->v_max << ",";
+    ss << format_double << this->p_internal_max << ",";
+    ss << format_double << this->p_internal_min << ",";
+    ss << format_double << this->Ma_max << ",";
+    ss << format_double << this->T_L_max << ",";
+    ss << format_double << this->c_L_max << ",";
+    ss << format_double << this->rho_L_max << ",";
     ss << this->cpar.to_csv() << ",";
     ss << this->sol.to_csv() << ",";
 
@@ -373,6 +443,13 @@ std::string SimulationData::to_string() const
     ss << std::setw(strw) << "    .t_peak"             << " = " << format_double << this->t_peak               << ",    // [s]\n";
     ss << std::setw(strw) << "    .R_min"              << " = " << format_double << this->R_min                << ",    // [m]\n";
     ss << std::setw(strw) << "    .T_min"              << " = " << format_double << this->T_min                << ",    // [K]\n";
+    ss << std::setw(strw) << "    .v_max"              << " = " << format_double << this->v_max                << ",    // [m/s]\n";
+    ss << std::setw(strw) << "    .p_internal_max"     << " = " << format_double << this->p_internal_max       << ",    // [Pa]\n";
+    ss << std::setw(strw) << "    .p_internal_min"     << " = " << format_double << this->p_internal_min       << ",    // [Pa]\n";
+    ss << std::setw(strw) << "    .Ma_max"             << " = " << format_double << this->Ma_max               << ",    // [-]\n";
+    ss << std::setw(strw) << "    .T_L_max"            << " = " << format_double << this->T_L_max              << ",    // [K]\n";
+    ss << std::setw(strw) << "    .c_L_max"            << " = " << format_double << this->c_L_max              << ",    // [m/s]\n";
+    ss << std::setw(strw) << "    .rho_L_max"          << " = " << format_double << this->rho_L_max            << ",    // [kg/m^3]\n";
     ss << "    .cpar = ControlParameters{";
     ss << std::regex_replace(this->cpar.to_string(true), std::regex("\n"), "\n    ");
     ss << "},\n    .sol = ";
@@ -468,15 +545,24 @@ std::vector<std::string> split_string(const std::string& str) {
 nlohmann::ordered_json SimulationData::to_json() const
 {
     nlohmann::ordered_json j;
-    j["dissipated_energy"] = this->dissipated_energy;
-    j["expansion_work"] = this->expansion_work;
-    j["n_target_specie"] = this->n_target_specie;
-    j["energy_demand"] = this->energy_demand;
-    j["R_max"] = this->R_max;
-    j["T_max"] = this->T_max;
-    j["t_peak"] = this->t_peak;
-    j["R_min"] = this->R_min;
-    j["T_min"] = this->T_min;
+    nlohmann::ordered_json postproc;
+    postproc["dissipated_energy"] = this->dissipated_energy;
+    postproc["expansion_work"] = this->expansion_work;
+    postproc["n_target_specie"] = this->n_target_specie;
+    postproc["energy_demand"] = this->energy_demand;
+    postproc["R_max"] = this->R_max;
+    postproc["T_max"] = this->T_max;
+    postproc["t_peak"] = this->t_peak;
+    postproc["R_min"] = this->R_min;
+    postproc["T_min"] = this->T_min;
+    postproc["v_max"] = this->v_max;
+    postproc["p_internal_max"] = this->p_internal_max;
+    postproc["p_internal_min"] = this->p_internal_min;
+    postproc["Ma_max"] = this->Ma_max;
+    postproc["T_L_max"] = this->T_L_max;
+    postproc["c_L_max"] = this->c_L_max;
+    postproc["rho_L_max"] = this->rho_L_max;
+    j["postproc"] = postproc;
     j["cpar"] = this->cpar.to_json();
     j["sol"] = this->sol.to_json();
     j["excitation"] = nlohmann::ordered_json::object({
@@ -551,6 +637,23 @@ void SimulationData::save_json_with_binary(const std::string &json_path) const
         }
         binary_output_file.write(reinterpret_cast<const char*>(row.data()), row.size() * sizeof(double));
     }
+
+    // Save sol.p_excitation (1D array)
+    if (this->sol.p_excitation.size() != this->sol.x.size())
+    {
+        LOG_ERROR("Mismatch between sol.p_excitation.size() and sol.x.size(): " + std::to_string(this->sol.p_excitation.size()) + " != " + std::to_string(this->sol.x.size()));
+        return;
+    }
+    binary_output_file.write(reinterpret_cast<const char*>(this->sol.p_excitation.data()), this->sol.p_excitation.size() * sizeof(double));
+
+    // Save sol.p_internal (1D array)
+    if (this->sol.p_internal.size() != this->sol.x.size())
+    {
+        LOG_ERROR("Mismatch between sol.p_internal.size() and sol.x.size(): " + std::to_string(this->sol.p_internal.size()) + " != " + std::to_string(this->sol.x.size()));
+        return;
+    }
+    binary_output_file.write(reinterpret_cast<const char*>(this->sol.p_internal.data()), this->sol.p_internal.size() * sizeof(double));
+
     binary_output_file.close();
 }
 

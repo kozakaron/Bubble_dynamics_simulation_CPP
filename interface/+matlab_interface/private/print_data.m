@@ -11,6 +11,7 @@ function text = print_data(data, print_it)
     % Extract control parameters and solution
     cpar = getfield_or_default(data, 'cpar', struct());
     sol = getfield_or_default(data, 'sol', struct());
+    postproc = getfield_or_default(data, 'postproc', struct());
 
     % Control Parameters
     text = sprintf("Control Parameters:\n");
@@ -28,6 +29,10 @@ function text = print_data(data, print_it)
     text = text + sprintf("  rho_L: %.2f [kg/m³]\n", getfield_or_default(cpar, 'rho_L', NaN));
     text = text + sprintf("  c_L: %.2f [m/s]\n", getfield_or_default(cpar, 'c_L', NaN));
     text = text + sprintf("  Surfactant: %.2f\n", getfield_or_default(cpar, 'surfactant', NaN));
+    bubble_dynamics = getfield_or_default(cpar, 'bubble_dynamics', 'keller_miksis');
+    text = text + sprintf("  Bubble Dynamics: %s\n", bubble_dynamics);
+    liquid_eos = getfield_or_default(cpar, 'liquid_eos_params', []);
+    text = text + sprintf("  Liquid EOS Params: %s\n", mat2str(liquid_eos));
     text = text + sprintf("  Enable Heat Transfer: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_heat_transfer', false)));
     text = text + sprintf("  Enable Evaporation: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_evaporation', false)));
     text = text + sprintf("  Enable Reactions: %s\n", bool_to_string(getfield_or_default(cpar, 'enable_reactions', false)));
@@ -44,7 +49,7 @@ function text = print_data(data, print_it)
     text = text + sprintf("\nSimulation Info:\n");
     text = text + sprintf("  Success: %s\n", bool_to_string(getfield_or_default(sol, 'success', false)));
     text = text + sprintf("  Error: %s\n", getfield_or_default(sol, 'error', 'N/A'));
-    text = text + sprintf("  Runtime: %.2f [s]\n", getfield_or_default(sol, 'runtime', NaN));
+    text = text + sprintf("  Runtime: %.3f [s]\n", getfield_or_default(sol, 'runtime', NaN));
     text = text + sprintf("  Num Steps: %d\n", getfield_or_default(sol, 'num_steps', NaN));
     text = text + sprintf("  Num Repeats: %d\n", getfield_or_default(sol, 'num_repeats', NaN));
     text = text + sprintf("  Num Function Evaluations: %d\n", getfield_or_default(sol, 'num_fun_evals', NaN));
@@ -57,26 +62,34 @@ function text = print_data(data, print_it)
     else
         t_last = NaN; % Default to NaN if invalid
     end
-    text = text + sprintf("  t_last = %.6e [s]\n", t_last);
+    text = text + sprintf("  t_last = %.4g [s]\n", t_last);
+    R_E = getfield_or_default(cpar, 'R_E', 1.0);
+    T_inf = getfield_or_default(cpar, 'T_inf', 1.0);
+    text = text + sprintf("  R_max = %.3f [um]  (R_max/R_E = %.2f)\n", 1e6*getfield_or_default(postproc, 'R_max', NaN), getfield_or_default(postproc, 'R_max', NaN)/R_E);
+    text = text + sprintf("  R_min = %.3f [um]  (R_min/R_E = %.2f)\n", 1e6*getfield_or_default(postproc, 'R_min', NaN), getfield_or_default(postproc, 'R_min', NaN)/R_E);
+    text = text + sprintf("  T_max = %.2f [K]  (T_max/T_inf = %.2f)\n", getfield_or_default(postproc, 'T_max', NaN), getfield_or_default(postproc, 'T_max', NaN)/T_inf);
+    text = text + sprintf("  T_min = %.2f [K]  (T_min/T_inf = %.2f)\n", getfield_or_default(postproc, 'T_min', NaN), getfield_or_default(postproc, 'T_min', NaN)/T_inf);
+    text = text + sprintf("  t_peak = %.6g [us]\n", 1e6*getfield_or_default(postproc, 't_peak', NaN));
+    text = text + sprintf("  v_max = %.6g [m/s]\n", getfield_or_default(postproc, 'v_max', NaN));
+    text = text + sprintf("  p_internal_max = %.6g [Pa]\n", getfield_or_default(postproc, 'p_internal_max', NaN));
+    text = text + sprintf("  p_internal_min = %.6g [Pa]\n", getfield_or_default(postproc, 'p_internal_min', NaN));
+    text = text + sprintf("  Ma_max = %.6g [-]\n", getfield_or_default(postproc, 'Ma_max', NaN));
+    if ~strcmp(getfield_or_default(cpar, 'bubble_dynamics', 'keller_miksis'), 'keller_miksis')
+        text = text + sprintf("  T_L_max = %.6g [K]\n", getfield_or_default(postproc, 'T_L_max', NaN));
+        text = text + sprintf("  c_L_max = %.6g [m/s]\n", getfield_or_default(postproc, 'c_L_max', NaN));
+        text = text + sprintf("  rho_L_max = %.6g [kg/m^3]\n", getfield_or_default(postproc, 'rho_L_max', NaN));
+    end
 
     % Results
     text = text + sprintf("\nResults:\n");
-    text = text + sprintf("  Dissipated Energy: %.6e [J]\n", getfield_or_default(data, 'dissipated_energy', NaN));
-    text = text + sprintf("  n_target_specie: %.6e [mol]\n", getfield_or_default(data, 'n_target_specie', NaN));
-    text = text + sprintf("  Energy Demand: %.2f [MJ/kg]\n", getfield_or_default(data, 'energy_demand', NaN));
+    text = text + sprintf("  Dissipated Energy: %.6g [J]\n", getfield_or_default(postproc, 'dissipated_energy', NaN));
+    text = text + sprintf("  Expansion Work: %.6g [J]\n", getfield_or_default(postproc, 'expansion_work', NaN));
+    text = text + sprintf("  n_target_specie: %.6g [mol]\n", getfield_or_default(postproc, 'n_target_specie', NaN));
+    text = text + sprintf("  Energy Demand: %.6g [MJ/kg]\n", getfield_or_default(postproc, 'energy_demand', NaN));
 
     % Print or return the text
     if print_it
         fprintf('%s', text);
-    end
-end
-
-function value = getfield_or_default(structure, field, default)
-    % GETFIELD_OR_DEFAULT Returns the value of a field in a struct or a default value if the field does not exist.
-    if isfield(structure, field)
-        value = structure.(field);
-    else
-        value = default;
     end
 end
 

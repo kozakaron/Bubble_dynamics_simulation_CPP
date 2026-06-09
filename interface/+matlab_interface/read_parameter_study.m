@@ -3,6 +3,9 @@ function all_data = read_parameter_study(directory)
     % Usage:
     %   all_data = read_parameter_study('path/to/parameter/study');
     %   good_data = all_data(all_data.success == "true", :);
+    arguments
+        directory (1,1) string  % Path to the parameter study directory
+    end
 
     % Ensure the directory exists
     if ~isfolder(directory)
@@ -38,6 +41,14 @@ function all_data = read_parameter_study(directory)
         % Print file details
         relative_path = strrep(file_path, directory, '');
         fprintf('\t%-64s (%4d rows)\n', relative_path, height(current_data));
+        
+        % Convert NaN to empty string for parameter columns (these should be empty, not NaN)
+        if any(strcmp(current_data.Properties.VariableNames, 'excitation_params'))
+            current_data.excitation_params = fillmissing(current_data.excitation_params, 'constant', '');
+        end
+        if any(strcmp(current_data.Properties.VariableNames, 'liquid_eos_params'))
+            current_data.liquid_eos_params = fillmissing(current_data.liquid_eos_params, 'constant', '');
+        end
 
         % Append the data to the main table
         all_data = [all_data; current_data]; %#ok<AGROW>

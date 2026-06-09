@@ -108,6 +108,8 @@ private:
     std::unique_ptr<Range> rho_L;
     std::unique_ptr<Range> c_L;
     std::unique_ptr<Range> surfactant;
+    Parameters::bubble_dynamics bubble_dynamics_type;
+    std::vector<std::unique_ptr<Range>> liquid_eos_params;
     bool enable_heat_transfer;
     bool enable_evaporation;
     bool enable_reactions;
@@ -135,6 +137,8 @@ public:
         AnyRange rho_L                          = Const(998.2);
         AnyRange c_L                            = Const(1483.0);
         AnyRange surfactant                     = Const(1.0);
+        Parameters::bubble_dynamics bubble_dynamics_type = Parameters::bubble_dynamics::keller_miksis;
+        std::vector<AnyRange> liquid_eos_params = {};
         bool enable_heat_transfer               = true;
         bool enable_evaporation                 = true;
         bool enable_reactions                   = true;

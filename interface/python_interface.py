@@ -85,12 +85,19 @@ def _read_json_and_binary(file_path: str) -> dict:
     """
     Reads Bubble_dynamics_simulation_CPP's output file, which is a JSON binary mix. It begins with an utf8 based JSON string
     and then contains binary data after <BINARY>. The JSON part is parsed, and the binary data is read into numpy arrays.
+    
+    The output dictionary includes:
+        - t: time array
+        - R, R_dot, T, E_diss: individual state variables
+        - p_excitation, p_internal: pressure time series
+        - n_<species_name>: individual species molar amounts [mol]
+        - x: full state array (for backward compatibility)
 
     Args:
         file_path (str): Path to the file.
 
     Returns:
-        dict: A dictionary containing the JSON data and the binary arrays.
+        dict: A dictionary containing the JSON data and the binary arrays with restructured sol data.
     """
 
     with open(file_path, 'rb') as f:
@@ -119,15 +126,42 @@ def _read_json_and_binary(file_path: str) -> dict:
         num_saved_steps = data["sol"]["num_saved_steps"]
         num_dim = data["sol"]["num_dim"]
 
-        # Read the binary part
-        t = np.frombuffer(binary_part[:num_saved_steps * 8], dtype=np.float64)
-        x = np.frombuffer(binary_part[num_saved_steps * 8:], dtype=np.float64).reshape((num_saved_steps, num_dim))
+        # Read the binary part sequentially:
+        offset = 0
+        t = np.frombuffer(binary_part[offset:offset + num_saved_steps * 8], dtype=np.float64)
+        offset += num_saved_steps * 8
+        
+        x = np.frombuffer(binary_part[offset:offset + num_saved_steps * num_dim * 8], dtype=np.float64).reshape((num_saved_steps, num_dim))
+        offset += num_saved_steps * num_dim * 8
+        
+        p_excitation = np.frombuffer(binary_part[offset:offset + num_saved_steps * 8], dtype=np.float64)
+        offset += num_saved_steps * 8
+        
+        p_internal = np.frombuffer(binary_part[offset:offset + num_saved_steps * 8], dtype=np.float64)
 
-        # Add the binary data to the dictionary
+        # Add the binary data to the dictionary and restructure sol
         data = dict(data)
-        data["sol"]["t"] = t
-        data["sol"]["x"] = x
-        data["sol"]["total_error"] = np.array(data["sol"]["total_error"])
+        sol = dict(data["sol"])
+        
+        sol["t"] = t
+        sol["x"] = x  # Keep for backward compatibility
+        sol["p_excitation"] = p_excitation
+        sol["p_internal"] = p_internal
+        sol["total_error"] = np.array(sol.get("total_error", []))
+        
+        sol["R"] = x[:, 0]           # radius [m]
+        sol["R_dot"] = x[:, 1]       # radius velocity [m/s]
+        sol["T"] = x[:, 2]           # temperature [K]
+        sol["E_diss"] = x[:, -1]     # dissipated energy [J]
+        
+        if "mechanism" in data and "species_names" in data["mechanism"]:
+            species_names = data["mechanism"]["species_names"]
+            concentrations = x[:, 3:-1]
+            V = (4.0 / 3.0) * np.pi * x[:, 0]**3  # bubble volume [m^3]
+            for i, species_name in enumerate(species_names):
+                sol[f"n_{species_name}"] = concentrations[:, i] * V  # molar amount [mol]
+        
+        data["sol"] = sol
 
     return data
 
@@ -325,59 +359,78 @@ def _print_data(data, print_it=True):
      * print_it: if True, the function will print the text. If False, it will return the text (string)
     """
 
+    nan = float('nan')
     cpar = data.get('cpar', {})
     sol = data.get('sol', {})
-    
+    postproc = data.get('postproc', {})
+
     # Control parameters
     text = "Control Parameters:\n"
-    text += f"  ID: {cpar.get('ID', 'N/A')}\n"
-    text += f"  Mechanism: {cpar.get('mechanism', 'N/A')}\n"
-    text += f"  R_E: {1e6 * cpar.get('R_E', 'N/A')} [um]\n"
-    text += f"  Ratio: {cpar.get('ratio', 'N/A')} [-]\n"
+    text += f"  ID: {cpar.get('ID', nan)}\n"
+    text += f"  Mechanism: {cpar.get('mechanism', nan)}\n"
+    text += f"  R_E: {1e6 * cpar.get('R_E', nan)} [um]\n"
+    text += f"  Ratio: {cpar.get('ratio', nan)} [-]\n"
     text += f"  Species: {cpar.get('species', [])}\n"
     text += f"  Fractions: {cpar.get('fractions', [])}\n"
-    text += f"  P_amb: {cpar.get('P_amb', 'N/A')} [Pa]\n"
-    text += f"  T_inf: {cpar.get('T_inf', 'N/A')} [K]\n"
-    text += f"  alpha_M: {cpar.get('alpha_M', 'N/A')} [-]\n"
-    text += f"  P_v: {cpar.get('P_v', 'N/A')} [Pa]\n"
-    text += f"  mu_L: {cpar.get('mu_L', 'N/A')} [Pa·s]\n"
-    text += f"  rho_L: {cpar.get('rho_L', 'N/A')} [kg/m³]\n"
-    text += f"  c_L: {cpar.get('c_L', 'N/A')} [m/s]\n"
-    text += f"  Surfactant: {cpar.get('surfactant', 'N/A')}\n"
-    text += f"  Enable Heat Transfer: {cpar.get('enable_heat_transfer', 'N/A')}\n"
-    text += f"  Enable Evaporation: {cpar.get('enable_evaporation', 'N/A')}\n"
-    text += f"  Enable Reactions: {cpar.get('enable_reactions', 'N/A')}\n"
-    text += f"  Enable Dissipated Energy: {cpar.get('enable_dissipated_energy', 'N/A')}\n"
-    text += f"  Enable Van der Waals: {cpar.get('enable_van_der_waals', 'N/A')}\n"
-    text += f"  Enable Rate Thresholding: {cpar.get('enable_rate_thresholding', 'N/A')}\n"
-    text += f"  Target Specie: {cpar.get('target_specie', 'N/A')}\n"
-    text += f"  Excitation Type: {cpar.get('excitation_type', 'N/A')}\n"
-    text += f"  Excitation Params: {cpar.get('excitation_params', 'N/A')}\n"
-    text += f"  Excitation Cycles: {cpar.get('excitation_cycles', 'N/A')} [-]\n"
-    text += f"  Ramp Up Cycles: {cpar.get('ramp_up_cycles', 'N/A')} [-]\n"
+    text += f"  P_amb: {cpar.get('P_amb', nan)} [Pa]\n"
+    text += f"  T_inf: {cpar.get('T_inf', nan)} [K]\n"
+    text += f"  alpha_M: {cpar.get('alpha_M', nan)} [-]\n"
+    text += f"  P_v: {cpar.get('P_v', nan)} [Pa]\n"
+    text += f"  mu_L: {cpar.get('mu_L', nan)} [Pa·s]\n"
+    text += f"  rho_L: {cpar.get('rho_L', nan)} [kg/m³]\n"
+    text += f"  c_L: {cpar.get('c_L', nan)} [m/s]\n"
+    text += f"  Surfactant: {cpar.get('surfactant', nan)}\n"
+    text += f"  Bubble Dynamics: {cpar.get('bubble_dynamics', nan)}\n"
+    text += f"  Liquid EOS Params: {cpar.get('liquid_eos_params', nan)}\n"
+    text += f"  Enable Heat Transfer: {cpar.get('enable_heat_transfer', nan)}\n"
+    text += f"  Enable Evaporation: {cpar.get('enable_evaporation', nan)}\n"
+    text += f"  Enable Reactions: {cpar.get('enable_reactions', nan)}\n"
+    text += f"  Enable Dissipated Energy: {cpar.get('enable_dissipated_energy', nan)}\n"
+    text += f"  Enable Van der Waals: {cpar.get('enable_van_der_waals', nan)}\n"
+    text += f"  Enable Rate Thresholding: {cpar.get('enable_rate_thresholding', nan)}\n"
+    text += f"  Target Specie: {cpar.get('target_specie', nan)}\n"
+    text += f"  Excitation Type: {cpar.get('excitation_type', nan)}\n"
+    text += f"  Excitation Params: {cpar.get('excitation_params', nan)}\n"
+    text += f"  Excitation Cycles: {cpar.get('excitation_cycles', nan)} [-]\n"
+    text += f"  Ramp Up Cycles: {cpar.get('ramp_up_cycles', nan)} [-]\n"
 
     # Simulation info
     text += "\nSimulation Info:\n"
-    text += f"  Success: {sol.get('success', 'N/A')}\n"
-    text += f"  Error: {sol.get('error', 'N/A')}\n"
-    text += f"  Runtime: {sol.get('runtime', 'N/A')} [s]\n"
-    text += f"  Num Steps: {sol.get('num_steps', 'N/A')}\n"
-    text += f"  Num Repeats: {sol.get('num_repeats', 'N/A')}\n"
-    text += f"  Num Function Evaluations: {sol.get('num_fun_evals', 'N/A')}\n"
-    text += f"  Num Jacobian Evaluations: {sol.get('num_jac_evals', 'N/A')}\n"
-    text += f"  t_last = {sol.get('t', ['N/A'])[-1]} [s]\n"
-    text += f"  R_max = {1e6*data.get('R_max', 'N/A')} [um]  (R_max/R_E = {data.get('R_max', 1.0) / cpar.get('R_E', 1.0)})\n"
-    text += f"  R_min = {1e6*data.get('R_min', 'N/A')} [um]  (R_min/R_E = {data.get('R_min', 1.0) / cpar.get('R_E', 1.0)})\n"
-    text += f"  T_max = {data.get('T_max', 'N/A')} [K]  (T_max/T_T_inf = {data.get('T_max', 1.0) / cpar.get('T_inf', 1.0)})\n"
-    text += f"  T_min = {data.get('T_min', 'N/A')} [K]  (T_min/T_T_inf = {data.get('T_min', 1.0) / cpar.get('T_inf', 1.0)})\n"
-    text += f"  t_peak = {1e6*data.get('t_peak', 'N/A')} [us]\n"
+    text += f"  Success: {sol.get('success', nan)}\n"
+    text += f"  Error: {sol.get('error', nan)}\n"
+    text += f"  Runtime: {sol.get('runtime', nan):.3f} [s]\n"
+    text += f"  Num Steps: {sol.get('num_steps', nan)}\n"
+    text += f"  Num Repeats: {sol.get('num_repeats', nan)}\n"
+    text += f"  Num Function Evaluations: {sol.get('num_fun_evals', nan)}\n"
+    text += f"  Num Jacobian Evaluations: {sol.get('num_jac_evals', nan)}\n"
+    t_arr = sol.get('t', [])
+    text += f"  t_last = {(t_arr[-1] if len(t_arr)>0 else nan): .4g} [s]\n"
+    R_E   = cpar.get('R_E', nan) or nan
+    T_inf_v = cpar.get('T_inf', nan) or nan
+    R_max_v = postproc.get('R_max', nan)
+    R_min_v = postproc.get('R_min', nan)
+    T_max_v = postproc.get('T_max', nan)
+    T_min_v = postproc.get('T_min', nan)
+    text += f"  R_max = {1e6*R_max_v:.3f} [um]  (R_max/R_E = {R_max_v/R_E:.2f})\n"
+    text += f"  R_min = {1e6*R_min_v:.3f} [um]  (R_min/R_E = {R_min_v/R_E:.2f})\n"
+    text += f"  T_max = {T_max_v:.2f} [K]  (T_max/T_inf = {T_max_v/T_inf_v:.2f})\n"
+    text += f"  T_min = {T_min_v:.2f} [K]  (T_min/T_inf = {T_min_v/T_inf_v:.2f})\n"
+    text += f"  t_peak = {1e6*postproc.get('t_peak', nan):.6g} [us]\n"
+    text += f"  v_max = {postproc.get('v_max', nan):.6g} [m/s]\n"
+    text += f"  p_internal_max = {postproc.get('p_internal_max', nan):.6g} [Pa]\n"
+    text += f"  p_internal_min = {postproc.get('p_internal_min', nan):.6g} [Pa]\n"
+    text += f"  Ma_max = {postproc.get('Ma_max', nan):.6g} [-]\n"
+    if cpar.get('bubble_dynamics', 'keller_miksis') != 'keller_miksis':
+        text += f"  T_L_max = {postproc.get('T_L_max', nan):.6g} [K]\n"
+        text += f"  c_L_max = {postproc.get('c_L_max', nan):.6g} [m/s]\n"
+        text += f"  rho_L_max = {postproc.get('rho_L_max', nan):.6g} [kg/m^3]\n"
 
     # Results
     text += "\nResults:\n"
-    text += f"  Dissipated Energy: {data.get('dissipated_energy', 'N/A')} [J]\n"
-    text += f"  Expansion Work: {data.get('expansion_work', 'N/A')} [J]\n"
-    text += f"  n_target_specie: {data.get('n_target_specie', 'N/A')} [mol]\n"
-    text += f"  Energy Demand: {data.get('energy_demand', 'N/A')} [MJ/kg]\n"
+    text += f"  Dissipated Energy: {postproc.get('dissipated_energy', nan):.6g} [J]\n"
+    text += f"  Expansion Work: {postproc.get('expansion_work', nan):.6g} [J]\n"
+    text += f"  n_target_specie: {postproc.get('n_target_specie', nan):.6g} [mol]\n"
+    text += f"  Energy Demand: {postproc.get('energy_demand', nan):.6g} [MJ/kg]\n"
 
     if print_it:
         print(text)
@@ -386,7 +439,7 @@ def _print_data(data, print_it=True):
     
 
 def plot(data, n=5.0, base_name='', format='png',
-         presentation_mode=False, show_legend=False, show_cpar=True):
+         presentation_mode=False, show_legend=False, show_cpar=True, plot_pressure=False):
     """
     This funfction plots the results of the simulation form data (returned by run_simulation()).
     Parameters:
@@ -401,6 +454,7 @@ def plot(data, n=5.0, base_name='', format='png',
      * presentation_mode: if True, the plot will be in presentation mode (default: False)
      * show_legend: if True, the legend will be visible with every single species (default: False)
      * show_cpar: if True, the control parameters will be printed on the plot (default: False)
+     * plot_pressure: if True, plot external excitation and internal pressure (default: False)
     """
 
 # Calculations 
@@ -409,7 +463,7 @@ def plot(data, n=5.0, base_name='', format='png',
     x = sol['x']
     t = sol['t']
 
-    t_last = n * data['t_peak']
+    t_last = n * data.get('postproc', {}).get('t_peak', 0.0)
     if t_last < 1e-7 or t[-1] < t_last or n < 0 or not sol['success']:
         end_index = -1
     else:
@@ -538,6 +592,29 @@ def plot(data, n=5.0, base_name='', format='png',
 
     plt.show()
     
+# plot pressure excitation and internal pressure
+    if plot_pressure:
+        p_excitation = sol['p_excitation'][:end_index] * 1e-3
+        p_internal = sol['p_internal'][:end_index] * 1e-6
+        
+        plt.rcParams.update({'font.size': 24 if presentation_mode else 18})
+        linewidth = 2.0 if presentation_mode else 1.0
+        fig3 = plt.figure(figsize=(16, 9) if presentation_mode else (20, 6))
+        ax1 = fig3.add_subplot(axisbelow=True)
+        ax2 = ax1.twinx()
+        
+        ax1.plot(t, p_excitation, color='darkorange', label='external pressure', linewidth=linewidth)
+        ax2.plot(t, p_internal, color='g', label='internal pressure', linewidth=linewidth)
+
+        ax1.set_xlabel(t_label)
+        ax1.set_ylabel('Pressure excitation [kPa]', color='darkorange')
+        ax2.set_ylabel('Internal pressure [MPa]', color='g')
+        ax2.set_ylim([0.5*np.min(p_internal), 2.0*np.max(p_internal)])
+        ax2.set_yscale('log')
+        if not presentation_mode: ax1.grid()
+
+        plt.show()
+    
 # saving the plots
     if base_name != '':
         if format not in ['png', 'pdf', 'ps', 'eps', 'svg']:
@@ -605,6 +682,12 @@ def read_parameter_study(directory: str) -> pd.DataFrame:
             for col in current_data.columns:
                 if current_data[col].dtype == 'object' and all(current_data[col].dropna().map(lambda x: isinstance(x, bool))):
                     current_data[col] = current_data[col].astype(bool)
+            
+            # Convert NaN to empty string for parameter columns (these should be empty, not NaN)
+            if 'excitation_params' in current_data.columns:
+                current_data['excitation_params'] = current_data['excitation_params'].fillna('')
+            if 'liquid_eos_params' in current_data.columns:
+                current_data['liquid_eos_params'] = current_data['liquid_eos_params'].fillna('')
 
             subdir = os.path.join(root.removeprefix(directory), file)
             print(f'\t{subdir: <64} ({current_data.shape[0]: >4} rows)')
@@ -635,6 +718,7 @@ def line_to_dict(line):
     fractions = str(line['fractions'])
     fractions = [float(frac) for frac in fractions.split(';') if frac != '']
     excitation_params = [float(param) for param in str(line['excitation_params']).split(';') if param != '']
+    liquid_eos_params = [float(param) for param in str(line.get('liquid_eos_params', '')).split(';') if param != '']
 
     return dict(
         ID = int(line['ID']),
@@ -651,6 +735,8 @@ def line_to_dict(line):
         rho_L = float(line['rho_L']),
         c_L = float(line['c_L']),
         surfactant = float(line['surfactant']),
+        bubble_dynamics = str(line.get('bubble_dynamics', 'keller_miksis')),
+        liquid_eos_params = liquid_eos_params,
         enable_heat_transfer = bool(line['enable_heat_transfer']),
         enable_evaporation = bool(line['enable_evaporation']),
         enable_reactions = bool(line['enable_reactions']),

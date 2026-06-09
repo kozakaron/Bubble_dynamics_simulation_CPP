@@ -4,6 +4,7 @@
 #include <numeric>
 #include <numbers>
 #include <iomanip>
+#include <unordered_set>
 #include <stdint.h>
 
 #include "nlohmann/json.hpp"
@@ -29,7 +30,7 @@ ControlParameters::ControlParameters(const Builder& builder)
 
 // Helper function to get value from JSON with type checking
 template<typename T>
-T get_value(const ordered_json& j, const std::string& key, const T& default_value)
+T get_value(const ordered_json& j, const std::string& key, const T& default_value, const bool warn_missing = true)
 {
     constexpr bool is_floating_point = std::is_same_v<T, double> || std::is_same_v<T, float>;
     constexpr bool is_integer = std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
@@ -42,9 +43,12 @@ T get_value(const ordered_json& j, const std::string& key, const T& default_valu
     // check existence
     if (!j.contains(key))
     {
-        LOG_ERROR(
-            Error::severity::warning, Error::type::preprocess,
-            "Key \"" + key + "\" not found in JSON object. Using default value. ");
+        if (warn_missing)
+        {
+            LOG_ERROR(
+                Error::severity::warning, Error::type::preprocess,
+                "Key \"" + key + "\" not found in JSON object. Using default value. ");
+        }
         return default_value;
     }
 
@@ -111,10 +115,13 @@ ControlParameters::ControlParameters(const ordered_json& j)
     auto builder = ControlParameters::Builder{};
     try
     {
-        builder.ID =                        get_value<size_t>                   (j, "ID",                       builder.ID);
+        builder.ID =                        get_value<size_t>                   (j, "ID",                       builder.ID, false);
         builder.mechanism =                 get_value<std::string>              (j, "mechanism",                builder.mechanism);
-        builder.R_E =                       get_value<double>                   (j, "R_E",                      builder.R_E);
-        builder.ratio =                     get_value<double>                   (j, "ratio",                    builder.ratio);
+        builder.radius_profile_file =       get_value<std::string>              (j, "radius_profile_file",      builder.radius_profile_file, false);
+        builder.excitation_profile_file =   get_value<std::string>              (j, "excitation_profile_file",  builder.excitation_profile_file, false);
+            bool warn_radius = builder.radius_profile_file.empty();
+        builder.R_E =                       get_value<double>                   (j, "R_E",                      builder.R_E, warn_radius);
+        builder.ratio =                     get_value<double>                   (j, "ratio",                    builder.ratio, warn_radius);
         builder.species =                   get_value<std::vector<std::string>> (j, "species",                  builder.species);
         builder.fractions =                 get_value<std::vector<double>>      (j, "fractions",                builder.fractions);
         builder.P_amb =                     get_value<double>                   (j, "P_amb",                    builder.P_amb);
@@ -125,19 +132,59 @@ ControlParameters::ControlParameters(const ordered_json& j)
         builder.rho_L =                     get_value<double>                   (j, "rho_L",                    builder.rho_L);
         builder.c_L =                       get_value<double>                   (j, "c_L",                      builder.c_L);
         builder.surfactant =                get_value<double>                   (j, "surfactant",               builder.surfactant);
+        builder.bubble_dynamics_type = Parameters::string_to_bubble_dynamics(
+                                            get_value<std::string>              (j, "bubble_dynamics",          Parameters::bubble_dynamics_names.at(builder.bubble_dynamics_type), warn_radius)
+        );
+            bool warn_bubble_dynamics = builder.bubble_dynamics_type != Parameters::bubble_dynamics::keller_miksis;
+        builder.liquid_eos_params =         get_value<std::vector<double>>      (j, "liquid_eos_params",        builder.liquid_eos_params,  false);
         builder.enable_heat_transfer =      get_value<bool>                     (j, "enable_heat_transfer",     builder.enable_heat_transfer);
         builder.enable_evaporation =        get_value<bool>                     (j, "enable_evaporation",       builder.enable_evaporation);
         builder.enable_reactions =          get_value<bool>                     (j, "enable_reactions",         builder.enable_reactions);
-        builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy);
-        builder.enable_van_der_waals =      get_value<bool>                     (j, "enable_van_der_waals",     builder.enable_van_der_waals);
+        builder.enable_dissipated_energy =  get_value<bool>                     (j, "enable_dissipated_energy", builder.enable_dissipated_energy, warn_radius);
+        builder.enable_van_der_waals =      get_value<bool>                     (j, "enable_van_der_waals",     builder.enable_van_der_waals, warn_radius);
         builder.enable_rate_thresholding =  get_value<bool>                     (j, "enable_rate_thresholding", builder.enable_rate_thresholding);
         builder.target_specie =             get_value<std::string>              (j, "target_specie",            builder.target_specie);
+            bool warn_excitation = builder.excitation_profile_file.empty() && builder.radius_profile_file.empty();
         builder.excitation_type = Parameters::string_to_excitation(
-                                            get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type))
+                                            get_value<std::string>              (j, "excitation_type",          Parameters::excitation_names.at(builder.excitation_type), warn_excitation)
         );
-        builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params);
-        builder.excitation_cycles =         get_value<double>                   (j, "excitation_cycles",        builder.excitation_cycles);
-        builder.ramp_up_cycles =            get_value<double>                   (j, "ramp_up_cycles",           builder.ramp_up_cycles);
+            warn_excitation = (builder.excitation_type != Parameters::excitation::no_excitation) && warn_excitation;
+        builder.excitation_params =         get_value<std::vector<double>>      (j, "excitation_params",        builder.excitation_params,  false);
+        builder.excitation_cycles =         get_value<double>                   (j, "excitation_cycles",        builder.excitation_cycles,  warn_excitation);
+        builder.ramp_up_cycles =            get_value<double>                   (j, "ramp_up_cycles",           builder.ramp_up_cycles,     warn_excitation);
+
+        if (warn_excitation && !j.contains("excitation_params"))
+        {
+            LOG_ERROR(Error::severity::warning, Error::type::preprocess,
+                "Key \"excitation_params\" not found in JSON object. Excitation parameters are required forexcitation_type=\"" + std::string(Parameters::excitation_names.at(builder.excitation_type)) + 
+                "\". Defaulting both excitation_type and excitation_params.");
+            builder.excitation_type = ControlParameters::Builder{}.excitation_type;
+            builder.excitation_params = ControlParameters::Builder{}.excitation_params;
+        }
+
+        if (warn_bubble_dynamics && !j.contains("liquid_eos_params"))
+        {
+            LOG_ERROR(Error::severity::warning, Error::type::preprocess,
+                "Key \"liquid_eos_params\" not found in JSON object. Liquid EoS parameters are required for bubble_dynamics=\"" + std::string(Parameters::bubble_dynamics_names.at(builder.bubble_dynamics_type)) + 
+                "\". Defaulting both bubble_dynamics and liquid_eos_params.");
+            builder.bubble_dynamics_type = ControlParameters::Builder{}.bubble_dynamics_type;
+            builder.liquid_eos_params = ControlParameters::Builder{}.liquid_eos_params;
+        }
+
+        static const std::unordered_set<std::string> expected_keys = {
+            "ID", "mechanism", "radius_profile_file", "excitation_profile_file",
+            "R_E", "ratio", "species", "fractions",
+            "P_amb", "T_inf", "alpha_M", "P_v", "mu_L", "rho_L", "c_L", "surfactant",
+            "bubble_dynamics", "liquid_eos_params",
+            "enable_heat_transfer", "enable_evaporation", "enable_reactions",
+            "enable_dissipated_energy", "enable_van_der_waals",
+            "enable_rate_thresholding", "target_specie",
+            "excitation_type", "excitation_params", "excitation_cycles", "ramp_up_cycles",
+        };
+        for (const auto& [key, val] : j.items())
+            if (!expected_keys.count(key))
+                LOG_ERROR(Error::severity::warning, Error::type::preprocess,
+                    "Unexpected key in ControlParameters JSON: \"" + key + "\": " + val.dump());
     }
     catch(const std::exception& e)
     {
@@ -216,6 +263,7 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->rho_L = builder.rho_L;
     this->c_L = builder.c_L;
     this->surfactant = builder.surfactant;
+    this->bubble_dynamics_type = builder.bubble_dynamics_type;
     this->enable_heat_transfer = builder.enable_heat_transfer;
     this->enable_evaporation = builder.enable_evaporation;
     this->enable_reactions = builder.enable_reactions;
@@ -227,6 +275,9 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     this->excitation_cycles = builder.excitation_cycles;
     this->ramp_up_cycles = builder.ramp_up_cycles;
 
+    std::fill(this->excitation_params, this->excitation_params + ControlParameters::max_excitation_params, 0.0);
+    std::fill(this->liquid_eos_params, this->liquid_eos_params + ControlParameters::max_liquid_eos_params, 0.0);
+
     if (this->target_specie == par->invalid_index)
     {
         std::string message = "Invalid target specie (" + builder.target_specie + ") for mechanism " + par->mechanism_name;
@@ -235,7 +286,62 @@ void ControlParameters::init(const ControlParameters::Builder& builder)
     }
     this->num_initial_species = 0;
     this->set_species(std::vector<std::string>(builder.species), std::vector<double>(builder.fractions));
-    this->set_excitation_params(std::vector<double>(builder.excitation_params));
+    if (
+        this->excitation_type != Parameters::excitation::no_excitation &&
+        builder.radius_profile_file.empty() &&
+        builder.excitation_profile_file.empty()
+    )
+    {
+        this->set_excitation_params(std::vector<double>(builder.excitation_params));
+    }
+    if (
+        this->bubble_dynamics_type != Parameters::bubble_dynamics::keller_miksis &&
+        builder.radius_profile_file.empty()
+    )
+    {
+        this->set_liquid_eos_params(std::vector<double>(builder.liquid_eos_params));
+    }
+
+    if (!builder.radius_profile_file.empty() && !builder.excitation_profile_file.empty())
+    {
+        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, "Cannot use both radius_profile_file and excitation_profile_file simultaneously", this->ID);
+        return;
+    }
+
+    // Initialize radius interpolator if radius_profile_file is provided
+    if (!builder.radius_profile_file.empty())
+    {
+        this->radius_interpolator = Interpolator(builder.radius_profile_file);
+        if (this->radius_interpolator.error_ID != ErrorHandler::no_error)
+        {
+            this->error_ID = this->radius_interpolator.error_ID;
+            return;
+        }
+        // Override R_E with first value in x_data, disable excitation
+        if (!this->radius_interpolator.x_data.empty())
+        {
+            this->R_E = this->radius_interpolator.x_data[0];
+            this->ratio = 1.0;
+            this->excitation_type = Parameters::excitation::no_excitation;
+            this->excitation_cycles = 0.0;
+            this->ramp_up_cycles = 0.0;
+        }
+    }
+    
+    // Initialize excitation interpolator if excitation_profile_file is provided
+    if (!builder.excitation_profile_file.empty())
+    {
+        this->excitation_interpolator = Interpolator(builder.excitation_profile_file);
+        if (this->excitation_interpolator.error_ID != ErrorHandler::no_error)
+        {
+            this->error_ID = this->excitation_interpolator.error_ID;
+            return;
+        }
+        // Disable excitation parameters
+        this->excitation_type = Parameters::excitation::no_excitation;
+        this->excitation_cycles = 0.0;
+        this->ramp_up_cycles = 0.0;
+    }
 
     // Set reference values
     const double p_E = this->P_amb + 2.0 * this->surfactant * par->sigma / this->R_E;   // [Pa]
@@ -372,6 +478,29 @@ void ControlParameters::set_excitation_params(const std::vector<double>& params_
 }
 
 
+void ControlParameters::set_liquid_eos_params(const std::initializer_list<double>& params_list)
+{
+    this->set_liquid_eos_params(std::vector<double>(params_list));
+}
+
+
+void ControlParameters::set_liquid_eos_params(const std::vector<double>& params_list)
+{
+    if (params_list.size() != Parameters::bubble_dynamics_arg_nums[this->bubble_dynamics_type])
+    {
+        std::stringstream ss;
+        ss << "The number of liquid EOS parameters must be equal to " << Parameters::bubble_dynamics_arg_nums.at(this->bubble_dynamics_type) << ": params_list=";
+        ss << ::to_string((double*)params_list.data(), params_list.size()) << "; param_names={";
+        ss << Parameters::bubble_dynamics_arg_names.at(this->bubble_dynamics_type) << "}; param_units={";
+        ss << Parameters::bubble_dynamics_arg_units.at(this->bubble_dynamics_type) << "}";
+        this->error_ID = LOG_ERROR(Error::severity::error, Error::type::preprocess, ss.str(), this->ID);
+        return;
+    }
+    std::fill(this->liquid_eos_params, this->liquid_eos_params + ControlParameters::max_liquid_eos_params, 0.0);
+    std::copy(params_list.begin(), params_list.end(), liquid_eos_params);
+}
+
+
 std::string ControlParameters::to_csv() const
 {
     std::stringstream ss;
@@ -393,7 +522,10 @@ std::string ControlParameters::to_csv() const
     ss << format_double << this->alpha_M << "," << format_double << this->P_v << ",";
     ss << format_double << this->mu_L << "," << format_double << this->rho_L << ",";
     ss << format_double << this->c_L << "," << format_double << this->surfactant << ",";
-    ss << std::boolalpha << this->enable_heat_transfer << "," << std::boolalpha << this->enable_evaporation << ",";
+    ss << Parameters::bubble_dynamics_names[this->bubble_dynamics_type] << ",";
+    for (size_t index = 0; index < Parameters::bubble_dynamics_arg_nums[this->bubble_dynamics_type]; ++index)
+        ss << format_double << this->liquid_eos_params[index] << ";";
+    ss << "," << std::boolalpha << this->enable_heat_transfer << "," << std::boolalpha << this->enable_evaporation << ",";
     ss << std::boolalpha << this->enable_reactions << "," << std::boolalpha << this->enable_dissipated_energy << ",";
     ss << std::boolalpha << this->enable_van_der_waals << "," << std::boolalpha << this->enable_rate_thresholding << ",";
     ss << par->species_names[this->target_specie] << ",";
@@ -437,6 +569,14 @@ std::string ControlParameters::to_string(const bool with_code) const
     
     ss << format_string << ".ID"                         << " = " << this->ID << ",\n";
     ss << format_string << ".mechanism"                  << " = " << "\"" << par->mechanism_name << "\",\n";
+    if (!this->radius_interpolator.filename.empty())
+    {
+        ss << format_string << ".radius_profile_file"    << " = " << "\"" << this->radius_interpolator.filename << "\",\n";
+    }
+    if (!this->excitation_interpolator.filename.empty())
+    {
+        ss << format_string << ".excitation_profile_file" << " = " << "\"" << this->excitation_interpolator.filename << "\",\n";
+    }
     ss << format_string << ".R_E"                        << " = " << format_double << this->R_E                       << ",    // bubble equilibrium radius [m]\n";
     ss << format_string << ".ratio"                      << " = " << format_double << this->ratio                     << ",    // R_0/R_E for unforced oscillations [-]\n";
     ss << format_string << ".species"                    << " = " << ::to_string((std::string*)species_names.data(), this->num_initial_species)   << ",\n";
@@ -449,6 +589,8 @@ std::string ControlParameters::to_string(const bool with_code) const
     ss << format_string << ".rho_L"                      << " = " << format_double << this->rho_L                     << ",    // liquid density [kg/m^3]\n";
     ss << format_string << ".c_L"                        << " = " << format_double << this->c_L                       << ",    // sound speed [m/s]\n";
     ss << format_string << ".surfactant"                 << " = " << format_double << this->surfactant                << ",    // surface tension modifier [-]\n";
+    ss << format_string << ".bubble_dynamics_type"       << " = " << (with_code ? "Parameters::bubble_dynamics::" : "") << Parameters::bubble_dynamics_names[this->bubble_dynamics_type] << ",\n";
+    ss << format_string << ".liquid_eos_params"          << " = " << ::to_string((double*)this->liquid_eos_params, Parameters::bubble_dynamics_arg_nums[this->bubble_dynamics_type]) << ",\n";
     ss << format_string << ".enable_heat_transfer"       << " = " << format_bool   << this->enable_heat_transfer      << ",\n";
     ss << format_string << ".enable_evaporation"         << " = " << format_bool   << this->enable_evaporation        << ",\n";
     ss << format_string << ".enable_reactions"           << " = " << format_bool   << this->enable_reactions          << ",\n";
@@ -484,6 +626,14 @@ ordered_json ControlParameters::to_json() const
 
     j["ID"] = this->ID;
     j["mechanism"] = this->par->mechanism_name;
+    if (!this->radius_interpolator.filename.empty())
+    {
+        j["radius_profile_file"] = this->radius_interpolator.filename;
+    }
+    if (!this->excitation_interpolator.filename.empty())
+    {
+        j["excitation_profile_file"] = this->excitation_interpolator.filename;
+    }
     j["R_E"] = this->R_E;
     j["ratio"] = this->ratio;
     j["species"] = species_names;
@@ -496,6 +646,8 @@ ordered_json ControlParameters::to_json() const
     j["rho_L"] = this->rho_L;
     j["c_L"] = this->c_L;
     j["surfactant"] = this->surfactant;
+    j["bubble_dynamics"] = Parameters::bubble_dynamics_names.at(this->bubble_dynamics_type);
+    j["liquid_eos_params"] = std::vector<double>(this->liquid_eos_params, this->liquid_eos_params + Parameters::bubble_dynamics_arg_nums.at(this->bubble_dynamics_type));
     j["enable_heat_transfer"] = this->enable_heat_transfer;
     j["enable_evaporation"] = this->enable_evaporation;
     j["enable_reactions"] = this->enable_reactions;
