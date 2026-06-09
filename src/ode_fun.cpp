@@ -3,11 +3,13 @@
 #include <iomanip>
 #include <numbers>
 #include <cmath>
+#include <tuple>
 
 #include "common.h"
 #include "ode_fun.h"
 
 
+// Computes saturated vapour pressure of water at temperature T [K] using the Arden-Buck equation.
 double vapour_pressure(const double T)
 {
     double T_C = T - 273.15; // [°C]
@@ -15,6 +17,8 @@ double vapour_pressure(const double T)
 }
 
 
+
+// Computes dynamic viscosity of water [Pa*s] at temperature T [K] using 4 parameter exponential formula.
 double viscosity(const double T)
 {
     return 1.856e-14 * std::exp(4209.0/T + 0.04527*T - 3.376e-5*T*T); // [Pa*s]
@@ -211,16 +215,19 @@ is_success OdeFun::init(const ControlParameters& cpar)
         this->C_v_inf = interval_values[0] + interval_derivatives[0] * (this->cpar.T_inf - T_high) - par->R_g;
     }
 
-    // Check excitation parameters
-    if (this->cpar.excitation_cycles <= 0.0)
+    // Check excitation parameters (skip if using excitation interpolator)
+    if (this->cpar.excitation_interpolator.x_data.empty() && this->cpar.radius_interpolator.x_data.empty())
     {
-        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Number of excitation cycles must be positive, instead it is " + std::to_string(this->cpar.excitation_cycles), this->cpar.ID);
-        return false;
-    }
-    if (this->cpar.ramp_up_cycles < 0.0 || this->cpar.ramp_up_cycles > this->cpar.excitation_cycles / 2.0)
-    {
-        this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Number of ramp-up cycles must be in the range [0, " + std::to_string(this->cpar.excitation_cycles / 2.0) + "], instead it is " + std::to_string(this->cpar.ramp_up_cycles), this->cpar.ID);
-        return false;
+        if (this->cpar.excitation_cycles <= 0.0)
+        {
+            this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Number of excitation cycles must be positive, instead it is " + std::to_string(this->cpar.excitation_cycles), this->cpar.ID);
+            return false;
+        }
+        if (this->cpar.ramp_up_cycles < 0.0 || this->cpar.ramp_up_cycles > this->cpar.excitation_cycles / 2.0)
+        {
+            this->cpar.error_ID = LOG_ERROR(Error::severity::error, Error::type::odefun, "Number of ramp-up cycles must be in the range [0, " + std::to_string(this->cpar.excitation_cycles / 2.0) + "], instead it is " + std::to_string(this->cpar.ramp_up_cycles), this->cpar.ID);
+            return false;
+        }
     }
     switch (this->cpar.excitation_type)
     {
@@ -485,15 +492,12 @@ inline std::pair<double, double> _sin(
 }
 
 
-std::pair<double, double> OdeFun::pressures_excitation(
-    const double t,
-    const double R,
-    const double R_dot,
-    const double p,
-    const double p_dot
+std::pair<double, double> OdeFun::excitation_pressures(
+    const double t
 )
 {
-    double p_Inf, p_Inf_dot;
+    double p_inf, p_inf_dot;
+       
     switch (cpar.excitation_type)
     {
     case Parameters::excitation::sinusoid:
@@ -503,8 +507,8 @@ std::pair<double, double> OdeFun::pressures_excitation(
 
             const auto [w, w_dot] = _tukey_window(t, freq, cpar.excitation_cycles, cpar.ramp_up_cycles);
             const auto [p1, p1_dot] = _sin(t, p_A, freq, 0.0);
-            p_Inf = cpar.P_amb + w * p1;
-            p_Inf_dot = w_dot * p1 + w * p1_dot;
+            p_inf = cpar.P_amb + w * p1;
+            p_inf_dot = w_dot * p1 + w * p1_dot;
             break;
         }
     case Parameters::excitation::two_sinusoids:
@@ -518,8 +522,8 @@ std::pair<double, double> OdeFun::pressures_excitation(
             const auto [w, w_dot] = _tukey_window(t, freq1, cpar.excitation_cycles, cpar.ramp_up_cycles);
             const auto [p1, p1_dot] = _sin(t, p_A1, freq1, 0.0);
             const auto [p2, p2_dot] = _sin(t, p_A2, freq2, theta_phase);
-            p_Inf = cpar.P_amb + w * (p1 + p2);
-            p_Inf_dot = w_dot * (p1 + p2) + w * (p1_dot + p2_dot);
+            p_inf = cpar.P_amb + w * (p1 + p2);
+            p_inf_dot = w_dot * (p1 + p2) + w * (p1_dot + p2_dot);
             break;
         }
     case Parameters::excitation::square:
@@ -539,24 +543,119 @@ std::pair<double, double> OdeFun::pressures_excitation(
                 p_sum += p_n;
                 p_sum_dot += p_n_dot;
             }
-            p_Inf = cpar.P_amb + w * p_sum;
-            p_Inf_dot = w_dot * p_sum + w * p_sum_dot;
+            p_inf = cpar.P_amb + w * p_sum;
+            p_inf_dot = w_dot * p_sum + w * p_sum_dot;
             break;
         }
     default: // no_excitation
         {
-            p_Inf = cpar.P_amb;
-            p_Inf_dot = 0.0;
+            p_inf = cpar.P_amb;
+            p_inf_dot = 0.0;
             break;
         }
     }
-    
-    const double p_L = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
-    const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // + 4.0 * cpar.mu_L * R_ddot / R;
-    const double delta = (p_L - p_Inf) / cpar.rho_L;
-    const double delta_dot = (p_L_dot - p_Inf_dot) / cpar.rho_L;
 
-    return std::make_pair(delta, delta_dot);
+    // Use excitation interpolator if available
+    if (!cpar.excitation_interpolator.x_data.empty())
+    {
+        auto [p_interp, p_dot_interp, p_dot_dot_interp] = cpar.excitation_interpolator.interpolate(t);
+        p_inf = cpar.P_amb + p_interp;
+        p_inf_dot = p_dot_interp;
+    }
+
+    return std::make_pair(p_inf, p_inf_dot);
+}
+
+
+std::tuple<double, double, double, double, double> OdeFun::liquid_properties(const double p_L, const double P_inf)
+{
+    if (cpar.bubble_dynamics_type == Parameters::bubble_dynamics::keller_miksis)
+    {
+        return {cpar.c_L, cpar.rho_L, cpar.rho_L, 0.0, cpar.T_inf};
+    } else if (cpar.bubble_dynamics_type == Parameters::bubble_dynamics::gilmore_nasg)
+    {
+        // Noble-Abel stiffened-gas (NASG) EoS
+        // Validation of parameter count happens in ControlParameters::init()
+        const double Gamma_L   = cpar.liquid_eos_params[0];
+        const double B_L       = cpar.liquid_eos_params[1];
+        const double b_L       = cpar.liquid_eos_params[2];
+        const double p_L_ref   = cpar.liquid_eos_params[3];
+        const double rho_L_ref = cpar.liquid_eos_params[4];
+
+        const double K_L       = rho_L_ref / (std::pow(p_L_ref + B_L, 1.0 / Gamma_L) * (1.0 - b_L * rho_L_ref));
+        const double rho_L     = K_L * std::pow((p_L   + B_L), 1.0 / Gamma_L) / (1.0 + b_L * K_L * std::pow((p_L   + B_L), 1.0 / Gamma_L));
+        const double rho_inf   = K_L * std::pow((P_inf + B_L), 1.0 / Gamma_L) / (1.0 + b_L * K_L * std::pow((P_inf + B_L), 1.0 / Gamma_L));
+        const double c_L       = std::sqrt(Gamma_L * (p_L + B_L) / (rho_L - b_L * rho_L * rho_L));
+        const double h_L       = Gamma_L / (Gamma_L - 1.0) * (p_L   + B_L) / rho_L   - Gamma_L / (Gamma_L - 1.0) * b_L * (p_L   + B_L) + b_L * p_L;
+        const double h_inf     = Gamma_L / (Gamma_L - 1.0) * (P_inf + B_L) / rho_inf - Gamma_L / (Gamma_L - 1.0) * b_L * (P_inf + B_L) + b_L * P_inf;
+        const double H         = h_L - h_inf;
+        const double T_L       = cpar.T_inf * std::pow((p_L + B_L) / (cpar.P_amb + B_L), (Gamma_L - 1.0) / Gamma_L);
+
+        return {c_L, rho_L, rho_inf, H, T_L};
+    } else {
+        // Tait EoS (default for Gilmore)
+        // Validation of parameter count happens in ControlParameters::init()
+        const double Gamma_L   = cpar.liquid_eos_params[0];
+        const double B_L       = cpar.liquid_eos_params[1];
+        const double p_L_ref   = cpar.liquid_eos_params[2];
+        const double rho_L_ref = cpar.liquid_eos_params[3];
+
+        const double rho_L     = rho_L_ref * std::pow((p_L   + B_L) / (p_L_ref + B_L), 1.0 / Gamma_L);
+        const double rho_inf   = rho_L_ref * std::pow((P_inf + B_L) / (p_L_ref + B_L), 1.0 / Gamma_L);
+        const double c_L       = std::sqrt(Gamma_L * (p_L + B_L) / rho_L);
+        const double h_L       = Gamma_L / (Gamma_L - 1.0) * (p_L   + B_L) / rho_L;
+        const double h_inf     = Gamma_L / (Gamma_L - 1.0) * (P_inf + B_L) / rho_inf;
+        const double H         = h_L - h_inf;
+        const double Gamma_G   = 0.1 + 1.4 * (1.0 - rho_L_ref / rho_L);
+        const double rho_ratio = rho_L_ref / rho_L;
+        const double T_L       = cpar.T_inf * std::exp(Gamma_G * (1.0 - rho_ratio));
+
+        return {c_L, rho_L, rho_inf, H, T_L};
+    }
+}
+
+
+double OdeFun::bubble_dynamics(
+    const double t,
+    const double R,
+    const double R_dot,
+    const double p,
+    const double p_dot,
+    const double P_inf,
+    const double P_inf_dot
+)
+{
+    // Radius interpolator takes precedence over equation-based dynamics
+    if (!cpar.radius_interpolator.x_data.empty())
+    {
+        auto [R_interp, R_dot_interp, R_dot_dot_interp] = cpar.radius_interpolator.interpolate(t);
+        const double damping_coefficient = 1.0e8;    // adjustable [1/s]
+        return R_dot_dot_interp - damping_coefficient * (R_dot - R_dot_interp);
+    }
+
+    if (cpar.bubble_dynamics_type == Parameters::bubble_dynamics::keller_miksis)
+    {
+        // Keller-Miksis equation
+        const double p_L     = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
+        const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // - 4.0 * cpar.mu_L * R_dot_dot / R;
+        const double delta = (p_L - P_inf) / cpar.rho_L;
+        const double delta_dot = (p_L_dot - P_inf_dot) / cpar.rho_L;
+
+        const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
+        const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
+        return nom / denom;
+    }
+    else    // Gilmore equation (NASG or Tait EoS) - https://doi.org/10.1016/j.ultsonch.2020.105307
+    {
+        const double p_L     = p - (2.0 * cpar.surfactant * par->sigma + 4.0 * cpar.mu_L * R_dot) / R;
+        const double p_L_dot = p_dot + (2.0 * cpar.surfactant * par->sigma * R_dot + 4.0 * cpar.mu_L * R_dot * R_dot) / (R * R); // - 4.0 * cpar.mu_L * R_dot_dot / R;
+        auto [c_L, rho_L, rho_inf, H, T_L_unused] = liquid_properties(p_L, P_inf);
+        const double H_dot = p_L_dot / rho_L - P_inf_dot / rho_inf; // - 4.0 * cpar.mu_L * R_dot_dot / (rho_L * R);
+
+        const double nom = ((1.0 + R_dot / c_L) * H - 1.5 * (1.0 - R_dot / (3.0 * c_L)) * R_dot * R_dot) / ((1.0 - R_dot / c_L) * R) + H_dot / c_L;
+        const double den = 1.0 + 4.0 * cpar.mu_L / (rho_L * R * c_L);
+        return nom / den;
+    }
 }
 
 
@@ -632,6 +731,23 @@ std::pair<double, double> OdeFun::evaporation(
 }
 
 
+// Natural logarithm of the dimensionless collision integral Ω^(2,2)(T*).
+// https://doi.org/10.1063/1.1678363
+inline double ln_Omega_22(const double T_star, const double ln_T_star)
+{
+    constexpr double A    = 1.16145, B = 0.14874;
+    constexpr double C    = 0.52487, D = 0.77320;
+    constexpr double E    = 2.16178, F = 2.43787;
+    constexpr double ln_A = 0.1496692245;
+    if (T_star > 10.0)
+    {
+        return ln_A - B * ln_T_star;
+    }
+    return std::log(
+        A * std::pow(T_star, -B) + C * std::exp(-D * T_star) + E * std::exp(-F * T_star)
+    );
+}
+
 void OdeFun::forward_rate(
     const double T,
     const double M,
@@ -639,14 +755,14 @@ void OdeFun::forward_rate(
 )
 {
 // Arrhenius reactions
-    const double logT = std::log(T);
+    const double ln_T = std::log(T);
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
         const double& ln_A     = par->arrhenius_parameters[index * 3 + 0];    // Logarithm of pre-exponential factors [ln(m^3n/mol^n/s)], where n is reaction_order-1 [-]
         const double& b        = par->arrhenius_parameters[index * 3 + 1];    // Temperature exponents [-]
         const double& E_over_R = par->arrhenius_parameters[index * 3 + 2];    // Activation energies / universal gas constant [K]
 
-        this->ln_k_forward[index] = ln_A + b * logT - E_over_R / T;
+        this->ln_k_forward[index] = ln_A + b * ln_T - E_over_R / T;
     }
     
 // Pressure dependent reactions
@@ -669,7 +785,7 @@ void OdeFun::forward_rate(
         const double &E0_over_R = falloff_parameters[2];
 
         const double ln_k_inf = this->ln_k_forward[index];
-        const double ln_k_0 = ln_A0 + b_0 * logT - E0_over_R / T;
+        const double ln_k_0 = ln_A0 + b_0 * ln_T - E0_over_R / T;
         const double ln_Pr = ln_k_0 + std::log(M_eff_loc) - ln_k_inf;
         const double log10_Pr = ln_Pr / std::numbers::ln10;
 
@@ -755,8 +871,8 @@ void OdeFun::forward_rate(
         const double &E_upper_over_R = par->plog_parameters[upper*4+3];
 
         // reaction rates at the lower and upper pressures
-        const double ln_k_lower = ln_A_lower + b_lower * logT - E_lower_over_R / T;
-        const double ln_k_upper = ln_A_upper + b_upper * logT - E_upper_over_R / T;
+        const double ln_k_lower = ln_A_lower + b_lower * ln_T - E_lower_over_R / T;
+        const double ln_k_upper = ln_A_upper + b_upper * ln_T - E_upper_over_R / T;
 
         // interpolation
         if (p < par->plog_parameters[par->plog_seperators[j]*4+0])    // p < smallest pressure level
@@ -775,19 +891,30 @@ void OdeFun::forward_rate(
     
 // Forward rate thresholding
     if (!cpar.enable_rate_thresholding) return;
-    const double reaction_rate_threshold = par->k_B * T / par->h; // [1/s]
-    const double ln_reaction_rate_threshold = std::log(reaction_rate_threshold);
-    const double ln_correction = std::log(par->R_g * T / par->atm2Pa); // unit correction for higher order reactions [m^3/mol]
+    const double ln_correction = std::log(par->R_g * T / par->atm2Pa);  // unit correction for higher order reactions [m^3/mol]
+    const double ln_uni_limit  = std::log(par->k_B * T / par->h);       // [1/s]
+    const double ln_kB_T       = std::log(par->k_B) + ln_T;
     for(index_t index = 0; index < par->num_reactions; ++index)
     {
-        const double ln_threshold = ln_reaction_rate_threshold + ln_correction * (par->reaction_order[index] - 1);
-        const double ln_k_forward = this->ln_k_forward[index];
-        if (!std::isfinite(ln_k_forward) || ln_k_forward > ln_threshold)
+        const double ln_bi_limit_base = par->ln_bimolecular_threshold_base[index];
+        const index_t m = par->reaction_order[index];
+        double ln_threshold;
+        if (std::isnan(ln_bi_limit_base))    // unimolecular
         {
-            this->ln_k_forward[index] = std::copysign(ln_threshold, ln_k_forward);
+            ln_threshold = ln_uni_limit + (m - 1) * ln_correction;
+        }
+        else    // bimolecular
+        {
+            const double T_star    = par->k_B * T / par->epsilon_AB[index];
+            const double ln_T_star = ln_kB_T  - par->ln_epsilon_AB[index];
+            ln_threshold = ln_bi_limit_base + 0.5 * ln_T + ln_Omega_22(T_star, ln_T_star) + (m - 2) * ln_correction;
+        }
+        const double ln_k = this->ln_k_forward[index];
+        if (!std::isfinite(ln_k) || ln_k > ln_threshold)
+        {
+            this->ln_k_forward[index] = std::copysign(ln_threshold, ln_k);
         }
     }
-    
 }
 
 
@@ -1011,11 +1138,8 @@ is_success OdeFun::operator()(
     x_dimensional_dot[2] = T_dot;
 
 // d/dt R_dot
-    const auto [delta, delta_dot] = this->pressures_excitation(t, R, R_dot, p, p_dot);  // delta = (p_L - p_Inf) / rho_L
-    const double nom   = (1.0 + R_dot / cpar.c_L) * delta + R / cpar.c_L * delta_dot - (1.5 - 0.5 * R_dot / cpar.c_L) * R_dot * R_dot;
-    const double denom = (1.0 - R_dot / cpar.c_L) * R + 4.0 * cpar.mu_L / (cpar.c_L * cpar.rho_L);
-
-    const double R_dot_dot = nom / denom;
+    const auto [P_inf, P_inf_dot] = this->excitation_pressures(t);
+    const double R_dot_dot = this->bubble_dynamics(t, R, R_dot, p, p_dot, P_inf, P_inf_dot);
     x_dimensional_dot[1] = R_dot_dot;
 
 // Dissipated energy

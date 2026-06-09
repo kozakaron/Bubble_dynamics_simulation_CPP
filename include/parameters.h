@@ -47,14 +47,40 @@ public:
         "Pa Hz -"                                      // square
     };
 
+// BUBBLE DYNAMICS AND LIQUID EOS TYPES
+
+    enum bubble_dynamics: index_t {keller_miksis=0, gilmore_nasg=1, gilmore_tait=2};
+    static constexpr std::array<index_t, 3> bubble_dynamics_arg_nums = {
+        0, // keller_miksis
+        5, // gilmore_nasg
+        4  // gilmore_tait
+    };
+    static constexpr std::array<const char*, 3> bubble_dynamics_names = {
+        "keller_miksis",
+        "gilmore_nasg",
+        "gilmore_tait"
+    };
+    static constexpr std::array<const char*, 3> bubble_dynamics_arg_names = {
+        "",                                            // keller_miksis
+        "Gamma_L B_L b_L p_L_ref rho_L_ref",           // gilmore_nasg
+        "Gamma_L B_L p_L_ref rho_L_ref"                // gilmore_tait
+    };
+    static constexpr std::array<const char*, 3> bubble_dynamics_arg_units = {
+        "",                                            // keller_miksis
+        "- Pa m^3/kg Pa kg/m^3",                       // gilmore_nasg
+        "- Pa Pa kg/m^3"                               // gilmore_tait
+    };
+
 // PHYSICAL CONSTANTS
 
+// Water reference properties at 30 °C and 1 atm
     static constexpr double c_L           = 1483.0;             // Liquid sound speed at 30 °C [m/s]
     static constexpr double rho_L         = 998.2;              // Liquid density [kg/m^3]
     static constexpr double sigma         = 0.07197;            // Surface tension [N/m]
     static constexpr double mu_L          = 0.001;              // Dynamic viscosity at 30 °C and 1 atm [Pa*s]
     static constexpr double P_v           = 2338.1;             // Saturated vapour pressure at 30 °C [Pa]
     static constexpr double alpha_M       = 0.35;               // Water accommodation coefficient [-]
+// Universal constants
     static constexpr double k_B           = 1.380649e-23;       // Boltzmann constant [J/K]
     static constexpr double R_g           = 8.31446;            // Universal gas constant [J/mol/K]
     static constexpr double R_kmol        = 8314.46;            // Universal gas constant [J/kmol/K]
@@ -69,6 +95,7 @@ public:
     static constexpr double atm2Pa        = 101325.0;           // Conversion factor from atm to Pa
     static constexpr double bar2Pa        = 100000.0;           // Conversion factor from bar to Pa
     static constexpr double absolute_zero = 273.15;             // Zero °C in Kelvin
+    
 
 // MECHANISM DEPENDENT PARAMETERS
 
@@ -95,7 +122,6 @@ public:
 // Reactions constants
     const index_t num_reactions;                    // Number of reactions
     const double *arrhenius_parameters;             // Arrhenius parameters (num_reactions, 3): {ln_A, b, E_over_R}
-    const index_t *reaction_order;                  // reaction_order (num_reactions)
 // Reaction matrixes
     const index_t num_max_species_per_reaction;     // Maximum number of species participating in a reaction
     const index_t *nu_indexes;                      // Indexes of species participating in reactions (num_reactions, num_max_species_per_reaction)
@@ -128,6 +154,11 @@ public:
     const index_t *plog_reaction_indexes;           // Indexes of PLOG reactions (num_plog_reactions)
     const index_t *plog_seperators;                 // Seperators of PLOG reactions (num_plog_reactions+1)
     const double *plog_parameters;                  // PLOG parameters (num_plog_levels, 4): {P_j, ln_Aj, b_j, Ej_over_R}
+ // Constants for bimolecular threshold calculations
+    const index_t *reaction_order;                  // reaction_order (num_reactions)
+    const double *ln_bimolecular_threshold_base;    // ln(N_A * sigma_AB^2 / kappa_AB * sqrt(8 * pi * R_g / W_AB)); NaN for unimolecular (num_reactions)
+    const double *epsilon_AB;                       // sqrt(epsilon_A * epsilon_B); common Lennard-Jones well-depth; NaN for unimolecular (num_reactions)
+    const double *ln_epsilon_AB;                    // ln(epsilon_AB)
 
 // CONSTRUCTORS
     Parameters(const nlohmann::json& j);
@@ -136,6 +167,7 @@ public:
 
 // GETTERS
     static const Parameters *get_parameters(const std::string& mech_name);
+    static Parameters::bubble_dynamics string_to_bubble_dynamics(std::string bubble_dynamics_str);
     static Parameters::excitation string_to_excitation(std::string excitation_str);
 };
 

@@ -11,6 +11,8 @@
 #include <ostream>
 #include <fstream>
 
+class OdeFun;  // forward declaration
+
 
 class OdeSolution
 {
@@ -20,6 +22,8 @@ public:
 // Solution and statistics
     std::vector<double> t;
     std::vector<std::vector<double>> x;
+    std::vector<double> p_excitation;  // external excitation pressure [Pa]
+    std::vector<double> p_internal;    // internal bubble pressure [Pa]
     size_t num_dim;
     size_t num_steps;
     size_t num_repeats;
@@ -36,7 +40,7 @@ public:
     OdeSolution();
     ~OdeSolution();
     is_success success() const;
-    void push_t_x(const double t_i, const double *x_i);
+    void push_t_x(const double t_dimless, const double *x_dimless, OdeFun* ode_ptr);
     void clear();
     std::string to_csv() const;
     std::string to_string(const bool colored=true, const bool with_code=true) const;
@@ -58,6 +62,13 @@ public:
     double t_peak;             // [s]
     double R_min;              // [m]
     double T_min;              // [K]
+    double v_max;              // [m/s]
+    double p_internal_max;     // [Pa]
+    double p_internal_min;     // [Pa]
+    double Ma_max;             // [-]
+    double T_L_max;            // [K]  (only relevant for Gilmore)
+    double c_L_max;            // [m/s] (only relevant for Gilmore)
+    double rho_L_max;          // [kg/m^3] (only relevant for Gilmore)
 // Post-processing results
     double dissipated_energy;  // [J]
     double expansion_work;     // [J]
@@ -66,9 +77,10 @@ public:
 // Members
     const ControlParameters &cpar;
     OdeSolution sol;
+    std::vector<double> x_dimensional;
 // Methods
     SimulationData(const ControlParameters &cpar);
-    void midprocess(const double t, const double* x);
+    void midprocess(const double t_dimless, const double* x_dimless, OdeFun* ode_ptr);
     void postprocess();
     std::string to_csv() const;
     std::string to_string() const;

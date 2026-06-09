@@ -265,7 +265,7 @@ if __name__ == '__main__':
             [get_arrhenius_parameters(reaction, order), order] for reaction, order in zip(mechanism.reactions(), reaction_orders)
         ]
         reaction_participants = [set(reaction.products.keys()).union(set(reaction.reactants.keys())) for reaction in mechanism.reactions()]
-        num_max_species_per_reaction = max(len(participants) for participants in reaction_participants)
+        num_max_species_per_reaction = max(len(participants) for participants in reaction_participants) if len(reaction_participants) > 0 else 0
 
         reaction_participant_indexes = [
             [mechanism.species_index(species) for species in participants] +        # indexes of species participating in the reaction

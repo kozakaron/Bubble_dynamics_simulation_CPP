@@ -199,9 +199,7 @@ std::string Error::to_string(const bool color) const
             break;
         }
     if (color) ss << colors::bold << error_color;
-    ss << "(" << Error::type_names[this->error_type];
-    if (!color) ss << ", " << Error::severity_names[this->error_severity];
-    ss << ") ";
+    ss << Error::severity_names_upper[this->error_severity] << " (" << Error::type_names[this->error_type] << ") ";
     if (color) ss << colors::reset << error_color;
     ss << this->message;
     if (color) ss << colors::reset;
