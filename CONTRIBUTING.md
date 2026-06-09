@@ -357,7 +357,7 @@ The `ControlParameters` class, declared in [./include/control_parameters.h](./in
      .c_L                         = 1.48300000000000000e+03,    // sound speed [m/s]
      .surfactant                  = 1.00000000000000000e+00,    // surface tension modifier [-]
      .bubble_dynamics             = Parameters::bubble_dynamics::gilmore_nasg,
-     .liquid_eos_params           = {1.19, 6.218e8, 6.72e-4, 1.0e5, 997.0, 3610.0},
+     .liquid_eos_params           = {1.19, 6.218e8, 6.72e-4, 1.0e5, 997.0},
      .enable_heat_transfer        = true,
      .enable_evaporation          = true,
      .enable_reactions            = true,

@@ -52,8 +52,8 @@ public:
     enum bubble_dynamics: index_t {keller_miksis=0, gilmore_nasg=1, gilmore_tait=2};
     static constexpr std::array<index_t, 3> bubble_dynamics_arg_nums = {
         0, // keller_miksis
-        0, // gilmore_nasg
-        0  // gilmore_tait
+        5, // gilmore_nasg
+        4  // gilmore_tait
     };
     static constexpr std::array<const char*, 3> bubble_dynamics_names = {
         "keller_miksis",
@@ -62,12 +62,12 @@ public:
     };
     static constexpr std::array<const char*, 3> bubble_dynamics_arg_names = {
         "",                                            // keller_miksis
-        "Gamma_L B_L b_L p_L_ref rho_L_ref C_vL",     // gilmore_nasg
+        "Gamma_L B_L b_L p_L_ref rho_L_ref",           // gilmore_nasg
         "Gamma_L B_L p_L_ref rho_L_ref"                // gilmore_tait
     };
     static constexpr std::array<const char*, 3> bubble_dynamics_arg_units = {
         "",                                            // keller_miksis
-        "- Pa m^3/kg Pa kg/m^3 J/(kg*K)",              // gilmore_nasg
+        "- Pa m^3/kg Pa kg/m^3",                       // gilmore_nasg
         "- Pa Pa kg/m^3"                               // gilmore_tait
     };
 

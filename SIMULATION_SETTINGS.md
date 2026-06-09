@@ -6,6 +6,7 @@ This document provides supplementary documentation for **Bubble dynamics simulat
 
 - [Inputs](#inputs)
     - [Chemical mechanisms](#chemical-mechanisms)
+    - [Bubble dynamics and liquid EOS](#bubble-dynamics-and-liquid-eos)
     - [Excitations](#excitations)
     - [Prescribed excitation or radius profile](#prescribed-excitation-or-radius-profile)
 - [Outputs](#outputs)
@@ -30,13 +31,15 @@ The inputs/settings of an individual simulation are stored in a dictionary/struc
 | | `rho_L` | $\rho_L$ | Liquid density | $kg/m^3$ |
 | | `c_L` | $c_L$ | Sound speed | $m/s$ |
 | | `surfactant` | $\sigma_L/\sigma_{H_2O}$ | Ratio of liquid surface tension and water's surface tension | $1$ |
+| **Bubble dynamics** | `bubble_dynamics` | | Type of bubble dynamics model (keller_miksis, gilmore_nasg, gilmore_tait) (string) | |
+| | `liquid_eos_params` | | List of liquid EOS parameters depending on model, not needed for keller_miksis (array of doubles) | |
+| **Bubble dynamics** | `bubble_dynamics` | | Type of bubble dynamics model (keller_miksis, gilmore_nasg, gilmore_tait) (string) | |
+| | `liquid_eos_params` | | List of liquid EOS parameters depending on model (array of doubles) | |
 | **Simulation settings** | `enable_heat_transfer` | | Toggles heat transfer between the bubble and ambient liquid | |
 | | `enable_evaporation` | | Toggles evaporation (ambient liquid is assumed to be water) | |
 | | `enable_reactions` | | Toggles chemical reactions | |
 | | `enable_dissipated_energy` | | Toggles dissipated energy, should be false for unforced vibrations | |
 | | `enable_van_der_waals` | | Toggles between ideal and van der Waals state equation | |
-| | `enable_gilmore` | | Toggles between Keller-Miksis and Gilmore bubble model | |
-| | `enable_nasg` | | Toggles between Tait and NASG liquid equation of state (requires `enable_gilmore`) | |
 | | `enable_rate_thresholding` | | Toggles reaction rate thresholding, improves stability | |
 | **Excitation** | `excitation_type` | | Type of excitation (string), see [Excitations](#excitations) | |
 | | `excitation_params` | | List of excitation parameters | |
@@ -74,6 +77,66 @@ through evaporation into hydrogen ($H_2$) and oxygen ($O_2$). Alternative object
 The mechanisms `chemkin_elte2016_syngas`, `chemkin_elte2017_methanol`, and `chemkin_elte2016_ethanol` can be used to simulate various forms of carbon capture. In the simplest case, carbon-dioxide ($CO_2$) and water vapour ($H_2O$) is turned into syngas ($H_2$ and $CO$). In more complex cases, the goal is to synthesize methanol ($CH_3OH$) or ethanol ($CH_3CH_2OH$) as potential fuels.
 
 The mechanisms `chemkin_kaust2023_ammonia` and `chemkin_otomo2018_ammonia` are used to simulate ammonia ($NH_3$) production from hydrogen ($H_2$) and nitrogen ($N_2$). This process might be coupled with hydrogen production. More lightweight oxygen-free variants are also available if evaporation is not considered. However, even trace amounts of oxygen can lead to significantly different results. Note that `chemkin_otomo2018_ammonia` is considered deprecated, but it is kept for comparison with older versions. In the future, even larger mechanisms will be tested incorporating $H$, $C$, $N$, $O$ molecules simultaneously to investigate the possibility of direct fertilizer production, like urea ($CO(NH_2)_2$).
+
+
+### Bubble dynamics and liquid EOS
+
+The bubble dynamics model determines how the bubble radius and internal state evolve during the simulation. Three options are available:
+
+| Bubble dynamics | Parameter | Description | Unit |
+|-------|-----------|-------------|------|
+| `keller-miksis` |  | Classical incompressible liquid model. Simplest and fastest option. No additional parameters. | — |
+| `gilmore-nasg` |  | Compressible liquid with NASG (Noble-Abel Stiffened Gas) EOS. | |
+| | `liquid_eos_params[0]` | Specific heat ratio | – |
+| | `liquid_eos_params[1]` | Stiffness parameter | Pa |
+| | `liquid_eos_params[2]` | Excluded volume | m³/kg |
+| | `liquid_eos_params[3]` | Reference pressure | Pa |
+| | `liquid_eos_params[4]` | Reference density | kg/m³ |
+| `gilmore-tait` |  | Compressible liquid with Tait EOS. | |
+| | `liquid_eos_params[0]` | Specific heat ratio | – |
+| | `liquid_eos_params[1]` | Stiffness parameter | Pa |
+| | `liquid_eos_params[2]` | Reference pressure | Pa |
+| | `liquid_eos_params[3]` | Reference density | kg/m³ |
+
+**Default**
+```json
+"bubble_dynamics": "keller_miksis",
+"liquid_eos_params": []
+```
+
+**Water - literature values for NASG**
+
+> Not recommended for high pressures.
+
+$\Gamma_L = 1.19$ [–]; $B_L = 6.218 \times 10^8$ [Pa]; $b_L = 6.72 \times 10^{-4}$ [m³/kg]; $p_{L,ref} = 1.0 \times 10^5$ [Pa]; $\rho_{L,ref} = 997.0$ [kg/m³]
+
+```json
+"bubble_dynamics": "gilmore_nasg",
+"liquid_eos_params": [1.19, 6.218e8, 6.72e-4, 1.0e5, 997.0]
+```
+
+
+**Water - literature values for Tait**
+
+> Not recommended for high pressures.
+
+$\Gamma_L = 7.15$ [–]; $B_L = 3.046 \times 10^8$ [Pa]; $p_{L,ref} = 1.0 \times 10^5$ [Pa]; $\rho_{L,ref} = 997.0$ [kg/m³]
+
+```json
+"bubble_dynamics": "gilmore_tait",
+"liquid_eos_params": [7.15, 3.046e8, 1.0e5, 997.0]
+```
+
+**Water - custom Tait fitted for high pressure**
+
+$\Gamma_L = 6.20$ [–]; $B_L = 3.534 \times 10^8$ [Pa]; $p_{L,ref} = 101325.0$ [Pa]; $\rho_{L,ref} = 998.2$ [kg/m³]
+
+```json
+"bubble_dynamics": "gilmore_tait",
+"liquid_eos_params": [6.20, 3.534e8, 101325.0, 998.2]
+```
+
+
 
 
 ### Excitations
@@ -114,16 +177,17 @@ Excitations are controlled by 4 control parameters:
 Instead of using the built-in periodic excitations or solving the full bubble dynamics (Keller-Miksis or Gilmore equation), you can provide your own measured or simulated data. This is useful when you want to enforce a specific pressure excitation field ($p(t)$) or force the bubble radius to follow a custom shape ($R(t)$).
 
 To use this feature, specify the path to your CSV file using one of the following control parameters:
- * `excitation_profile_file` (string): Path to a CSV file (e.g., `"./data/excitation.csv"`). When specified, it overrides the `excitation_type`, `excitation_params`, `excitation_cycles`, `ramp_up_cycles` parameters.
+ * `excitation_profile_file` (string): Path to a CSV file (e.g., `"./data/excitation.csv"`). When specified, it overrides the `excitation_type`, `excitation_params`, `excitation_cycles`, `ramp_up_cycles` parameters. The file should contain the excitation pressure only (relative to ambient pressure), not absolute pressure. The actual $P_\infty$ is computed as $P_\infty = P_{amb} + p_{excitation}$.
  * `radius_profile_file` (string): Path to a CSV file (e.g., `"./data/radius_data.csv"`). Essentially removes the bubble dynamics equations (Keller-Miksis / Gilmore) and directly forces the $R(t)$, $\dot{R}(t)$, and $\ddot{R}(t)$ values from the interpolator. When specified, it overrides the `R_E`, `ratio`, `excitation_type`, `excitation_params`, `excitation_cycles`, `ramp_up_cycles` parameters.
 
 Both files must follow a strict comma-separated layout. The series must have a header. The first column represents the time ($t$), and the second column represents the variable ($p$ or $R$). Extra columns are ignored. The data must be arranged monotonically in time.
 
 **Expected format for `excitation_profile_file`:**
 ```csv
-t [s], p [Pa]
-0.0, 101325.0
-1e-6, 120000.0
+t [s], p_excitation [Pa]
+0.0, 0.0
+1e-6, 1.0
+2e-6, 3.0
 ```
 
 **Expected format for `radius_profile_file`:**
