@@ -60,7 +60,7 @@ private:
     );
 
 
-    std::tuple<double, double, double> pressures_excitation(
+    std::tuple<double, double, double, double> pressures_excitation(
         const double t,
         const double R,
         const double R_dot,

@@ -618,7 +618,7 @@ inline std::pair<double, double> _sin(
 }
 
 
-std::tuple<double, double, double> OdeFun::pressures_excitation(
+std::tuple<double, double, double, double> OdeFun::pressures_excitation(
     const double t,
     const double R,
     const double R_dot,
@@ -726,10 +726,11 @@ std::tuple<double, double, double> OdeFun::pressures_excitation(
 	double nom = 0.0;
 	double den = -1.0e5;
 	double c_L = -1.0;
+	double rho_L = -1.0;
 	//NASG:
 	if(cpar.EoS_liquid == "NASG")
 	{
-		const double rho_L=K_L* std::pow((p_L+cpar.B_L),(1.0/cpar.Gamma_L))/(1.0+cpar.b_L*K_L*std::pow((p_L+cpar.B_L),(1.0/cpar.Gamma_L)));
+		rho_L=K_L* std::pow((p_L+cpar.B_L),(1.0/cpar.Gamma_L))/(1.0+cpar.b_L*K_L*std::pow((p_L+cpar.B_L),(1.0/cpar.Gamma_L)));
 		const double rho_Inf=K_L*std::pow((p_Inf+cpar.B_L),(1.0/cpar.Gamma_L))/(1.0+cpar.b_L*K_L*std::pow((p_Inf+cpar.B_L),(1.0/cpar.Gamma_L)));
 		double p_star = p_L + cpar.B_L;
 		double pow_term = std::pow(p_star, (1.0 / cpar.Gamma_L));
@@ -757,7 +758,7 @@ std::tuple<double, double, double> OdeFun::pressures_excitation(
 	else
 	{
 		//Tait:
-		const double rho_L=cpar.rho_0 * std::pow((p_L+cpar.B_L)/(par->p_L_ref+cpar.B_L),1.0/cpar.Gamma_L);
+		rho_L=cpar.rho_0 * std::pow((p_L+cpar.B_L)/(par->p_L_ref+cpar.B_L),1.0/cpar.Gamma_L);
 		const double rho_Inf=cpar.rho_0 * std::pow((p_Inf+cpar.B_L)/(par->p_L_ref+cpar.B_L),1.0/cpar.Gamma_L);
 		const double h_L = cpar.Gamma_L/(cpar.Gamma_L-1.0)*(p_L+cpar.B_L)/rho_L;
 		const double H=h_L - cpar.Gamma_L/(cpar.Gamma_L-1.0)*(p_Inf+cpar.B_L)/rho_Inf; //h_L-h_Inf
@@ -781,7 +782,7 @@ std::tuple<double, double, double> OdeFun::pressures_excitation(
         std::cout << "t = " << t << ", rho_L = " << rho_L << ", c_L = " << c_L << "\n";
     }*/
     
-    return std::tuple(nom, den, c_L);
+    return std::tuple(nom, den, rho_L, c_L);
 }
 
 
@@ -1294,7 +1295,7 @@ is_success OdeFun::operator()(
     x_dimensional_dot[2] = T_dot;
 	
 // d/dt R_dot
-	const auto [nom, denom, c_L] = this->pressures_excitation(t, R, R_dot, p, p_dot);  // delta = (p_L - p_Inf) / rho_L
+	const auto [nom, denom, rho_L, c_L] = this->pressures_excitation(t, R, R_dot, p, p_dot);  // delta = (p_L - p_Inf) / rho_L
     
 	//Keller-Miksis, not needed anymore (these equations are instead in the function 'pressures_excitation'):
 	/*const auto [delta, delta_dot] = this->pressures_excitation(t, R, R_dot, p, p_dot);  // delta = (p_L - p_Inf) / rho_L
@@ -1317,7 +1318,7 @@ is_success OdeFun::operator()(
         const double integrand_r = 4.0 * std::numbers::pi / cpar.c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar.rho_L * R_dot * R_dot * R_dot - cpar.rho_L * R * R_dot * R_dot_dot);*/
 		const double integrand_th = -(p * (1 + R_dot / c_L) + R / c_L * p_dot) * V_dot;
         const double integrand_v = 16.0 * std::numbers::pi * cpar.mu_L * (R * R_dot*R_dot + R * R * R_dot * R_dot_dot / c_L);
-        const double integrand_r = 4.0 * std::numbers::pi / c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * cpar.rho_0 * R_dot * R_dot * R_dot - cpar.rho_0 * R * R_dot * R_dot_dot);
+        const double integrand_r = 4.0 * std::numbers::pi / c_L * R * R * R_dot * (R_dot * p + p_dot * R - 0.5 * rho_L * R_dot * R_dot * R_dot - rho_L * R * R_dot * R_dot_dot);
 
         x_dimensional_dot[par->num_species+3] = integrand_th + integrand_v + integrand_r;
     } else {
