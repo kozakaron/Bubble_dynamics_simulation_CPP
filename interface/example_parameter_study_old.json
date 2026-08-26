@@ -1,6 +1,6 @@
 {
     "parameter_study": {
-        "mechanism": "chemkin_kaust2023_ammonia_oxygenless",
+        "mechanism": "chemkin_elte2016_hydrogen",
         "R_E": {
             "type": "LinearRange",
             "start": 5e-06,
@@ -12,20 +12,18 @@
             "value": 1.0
         },
         "species": [
-            "H2",
-            "N2"
+            "O2"
         ],
         "fractions": [
-            0.75,
-            0.25
+            1.0
         ],
         "P_amb": {
             "type": "Const",
-            "value": 4.0e5
+            "value": 101325.0
         },
         "T_inf": {
             "type": "Const",
-            "value": 298.15
+            "value": 293.15
         },
         "alpha_M": {
             "type": "Const",
@@ -39,37 +37,25 @@
             "type": "Const",
             "value": 0.001
         },
-        "nu_L": {
-            "type": "Const",
-            "value": 10.0
-        },
-        "rho_0": {
+        "rho_L": {
             "type": "Const",
             "value": 998.2
         },
-        "c_0": {
+        "c_L": {
             "type": "Const",
             "value": 1483.0
-        },
-        "sigma_var": {
-            "type": "Const",
-            "value": 0.0728
-        },
-		"Gamma_L": {
-            "type": "Const",
-            "value": 0.0728
         },
         "surfactant": {
             "type": "Const",
             "value": 1.0
         },
         "enable_heat_transfer": true,
-        "enable_evaporation": false,
+        "enable_evaporation": true,
         "enable_reactions": true,
         "enable_dissipated_energy": true,
         "enable_van_der_waals": true,
         "enable_rate_thresholding": true,
-        "target_specie": "NH3",
+        "target_specie": "H2",
         "excitation_type": "sinusoid",
         "excitation_params": [
             {
@@ -103,30 +89,6 @@
             "type": "Const",
             "value": 1
         },
-        "file_name": "test.csv",
-        "const_V": {
-            "type": "Const",
-            "value": 0
-        },
-        "const_T": {
-            "type": "Const",
-            "value": 0
-        },
-        "EoS_liquid": {
-            "type": "Const",
-            "value": "Tait"
-        },
-        "Gamma_L": {
-            "type": "Const",
-            "value": 8.4207
-        },
-        "B_L": {
-            "type": "Const",
-            "value": -1.0
-        },
-        "b_L": {
-            "type": "Const",
-            "value": 0.000672
-        }
+        "file_name": "test.csv"
     }
 }

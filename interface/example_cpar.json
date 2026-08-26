@@ -1,40 +1,50 @@
-{    
+{
     "cpar": {
         "ID": 0,
-        "mechanism": "chemkin_elte2016_hydrogen",
+        "mechanism": "chemkin_kaust2023_ammonia_oxygenless",
         "R_E": 10.0e-6,
         "ratio": 1.0,
         "species": [
-            "O2"
+            "H2",
+            "N2"
         ],
         "fractions": [
-            1.0
+            0.75,
+            0.25
         ],
-        "P_amb": 101325.0,
-        "T_inf": 293.15,
+        "P_amb": 4.0e5,
+        "T_inf": 298.15,
         "alpha_M": 0.35,
         "P_v": 2338.1,
         "mu_L": 0.001,
-        "rho_L": 998.2,
-        "c_L": 1483.0,
+        "nu_L": 10.0,
+        "rho_0": 998.2,
+        "c_0": 1483.0,
+        "sigma_var": 0.0728,
         "surfactant": 1.0,
         "enable_heat_transfer": true,
-        "enable_evaporation": true,
+        "enable_evaporation": false,
         "enable_reactions": true,
         "enable_dissipated_energy": true,
         "enable_van_der_waals": true,
         "enable_rate_thresholding": true,
-        "target_specie": "H2",
+        "target_specie": "NH3",
         "excitation_type": "sinusoid",
         "excitation_params": [
-            -200000.0,
-            30000.0
+            -5e5,
+            20.0e3
         ],
         "excitation_cycles": 1.0,
         "ramp_up_cycles": 0.0,
-        "R_and_R_dot_from_file": 1,
+        "R_and_R_dot_from_file": 0,
         "rows": 1,
         "cols": 1,
-        "file_name": "alap_kemia_nelkul_minta.csv"
+        "file_name": "test.csv",
+        "const_V": 0,
+        "const_T": 0,
+        "EoS_liquid": "Tait",
+        "Gamma_L": 8.4207,
+        "B_L": -1.0,
+        "b_L": 0.000672
     }
 }

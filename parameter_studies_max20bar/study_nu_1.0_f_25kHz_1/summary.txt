@@ -1,3 +1,0 @@
-Successful simulations: 8924/10000 (89.24 %)
-Total runtime: 673.934 s
-Average runtime per combination: 67.39 ms
