@@ -1,7 +1,7 @@
 generator: ck2yaml
 input-files: [chemkin_noreaction_air.inp]
 cantera-version: 3.1.0
-date: Fri, 27 Feb 2026 16:54:02 +0100
+date: Sat, 12 Sep 2026 11:44:48 +0200
 
 units: {length: cm, time: s, quantity: mol, activation-energy: K}
 
