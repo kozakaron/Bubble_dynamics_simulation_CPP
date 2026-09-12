@@ -1,0 +1,132 @@
+{
+    "parameter_study": {
+        "mechanism": "chemkin_kaust2023_ammonia_oxygenless",
+        "R_E": {
+            "type": "LinearRange",
+            "start": 5e-06,
+            "end": 0.000125,
+            "num_steps": 30
+        },
+        "ratio": {
+            "type": "Const",
+            "value": 1.0
+        },
+        "species": [
+            "H2",
+            "N2"
+        ],
+        "fractions": [
+            0.75,
+            0.25
+        ],
+        "P_amb": {
+            "type": "Const",
+            "value": 4.0e5
+        },
+        "T_inf": {
+            "type": "Const",
+            "value": 298.15
+        },
+        "alpha_M": {
+            "type": "Const",
+            "value": 0.35
+        },
+        "P_v": {
+            "type": "Const",
+            "value": 2338.1
+        },
+        "mu_L": {
+            "type": "Const",
+            "value": 0.001
+        },
+        "nu_L": {
+            "type": "Const",
+            "value": 10.0
+        },
+        "rho_0": {
+            "type": "Const",
+            "value": 998.2
+        },
+        "c_0": {
+            "type": "Const",
+            "value": 1483.0
+        },
+        "sigma_var": {
+            "type": "Const",
+            "value": 0.0728
+        },
+		"Gamma_L": {
+            "type": "Const",
+            "value": 0.0728
+        },
+        "surfactant": {
+            "type": "Const",
+            "value": 1.0
+        },
+        "enable_heat_transfer": true,
+        "enable_evaporation": false,
+        "enable_reactions": true,
+        "enable_dissipated_energy": true,
+        "enable_van_der_waals": true,
+        "enable_rate_thresholding": true,
+        "target_specie": "NH3",
+        "excitation_type": "sinusoid",
+        "excitation_params": [
+            {
+                "type": "LinearRange",
+                "start": -150000.0,
+                "end": -250000.0,
+                "num_steps": 20
+            },
+            {
+                "type": "Const",
+                "value": 30000.0
+            }
+        ],
+        "excitation_cycles": {
+            "type": "Const",
+            "value": 1.0
+        },
+        "ramp_up_cycles": {
+            "type": "Const",
+            "value": 0.0
+        },
+        "R_and_R_dot_from_file": {
+            "type": "Const",
+            "value": 0
+        },
+        "rows": {
+            "type": "Const",
+            "value": 1
+        },
+        "cols": {
+            "type": "Const",
+            "value": 1
+        },
+        "file_name": "test.csv",
+        "const_V": {
+            "type": "Const",
+            "value": 0
+        },
+        "const_T": {
+            "type": "Const",
+            "value": 0
+        },
+        "EoS_liquid": {
+            "type": "Const",
+            "value": "Tait"
+        },
+        "Gamma_L": {
+            "type": "Const",
+            "value": 8.4207
+        },
+        "B_L": {
+            "type": "Const",
+            "value": -1.0
+        },
+        "b_L": {
+            "type": "Const",
+            "value": 0.000672
+        }
+    }
+}
