@@ -1,0 +1,50 @@
+{
+    "cpar": {
+        "ID": 0,
+        "mechanism": "chemkin_kaust2023_ammonia_oxygenless",
+        "R_E": 10.0e-6,
+        "ratio": 1.0,
+        "species": [
+            "H2",
+            "N2"
+        ],
+        "fractions": [
+            0.75,
+            0.25
+        ],
+        "P_amb": 4.0e5,
+        "T_inf": 298.15,
+        "alpha_M": 0.35,
+        "P_v": 2338.1,
+        "mu_L": 0.001,
+        "nu_L": 10.0,
+        "rho_0": 998.2,
+        "c_0": 1483.0,
+        "sigma_var": 0.0728,
+        "surfactant": 1.0,
+        "enable_heat_transfer": true,
+        "enable_evaporation": false,
+        "enable_reactions": true,
+        "enable_dissipated_energy": true,
+        "enable_van_der_waals": true,
+        "enable_rate_thresholding": true,
+        "target_specie": "NH3",
+        "excitation_type": "sinusoid",
+        "excitation_params": [
+            -5e5,
+            20.0e3
+        ],
+        "excitation_cycles": 1.0,
+        "ramp_up_cycles": 0.0,
+        "R_and_R_dot_from_file": 0,
+        "rows": 1,
+        "cols": 1,
+        "file_name": "test.csv",
+        "const_V": 0,
+        "const_T": 0,
+        "EoS_liquid": "Tait",
+        "Gamma_L": 8.4207,
+        "B_L": -1.0,
+        "b_L": 0.000672
+    }
+}
