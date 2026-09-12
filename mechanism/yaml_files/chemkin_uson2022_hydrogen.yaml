@@ -19,7 +19,7 @@ description: |-
 generator: ck2yaml
 input-files: [chemkin_uson2022_hydrogen.inp]
 cantera-version: 3.1.0
-date: Sun, 16 Nov 2025 01:31:52 +0100
+date: Sat, 12 Sep 2026 11:44:48 +0200
 
 units: {length: cm, time: s, quantity: mol, activation-energy: K}
 
