@@ -1,0 +1,82 @@
+# /
+/.cache
+/.project
+/builddir
+/build*
+/instdir
+/install*
+/TPLs
+/tarballs
+/thirdparty
+
+# IDE/tool created
+/autom4te.cache
+/.settings
+/.cproject
+/.autotools
+*.kdev4
+*.directory
+/.pydevproject
+.vscode
+compile_commands.json
+
+# custom test environment setup script
+/test/env/env.sh
+
+# directories and files created by testing scripts
+/test/answers*
+!/test/answers
+/test/build_*
+/test/install_*
+/test/tarballs
+/test/suntest.log
+
+# misc
+*.backup
+*.orig
+*.nvvp
+*.ptp-sync*
+*.project
+*.cproject
+*~
+\#*
+
+# OS X
+.DS_Store
+
+# Fortran mod files
+*.mod
+
+# files created by latex documentation
+/doc/*/*.aux
+/doc/*/*.bbl
+/doc/*/*.blg
+/doc/*/*.idx
+/doc/*/*.ilg
+/doc/*/*.ind
+/doc/*/*.lof
+/doc/*/*.lot
+/doc/*/*.toc
+/doc/*/*.out
+/doc/*/*.log
+
+# directories created by/for Sphinx documentation
+/doc/.pyvenv
+/doc/*/guide/build/
+/doc/*/examples/build/
+/doc/build/
+/doc/*/build/
+/doc/shared/__pycache__
+
+# PDFs of user guides and example docs
+/doc/*/*_guide.pdf
+/doc/*/*_examples.pdf
+
+# uberenv
+uberenv_libs
+
+# swig
+/swig/swig
+
+# tools
+/tools/suntools/__pycache__
