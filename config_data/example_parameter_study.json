@@ -1,6 +1,7 @@
 {
     "parameter_study": {
         "mechanism": "chemkin_kaust2023_ammonia_oxygenless",
+		"bubble_dynamics": "gilmore_tait",
         "R_E": {
             "type": "LinearRange",
             "start": 5e-06,
@@ -127,6 +128,14 @@
         "b_L": {
             "type": "Const",
             "value": 0.000672
+        },
+		"p_L_ref": {
+            "type": "Const",
+            "value": 1.0e5
+        },
+		"rho_L_ref": {
+            "type": "Const",
+            "value": 1.0e5
         }
     }
 }

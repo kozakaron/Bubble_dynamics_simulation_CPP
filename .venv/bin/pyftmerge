@@ -1,0 +1,10 @@
+#!/bin/sh
+'''exec' /mnt/c/Users/mrkf9/Downloads/Aron_C++_kod_fejlesztese/fejlesztoi_main_branch/Bubble_dynamics_simulation_CPP/.venv/bin/python3 "$0" "$@"
+' '''
+# -*- coding: utf-8 -*-
+import re
+import sys
+from fontTools.merge import main
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())
