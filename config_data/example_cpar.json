@@ -2,6 +2,7 @@
     "cpar": {
         "ID": 0,
         "mechanism": "chemkin_kaust2023_ammonia_oxygenless",
+		"bubble_dynamics": "gilmore_nasg",
         "R_E": 10.0e-6,
         "ratio": 1.0,
         "species": [
