@@ -1,5 +1,5 @@
 version: 1.8
-datetime: 2026.09.21 21:18:34
+datetime: 2026.09.21 21:27:24
 total_combination_count: 10000
 t_max: 1
 timeout: 60
@@ -11,7 +11,7 @@ species: {AR, H, H2, H2NN, HE, N, N2, N2H2, N2H3, N2H4, NH, NH2, NH3, NNH}
 
 ParameterCombinator::Builder{
     .mechanism                   = Parameters::mechanism::chemkin_kaust2023_ammonia_oxygenless,
-    .R_E                         = LogRange(0.000010, 0.000200, 100),                  // {1e-05, 1.03072e-05, 1.06239e-05, 1.09503e-05, 1.12867e-05, 1.16335e-05, 1.19909e-05, ..., 0.000194039, 0.0002}
+    .R_E                         = LogRange(0.000010, 0.001000, 100),                  // {1e-05, 1.04762e-05, 1.0975e-05, 1.14976e-05, 1.2045e-05, 1.26186e-05, 1.32194e-05, ..., 0.000954548, 0.001}
     .ratio                       = Const(1.000000),                                    // {1}
     .species                     = {"H2", "N2"},
     .fractions                   = {7.50000000000000000e-01, 2.50000000000000000e-01},

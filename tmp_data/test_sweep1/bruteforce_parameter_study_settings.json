@@ -4,7 +4,7 @@
         "R_E": {
             "type": "LogRange",
             "start": 9.999999999999999e-06,
-            "end": 0.00019999999999999998,
+            "end": 0.001,
             "num_steps": 100
         },
         "ratio": {
@@ -101,7 +101,7 @@
     },
     "info": {
         "version": "1.8",
-        "datetime": "2026.09.21 21:18:34",
+        "datetime": "2026.09.21 21:27:24",
         "total_combination_count": 10000,
         "t_max": 1.0,
         "timeout": 60.0,
