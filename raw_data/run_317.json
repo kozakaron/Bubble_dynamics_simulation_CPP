@@ -1,0 +1,130 @@
+{
+  "postproc": {
+    "dissipated_energy": 5.9423370769773855e-05,
+    "expansion_work": 0.0,
+    "n_target_specie": 1.7233648090777022e-12,
+    "energy_demand": 2024.6031768252326,
+    "R_max": 0.0005010099054994771,
+    "T_max": 4241.809384999332,
+    "t_peak": 8.5306854795384e-05,
+    "R_min": 2.1019350650793496e-05,
+    "T_min": 229.9205692395049,
+    "v_max": 473.8583432771123,
+    "p_internal_max": 637919527.9617343,
+    "p_internal_min": 1933.2492904360581,
+    "Ma_max": 0.39754141099445767,
+    "T_L_max": 330.4707604548534,
+    "c_L_max": 2443.764243713366,
+    "rho_L_max": 1001.1077661533429
+  },
+  "cpar": {
+    "ID": 0,
+    "mechanism": "KAUST2023_N2_C0_CKMC_ESR_v10_0_oxygenless",
+    "R_E": 0.00013493824027818564,
+    "ratio": 1.0,
+    "species": [
+      "H2",
+      "N2"
+    ],
+    "fractions": [
+      0.75,
+      0.25
+    ],
+    "P_amb": 100000.0,
+    "T_inf": 298.15,
+    "alpha_M": 0.35,
+    "P_v": 2338.1,
+    "mu_L": 0.0004960016842858833,
+    "rho_L": 763.0795142859743,
+    "c_L": 891.7990457578853,
+    "surfactant": 0.22250401952888282,
+    "bubble_dynamics": "gilmore_tait",
+    "liquid_eos_params": [
+      8.4207,
+      72070179.87307273,
+      100000.0,
+      763.0795142859743
+    ],
+    "enable_heat_transfer": true,
+    "enable_evaporation": false,
+    "enable_reactions": true,
+    "enable_dissipated_energy": true,
+    "enable_van_der_waals": true,
+    "enable_rate_thresholding": true,
+    "target_specie": "NH3",
+    "excitation_type": "sinusoid",
+    "excitation_params": [
+      -206199.09220063715,
+      10000.0
+    ],
+    "excitation_cycles": 1.0,
+    "ramp_up_cycles": 0.0
+  },
+  "sol": {
+    "success": true,
+    "error": "2026.09.22 22:33:37: INFO (general) No error occured in ./src/common.cpp:291: get_error();",
+    "runtime": 0.284654198,
+    "num_dim": 18,
+    "num_steps": 6588,
+    "num_saved_steps": 6590,
+    "num_repeats": 239,
+    "num_fun_evals": 21823,
+    "num_fun_evals_jac": 4482,
+    "num_jac_evals": 249,
+    "num_lin_iters": 0,
+    "num_nonlin_iters": 21822,
+    "total_error": [
+      6.407838798290337e-14,
+      5.515335340373296e-20,
+      -6.04995337858441e-16,
+      0.0,
+      5.450132308683453e-14,
+      -2.7250658822040937e-14,
+      2.1657408853932372e-30,
+      0.0,
+      -6.142032139862277e-26,
+      9.063598900831217e-22,
+      4.3882446816271216e-29,
+      1.6757319576830407e-30,
+      2.299615185764835e-44,
+      2.2262687672559376e-40,
+      3.03775133206116e-32,
+      -1.81489958778416e-21,
+      6.295632581671107e-25,
+      -1.9789799287588088e-19
+    ]
+  },
+  "excitation": {
+    "type": "sinusoid",
+    "names": [
+      "p_A",
+      "freq"
+    ],
+    "units": [
+      "Pa",
+      "Hz"
+    ]
+  },
+  "mechanism": {
+    "model": "KAUST2023_N2_C0_CKMC_ESR_v10_0_oxygenless",
+    "num_species": 14,
+    "num_reactions": 45,
+    "species_names": [
+      "AR",
+      "H",
+      "H2",
+      "H2NN",
+      "HE",
+      "N",
+      "N2",
+      "N2H2",
+      "N2H3",
+      "N2H4",
+      "NH",
+      "NH2",
+      "NH3",
+      "NNH"
+    ]
+  },
+  "version": "1.8"
+}
