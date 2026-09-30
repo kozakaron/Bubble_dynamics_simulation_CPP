@@ -1,4 +1,4 @@
-clc;clear;close all;
+clc; clear; close all;
 
 % Fájlok útvonalai
 file1 = 'raw_data/run_4886.csv'; % -> plogext
@@ -9,231 +9,187 @@ opts = detectImportOptions(file1);
 data1 = readtable(file1, opts);
 data2 = readtable(file2, opts);
 
-% -------------------------------------------------------------------------
-% 1. ÁBRA: Buboréksugár (mikrométerben, bal tengely) és Hőmérséklet (jobb tengely)
-% -------------------------------------------------------------------------
-figure('Name', 'Szimulációs Eredmények Összehasonlítása (Teljesen Log)', 'Position', [100, 100, 900, 900]);
-
-subplot(3, 1, 1);
-% Bal tengely: Sugár átszámítása méterről mikrométerre (* 1e6)
-yyaxis left
-plot(data1.t, data1.R * 1e6, 'LineWidth', 1.5, 'DisplayName', 'plogext - R');
-hold on;
-plot(data2.t, data2.R * 1e6, '--', 'LineWidth', 1.5, 'DisplayName', 'old mechanism - R');
-ylabel('Buboréksugár, R [\mu m]');
-set(gca, 'YScale', 'log'); % Bal Y tengely logaritmussá tétele
-
-% Jobb tengely: Hőmérséklet (T)
-yyaxis right
-plot(data1.t, data1.T, 'LineWidth', 1.5, 'DisplayName', 'plogext - T');
-plot(data2.t, data2.T, '--', 'LineWidth', 1.5, 'DisplayName', 'old mechanism - T');
-ylabel('Hőmérséklet, T [K]');
-set(gca, 'YScale', 'log'); % Jobb Y tengely logaritmussá tétele
-
-title('Buboréksugár és Hőmérséklet időgörbéi (Log-Log skála)');
-xlabel('Idő, t [s]');
-set(gca, 'XScale', 'log'); % Időtengely logaritmussá tétele
-legend('Location', 'best');
-grid on;
-hold off;
-
-% -------------------------------------------------------------------------
-% 2. ÁBRA: Ammónia (NH3) időgörbék
-% -------------------------------------------------------------------------
-subplot(3, 1, 2);
-plot(data1.t, data1.NH3, 'LineWidth', 1.5, 'DisplayName', 'plogext - NH_3');
-hold on;
-plot(data2.t, data2.NH3, '--', 'LineWidth', 1.5, 'DisplayName', 'old mechanism - NH_3');
-title('Ammónia (NH_3) időgörbéi (Log-Log skála)');
-xlabel('Idő, t [s]');
-ylabel('n_i (mol)');
-set(gca, 'XScale', 'log'); % Időtengely logaritmussá tétele
-set(gca, 'YScale', 'log'); % Függőleges tengely logaritmussá tétele
-legend('Location', 'best');
-grid on;
-hold off;
-
-% -------------------------------------------------------------------------
-% 3. ÁBRA: Top 4 anyag (kivéve H2, N2, NH3) a folyamat végén
-% -------------------------------------------------------------------------
-subplot(3, 1, 3);
-hold on;
-
-% Nem kívánt oszlopok listája (ezeket kihagyjuk a top 4 keresésből)
+% Előkészítés a Top 4 anyag meghatározásához (H2, N2, NH3 nélkül)
 exclude_cols = {'t', 'R', 'R_dot', 'T', 'AR', 'H', 'H2', 'N2', 'NH3', ...
                 'dissipated_energy', 'p_excitation', 'p_internal'};
-
-% Minden oszlop, ami nem tartozik a fenti fix listához
 all_vars = data1.Properties.VariableNames;
 chem_vars = setdiff(all_vars, exclude_cols, 'stable');
 
-% Megkeressük a plogext (data1) végén a legnagyobb értékű 4 anyagot
 final_vals = zeros(length(chem_vars), 1);
 for i = 1:length(chem_vars)
     val_vector = data1.(chem_vars{i});
     final_vals(i) = val_vector(end);
 end
-
 [~, sorted_idx] = sort(final_vals, 'descend');
 top4_vars = chem_vars(sorted_idx(1:min(4, length(chem_vars))));
 
-colors = lines(length(top4_vars));
+% =========================================================================
+% 1. FIGURE: LOGARITMIKUS IDŐSKÁLA ('XScale', 'log')
+% =========================================================================
+figure('Name', 'Szimulációs Eredmények - Logaritmikus Időskála', 'Position', [50, 50, 800, 900]);
 
+% --- 1.1. Subplot: Sugár és Hőmérséklet ---
+subplot(3, 1, 1);
+yyaxis left
+plot(data1.t, data1.R * 1e6, 'LineWidth', 1.5, 'DisplayName', 'plogext - R');
+hold on;
+plot(data2.t, data2.R * 1e6, '--', 'LineWidth', 1.5, 'DisplayName', 'old mechanism - R');
+ylabel('Buboréksugár, R [\mu m]');
+set(gca, 'YScale', 'log');
+
+yyaxis right
+plot(data1.t, data1.T, 'LineWidth', 1.5, 'DisplayName', 'plogext - T');
+plot(data2.t, data2.T, '--', 'LineWidth', 1.5, 'DisplayName', 'old mechanism - T');
+ylabel('Hőmérséklet, T [K]');
+set(gca, 'YScale', 'log');
+
+title('Buboréksugár és Hőmérséklet időgörbéi (Log időskála)');
+xlabel('Idő, t [s]');
+set(gca, 'XScale', 'log');
+legend('Location', 'best');
+grid on;
+hold off;
+
+% --- 1.2. Subplot: Ammónia (NH3) ---
+subplot(3, 1, 2);
+plot(data1.t, data1.NH3, 'LineWidth', 1.5, 'DisplayName', 'plogext - NH_3');
+hold on;
+plot(data2.t, data2.NH3, '--', 'LineWidth', 1.5, 'DisplayName', 'old mechanism - NH_3');
+title('Ammónia (NH_3) időgörbéi (Log időskála)');
+xlabel('Idő, t [s]');
+ylabel('n_i [mol]');
+set(gca, 'XScale', 'log');
+set(gca, 'YScale', 'log');
+ylim([1e-20, inf]);
+legend('Location', 'best');
+grid on;
+hold off;
+
+% --- 1.3. Subplot: Top 4 anyag ---
+subplot(3, 1, 3);
+hold on;
+colors = lines(length(top4_vars));
 legend_labels = {};
 for i = 1:length(top4_vars)
     var_name = top4_vars{i};
-    
-    % plogext rajzolása
     plot(data1.t, data1.(var_name), 'Color', colors(i,:), 'LineStyle', '-', 'LineWidth', 1.5);
     legend_labels{end+1} = ['plogext - ', var_name];
     
-    % old mechanism rajzolása (ugyanolyan szín, de szaggatott vonal)
     if ismember(var_name, data2.Properties.VariableNames)
         plot(data2.t, data2.(var_name), 'Color', colors(i,:), 'LineStyle', '--', 'LineWidth', 1.5);
         legend_labels{end+1} = ['old mechanism - ', var_name];
     end
 end
-
-title('Egyéb legfőbb 4 anyag időgörbéi (H_2, N_2, NH_3 nélkül, Log-Log skála)');
+title('Egyéb legfőbb 4 anyag időgörbéi (Log időskála)');
 xlabel('Idő, t [s]');
-ylabel('n_i (mol)');
-set(gca, 'XScale', 'log'); % Időtengely logaritmussá tétele
-set(gca, 'YScale', 'log'); % Függőleges tengely logaritmussá tétele
-legend(legend_labels, 'Location', 'best', 'NumColumns', 2);
+ylabel('n_i [mol]');
+set(gca, 'XScale', 'log');
+set(gca, 'YScale', 'log');
+ylim([1e-20, inf]);
+legend(legend_labels, 'Location', 'southeast', 'NumColumns', 2); % Jobb alsó sarok
+grid on; box on;
+hold off;
+
+
+% =========================================================================
+% 2. FIGURE: LINEÁRIS IDŐSKÁLA ('XScale', 'linear')
+% =========================================================================
+figure('Name', 'Szimulációs Eredmények - Lineáris Időskála', 'Position', [880, 50, 800, 900]);
+
+% --- 2.1. Subplot: Sugár és Hőmérséklet ---
+subplot(3, 1, 1);
+yyaxis left
+plot(data1.t, data1.R * 1e6, 'LineWidth', 1.5, 'DisplayName', 'plogext - R');
+hold on;
+plot(data2.t, data2.R * 1e6, '--', 'LineWidth', 1.5, 'DisplayName', 'old mechanism - R');
+ylabel('Buboréksugár, R [\mu m]');
+
+yyaxis right
+plot(data1.t, data1.T, 'LineWidth', 1.5, 'DisplayName', 'plogext - T');
+plot(data2.t, data2.T, '--', 'LineWidth', 1.5, 'DisplayName', 'old mechanism - T');
+ylabel('Hőmérséklet, T [K]');
+
+title('Buboréksugár és Hőmérséklet időgörbéi (Lineáris időskála)');
+xlabel('Idő, t [s]');
+set(gca, 'XScale', 'linear');
+legend('Location', 'best');
 grid on;
 hold off;
 
-% -------------------------------------------------------------------------
+% --- 2.2. Subplot: Ammónia (NH3) ---
+subplot(3, 1, 2);
+plot(data1.t, data1.NH3, 'LineWidth', 1.5, 'DisplayName', 'plogext - NH_3');
+hold on;
+plot(data2.t, data2.NH3, '--', 'LineWidth', 1.5, 'DisplayName', 'old mechanism - NH_3');
+title('Ammónia (NH_3) időgörbéi (Lineáris időskála)');
+xlabel('Idő, t [s]');
+ylabel('n_i [mol]');
+set(gca, 'XScale', 'linear');
+set(gca, 'YScale', 'log');
+ylim([1e-20, inf]);
+legend('Location', 'best');
+grid on;
+hold off;
+
+% --- 2.3. Subplot: Top 4 anyag ---
+subplot(3, 1, 3);
+hold on;
+legend_labels_lin = {};
+for i = 1:length(top4_vars)
+    var_name = top4_vars{i};
+    plot(data1.t, data1.(var_name), 'Color', colors(i,:), 'LineStyle', '-', 'LineWidth', 1.5);
+    legend_labels_lin{end+1} = ['plogext - ', var_name];
+    
+    if ismember(var_name, data2.Properties.VariableNames)
+        plot(data2.t, data2.(var_name), 'Color', colors(i,:), 'LineStyle', '--', 'LineWidth', 1.5);
+        legend_labels_lin{end+1} = ['old mechanism - ', var_name];
+    end
+end
+title('Egyéb legfőbb 4 anyag időgörbéi (Lineáris időskála)');
+xlabel('Idő, t [s]');
+ylabel('n_i [mol]');
+set(gca, 'XScale', 'linear');
+set(gca, 'YScale', 'log');
+ylim([1e-20, inf]);
+legend(legend_labels_lin, 'Location', 'southeast', 'NumColumns', 2); % Jobb alsó sarok
+grid on; box on;
+hold off;
+
+
+% =========================================================================
 % ÖSSZEHASONLÍTÓ TÁBLÁZAT A FOLYAMAT VÉGÉN (Command Window kimenet)
-% -------------------------------------------------------------------------
-table_species = {'NH3', 'H2', 'N2', top4_vars{1}};
+% Csak NH3 és a Top 4 anyag (N2 és H2 nélkül)
+% =========================================================================
+table_species = [{'NH3'}, top4_vars(:)'];
 
 Material = table_species';
-Plogext_Yield     = zeros(length(table_species), 1);
 OldMechanism_Yield = zeros(length(table_species), 1);
+Plogext_Yield     = zeros(length(table_species), 1);
 Diff_Percent       = zeros(length(table_species), 1);
 
 for i = 1:length(table_species)
     sp = table_species{i};
     
-    % Végső érték
+    % Végső értékek
     val1 = data1.(sp)(end); % plogext
-    val2 = data2.(sp)(end); % old mechanism
+    val2 = data2.(sp)(end); % old mechanism (Referencia)
     
-    Plogext_Yield(i) = val1;
     OldMechanism_Yield(i) = val2;
+    Plogext_Yield(i)     = val1;
     
-    % Eltérés százalékban a plogext-hez (referencia) képest
-    if val1 ~= 0
-        Diff_Percent(i) = ((val2 - val1) / val1) * 100;
+    % Eltérés százalékban az old_mechanism-hez (referencia) képest
+    if val2 ~= 0
+        Diff_Percent(i) = ((val1 - val2) / val2) * 100;
     else
         Diff_Percent(i) = NaN;
     end
 end
 
-comparisonTable = table(Material, Plogext_Yield, OldMechanism_Yield, Diff_Percent, ...
-    'VariableNames', {'Anyag', 'plogext_Ref_mol', 'old_mechanism_mol', 'Eltérés_százalék'});
+comparisonTable = table(Material, OldMechanism_Yield, Plogext_Yield, Diff_Percent, ...
+    'VariableNames', {'Anyag', 'old_mechanism_Ref_mol', 'plogext_mol', 'Eltérés_százalék'});
 
 disp(' ');
 disp('========================================================');
-disp('   VÉGSŐ HOZAM ÖSSZEHASONLÍTÁS (Referencia: plogext)');
+disp('   VÉGSŐ HOZAM ÖSSZEHASONLÍTÁS (Referencia: old mechanism)');
 disp('========================================================');
 disp(comparisonTable);
-
-% % Fájlok útvonalai (szükség szerint módosíthatók)
-% file1 = 'raw_data/run_4886.csv';
-% file2 = 'raw_data/run_4674.csv';
-% 
-% % Adatok beolvasása table-be
-% opts = detectImportOptions(file1);
-% data1 = readtable(file1, opts);
-% data2 = readtable(file2, opts);
-% 
-% % -------------------------------------------------------------------------
-% % 1. ÁBRA: Buboréksugár (bal tengely) és Hőmérséklet (jobb tengely)
-% % -------------------------------------------------------------------------
-% figure('Name', 'Szimulációs Eredmények Összehasonlítása', 'Position', [100, 100, 900, 900]);
-% 
-% subplot(3, 1, 1);
-% % Bal tengely: Sugár (R)
-% yyaxis left
-% plot(data1.t, data1.R, 'LineWidth', 1.5, 'DisplayName', 'run\_4886 - R');
-% hold on;
-% plot(data2.t, data2.R, '--', 'LineWidth', 1.5, 'DisplayName', 'run\_4674 - R');
-% ylabel('Buboréksugár, R [m]');
-% 
-% % Jobb tengely: Hőmérséklet (T)
-% yyaxis right
-% plot(data1.t, data1.T, 'LineWidth', 1.5, 'DisplayName', 'run\_4886 - T');
-% plot(data2.t, data2.T, '--', 'LineWidth', 1.5, 'DisplayName', 'run\_4674 - T');
-% ylabel('Hőmérséklet, T [K]');
-% 
-% title('Buboréksugár és Hőmérséklet időgörbéi');
-% xlabel('Idő, t [s]');
-% legend('Location', 'best');
-% grid on;
-% hold off;
-% 
-% % -------------------------------------------------------------------------
-% % 2. ÁBRA: Ammónia (NH3) időgörbék
-% % -------------------------------------------------------------------------
-% subplot(3, 1, 2);
-% plot(data1.t, data1.NH3, 'LineWidth', 1.5, 'DisplayName', 'run\_4886 - NH_3');
-% hold on;
-% plot(data2.t, data2.NH3, '--', 'LineWidth', 1.5, 'DisplayName', 'run\_4674 - NH_3');
-% title('Ammónia (NH_3) időgörbéi');
-% xlabel('Idő, t [s]');
-% ylabel('Mennyiség / Koncentráció');
-% legend('Location', 'best');
-% grid on;
-% hold off;
-% 
-% % -------------------------------------------------------------------------
-% % 3. ÁBRA: Top 4 anyag (kivéve H2, N2, NH3) a folyamat végén
-% % -------------------------------------------------------------------------
-% subplot(3, 1, 3);
-% hold on;
-% 
-% % Nem kívánt oszlopok listája (ezeket kihagyjuk a top 4 keresésből)
-% exclude_cols = {'t', 'R', 'R_dot', 'T', 'AR', 'H', 'H2', 'N2', 'NH3', ...
-%                 'dissipated_energy', 'p_excitation', 'p_internal'};
-% 
-% % Minden oszlop, ami nem tartozik a fenti fix listához
-% all_vars = data1.Properties.VariableNames;
-% chem_vars = setdiff(all_vars, exclude_cols, 'stable');
-% 
-% % Megkeressük a run_4886 végén a legnagyobb értékű 4 anyagot
-% final_vals = zeros(length(chem_vars), 1);
-% for i = 1:length(chem_vars)
-%     val_vector = data1.(chem_vars{i});
-%     final_vals(i) = val_vector(end);
-% end
-% 
-% [~, sorted_idx] = sort(final_vals, 'descend');
-% top4_vars = chem_vars(sorted_idx(1:min(4, length(chem_vars))));
-% 
-% % Színek vagy vonaltípusok a megkülönböztetéshez
-% line_styles = {'-', '--', '-.', ':'};
-% colors = lines(length(top4_vars));
-% 
-% legend_labels = {};
-% for i = 1:length(top4_vars)
-%     var_name = top4_vars{i};
-% 
-%     % run_4886 rajzolása
-%     p1 = plot(data1.t, data1.(var_name), 'Color', colors(i,:), 'LineStyle', '-', 'LineWidth', 1.5);
-%     legend_labels{end+1} = ['4886 - ', var_name];
-% 
-%     % run_4674 rajzolása (ugyanolyan szín, de szaggatott vonal)
-%     if ismember(var_name, data2.Properties.VariableNames)
-%         p2 = plot(data2.t, data2.(var_name), 'Color', colors(i,:), 'LineStyle', '--', 'LineWidth', 1.5);
-%         legend_labels{end+1} = ['4674 - ', var_name];
-%     end
-% end
-% 
-% title('Egyéb legfőbb 4 anyag időgörbéi (H_2, N_2, NH_3 nélkül)');
-% xlabel('Idő, t [s]');
-% ylabel('Mennyiség / Koncentráció');
-% legend(legend_labels, 'Location', 'best', 'NumColumns', 2);
-% grid on;
-% hold off;
