@@ -1,7 +1,7 @@
 clc; clear; close all;
 
 xlims = [1e-5 1e-3];
-ylims_ammonia = [1e-15 1e-10]; % Igazítva a molekulamennyiség nagyságrendjéhez
+ylims_ammonia = [1e-13 1e-10]; % Igazítva a molekulamennyiség nagyságrendjéhez
 ylims = [1e-20, 1e-12];
 
 % Fájlok útvonalai
