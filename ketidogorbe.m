@@ -1,5 +1,8 @@
 clc; clear; close all;
 
+xlims = [1e-5 1e-3]
+ylims = [1e-20, 1e3]
+
 % Fájlok útvonalai
 file1 = 'raw_data/run_4886.csv'; % -> plogext
 file2 = 'raw_data/run_4674.csv'; % -> old mechanism
@@ -36,6 +39,7 @@ hold on;
 plot(data2.t, data2.R * 1e6, '--', 'LineWidth', 1.5, 'DisplayName', 'old mechanism - R');
 ylabel('Buboréksugár, R [\mu m]');
 set(gca, 'YScale', 'log');
+xlim(xlims)
 
 yyaxis right
 plot(data1.t, data1.T, 'LineWidth', 1.5, 'DisplayName', 'plogext - T');
@@ -60,11 +64,11 @@ xlabel('Idő, t [s]');
 ylabel('n_i [mol]');
 set(gca, 'XScale', 'log');
 set(gca, 'YScale', 'log');
-ylim([1e-20, inf]);
-legend('Location', 'best');
+legend('Location','southeast')
 grid on;
 hold off;
-
+xlim(xlims)
+ylim(ylims);
 % --- 1.3. Subplot: Top 4 anyag ---
 subplot(3, 1, 3);
 hold on;
@@ -85,7 +89,8 @@ xlabel('Idő, t [s]');
 ylabel('n_i [mol]');
 set(gca, 'XScale', 'log');
 set(gca, 'YScale', 'log');
-ylim([1e-20, inf]);
+xlim(xlims);
+ylim(ylims);
 legend(legend_labels, 'Position',[0.56166667583088 0.00407407407407407 0.434999990835786 0.077222220102946], 'NumColumns', 2); % Jobb alsó sarok
 grid on; box on;
 hold off;
@@ -118,6 +123,7 @@ set(gca, 'XScale', 'linear');
 legend('Location', 'best');
 grid on;
 hold off;
+xlim(xlims);
 
 % --- 2.2. Subplot: Ammónia (NH3) ---
 subplot(3, 1, 2);
@@ -129,7 +135,8 @@ xlabel('Idő, t [s]');
 ylabel('n_i [mol]');
 set(gca, 'XScale', 'linear');
 set(gca, 'YScale', 'log');
-ylim([1e-20, inf]);
+xlim(xlims);
+ylim(ylims);
 legend('Location', 'best');
 grid on;
 hold off;
@@ -153,7 +160,8 @@ xlabel('Idő, t [s]');
 ylabel('n_i [mol]');
 set(gca, 'XScale', 'linear');
 set(gca, 'YScale', 'log');
-ylim([1e-20, inf]);
+xlim(xlims);
+ylim(ylims);
 legend(legend_labels_lin, 'Position',[0.56291667583088 0.00518518518518519 0.434999990835786 0.0772222201029459], 'NumColumns', 2); % Jobb alsó sarok
 grid on; box on;
 hold off;
