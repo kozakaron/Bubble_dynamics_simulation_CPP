@@ -5,8 +5,8 @@ ylims_ammonia = [1e-13 1e-10]; % Igazítva a molekulamennyiség nagyságrendjéh
 ylims = [1e-20, 1e-12];
 
 % Fájlok útvonalai
-file1 = 'raw_data/run_4886.csv'; % -> plogext
-file2 = 'raw_data/run_4674.csv'; % -> old mechanism
+file1 = 'raw_data/run_4674.csv'; % -> plogext
+file2 = 'raw_data/run_4886.csv'; % -> old mechanism
 
 % Adatok beolvasása table-be
 opts = detectImportOptions(file1);
