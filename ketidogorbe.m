@@ -1,6 +1,7 @@
 clc; clear; close all;
 
 xlims = [1e-5 1e-3]
+ylims_ammonia = [1e-3 1e3];
 ylims = [1e-20, 1e3]
 
 % Fájlok útvonalai
@@ -68,7 +69,7 @@ legend('Location','southeast')
 grid on;
 hold off;
 xlim(xlims)
-ylim(ylims);
+ylim(ylims_ammonia);
 % --- 1.3. Subplot: Top 4 anyag ---
 subplot(3, 1, 3);
 hold on;
@@ -136,7 +137,7 @@ ylabel('n_i [mol]');
 set(gca, 'XScale', 'linear');
 set(gca, 'YScale', 'log');
 xlim(xlims);
-ylim(ylims);
+ylim(ylims_ammonia);
 legend('Location', 'best');
 grid on;
 hold off;
