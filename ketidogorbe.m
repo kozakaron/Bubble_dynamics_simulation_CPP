@@ -86,10 +86,13 @@ ylabel('n_i [mol]');
 set(gca, 'XScale', 'log');
 set(gca, 'YScale', 'log');
 ylim([1e-20, inf]);
-legend(legend_labels, 'Location', 'southeast', 'NumColumns', 2); % Jobb alsó sarok
+legend(legend_labels, 'Position',[0.56166667583088 0.00407407407407407 0.434999990835786 0.077222220102946], 'NumColumns', 2); % Jobb alsó sarok
 grid on; box on;
 hold off;
 
+% Ábra mentése (Logaritmikus)
+savefig(gcf, 'buborek_dinamika_osszehasonlitas_log.fig');
+saveas(gcf, 'buborek_dinamika_osszehasonlitas_log.png');
 
 % =========================================================================
 % 2. FIGURE: LINEÁRIS IDŐSKÁLA ('XScale', 'linear')
@@ -151,10 +154,13 @@ ylabel('n_i [mol]');
 set(gca, 'XScale', 'linear');
 set(gca, 'YScale', 'log');
 ylim([1e-20, inf]);
-legend(legend_labels_lin, 'Location', 'southeast', 'NumColumns', 2); % Jobb alsó sarok
+legend(legend_labels_lin, 'Position',[0.56291667583088 0.00518518518518519 0.434999990835786 0.0772222201029459], 'NumColumns', 2); % Jobb alsó sarok
 grid on; box on;
 hold off;
 
+% Ábra mentése (Lineáris)
+savefig(gcf, 'buborek_dinamika_osszehasonlitas_lin.fig');
+saveas(gcf, 'buborek_dinamika_osszehasonlitas_lin.png');
 
 % =========================================================================
 % ÖSSZEHASONLÍTÓ TÁBLÁZAT A FOLYAMAT VÉGÉN (Command Window kimenet)
