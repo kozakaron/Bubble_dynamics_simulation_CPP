@@ -199,7 +199,7 @@ for i = 1:length(table_species)
     
     % Eltérés százalékban az old_mechanism-hez (referencia) képest
     if val2 ~= 0
-        Diff_Percent(i) = ((val1 - val2) / val2) * 100;
+        Diff_Percent(i) = ((val2 - val1) / val1) * 100;
     else
         Diff_Percent(i) = NaN;
     end
