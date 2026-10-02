@@ -14,7 +14,7 @@ Bubble_dynamics_simulation*
 *jacobians/*
 
 # Unwanted file formats
-*.csv
+#*.csv
 *.out
 *.asv
 
