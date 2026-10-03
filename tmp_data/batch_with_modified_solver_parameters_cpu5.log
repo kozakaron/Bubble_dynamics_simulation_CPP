@@ -1,0 +1,39 @@
+[batch_with_modified_solver_parameters5] nu_L=0.65 f=10.0 P_amb=10.0 -> R_E=121.2 p_A=13.1 energy_demand=1793 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters9] nu_L=0.65 f=20.0 P_amb=1.0 -> R_E=162.7 p_A=6.037 energy_demand=2221 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters17] nu_L=0.65 f=20.0 P_amb=100.0 -> R_E=19.04 p_A=105.9 energy_demand=2724 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters23] nu_L=0.65 f=25.0 P_amb=10.0 -> R_E=70.95 p_A=14.78 energy_demand=2061 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters27] nu_L=0.65 f=30.0 P_amb=1.0 -> R_E=151.1 p_A=10.55 energy_demand=2286 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters34] nu_L=0.65 f=30.0 P_amb=50.0 -> R_E=23.5 p_A=56.32 energy_demand=2715 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters40] nu_L=0.65 f=50.0 P_amb=5.0 -> R_E=111.9 p_A=24.63 energy_demand=2150 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters50] nu_L=0.65 f=100.0 P_amb=10.0 -> R_E=37.48 p_A=23.76 energy_demand=2733 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters58] nu_L=0.65 f=200.0 P_amb=5.0 -> R_E=44.15 p_A=57.55 energy_demand=2888 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters67] nu_L=1.0 f=10.0 P_amb=5.0 -> R_E=229.9 p_A=9.134 energy_demand=1514 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters77] nu_L=1.0 f=20.0 P_amb=10.0 -> R_E=81.68 p_A=14.38 energy_demand=1848 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters82] nu_L=1.0 f=25.0 P_amb=2.0 -> R_E=204.3 p_A=14.5 energy_demand=1835 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (14.5 bar) at/near upper bound (14.5 bar)
+[batch_with_modified_solver_parameters95] nu_L=1.0 f=30.0 P_amb=10.0 -> R_E=67.93 p_A=15.74 energy_demand=1985 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters101] nu_L=1.0 f=50.0 P_amb=3.0 -> R_E=135.7 p_A=27.99 energy_demand=1942 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (27.99 bar) at/near upper bound (28 bar)
+[batch_with_modified_solver_parameters115] nu_L=1.0 f=100.0 P_amb=50.0 -> R_E=13.94 p_A=63.22 energy_demand=3553 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters117] nu_L=1.0 f=200.0 P_amb=1.0 -> R_E=72.44 p_A=76.94 energy_demand=3273 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters126] nu_L=5.0 f=10.0 P_amb=1.0 -> R_E=124.8 p_A=2.06 energy_demand=1732 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters134] nu_L=5.0 f=10.0 P_amb=100.0 -> R_E=26.45 p_A=104.2 energy_demand=1961 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (104.2 bar) at/near upper bound (105 bar)
+[batch_with_modified_solver_parameters142] nu_L=5.0 f=20.0 P_amb=50.0 -> R_E=28.4 p_A=55.25 energy_demand=2077 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters148] nu_L=5.0 f=25.0 P_amb=5.0 -> R_E=103.1 p_A=10.29 energy_demand=1534 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters153] nu_L=5.0 f=30.0 P_amb=1.0 -> R_E=151.6 p_A=11.79 energy_demand=1962 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters161] nu_L=5.0 f=30.0 P_amb=100.0 -> R_E=15.92 p_A=107.7 energy_demand=2564 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters166] nu_L=5.0 f=50.0 P_amb=5.0 -> R_E=116.9 p_A=28.8 energy_demand=1772 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters173] nu_L=5.0 f=100.0 P_amb=3.0 -> R_E=85.27 p_A=46.16 energy_demand=2036 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters182] nu_L=5.0 f=200.0 P_amb=3.0 -> R_E=54.97 p_A=75.22 energy_demand=2528 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters190] nu_L=10.0 f=10.0 P_amb=2.0 -> R_E=169.6 p_A=3.823 energy_demand=1454 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters201] nu_L=10.0 f=20.0 P_amb=4.0 -> R_E=122.6 p_A=8.379 energy_demand=1463 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters210] nu_L=10.0 f=25.0 P_amb=4.0 -> R_E=105.3 p_A=8.994 energy_demand=1549 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters217] nu_L=10.0 f=30.0 P_amb=2.0 -> R_E=176.9 p_A=17 energy_demand=1713 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (17 bar) at/near upper bound (17 bar)
+[batch_with_modified_solver_parameters230] nu_L=10.0 f=50.0 P_amb=10.0 -> R_E=56.92 p_A=19.56 energy_demand=1942 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters235] nu_L=10.0 f=100.0 P_amb=2.0 -> R_E=99.14 p_A=51.95 energy_demand=2159 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (51.95 bar) at/near upper bound (52 bar)
+[batch_with_modified_solver_parameters246] nu_L=10.0 f=200.0 P_amb=4.0 -> R_E=51.17 p_A=74.89 energy_demand=2498 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters254] nu_L=50.0 f=10.0 P_amb=3.0 -> R_E=232.4 p_A=6.44 energy_demand=1407 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters261] nu_L=50.0 f=20.0 P_amb=1.0 -> R_E=223.7 p_A=11 energy_demand=2305 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (11 bar) at/near upper bound (11 bar)
+[batch_with_modified_solver_parameters271] nu_L=50.0 f=25.0 P_amb=2.0 -> R_E=190.7 p_A=14.5 energy_demand=1916 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (14.5 bar) at/near upper bound (14.5 bar)
+[batch_with_modified_solver_parameters286] nu_L=50.0 f=30.0 P_amb=50.0 -> R_E=27.67 p_A=58.24 energy_demand=2523 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters291] nu_L=50.0 f=50.0 P_amb=4.0 -> R_E=121.5 p_A=29 energy_demand=1944 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (29 bar) at/near upper bound (29 bar)
+[batch_with_modified_solver_parameters302] nu_L=50.0 f=100.0 P_amb=10.0 -> R_E=63.26 p_A=49.68 energy_demand=2619 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_with_modified_solver_parameters308] nu_L=50.0 f=200.0 P_amb=3.0 -> R_E=65.81 p_A=103 energy_demand=3170 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (103 bar) at/near upper bound (103 bar)

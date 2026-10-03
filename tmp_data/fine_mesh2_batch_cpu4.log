@@ -1,0 +1,25 @@
+[fine_mesh2_batch4] nu_L=0.65 f=10.0 P_amb=5.0 -> R_E=233 p_A=9.129 energy_demand=1636 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch14] nu_L=0.65 f=20.0 P_amb=10.0 -> R_E=82.55 p_A=14.37 energy_demand=1985 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch18] nu_L=0.65 f=25.0 P_amb=1.0 -> R_E=157.6 p_A=8.314 energy_demand=2254 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch25] nu_L=0.65 f=25.0 P_amb=50.0 -> R_E=25.57 p_A=55.71 energy_demand=2599 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch31] nu_L=0.65 f=30.0 P_amb=5.0 -> R_E=94.43 p_A=10.74 energy_demand=1927 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch41] nu_L=0.65 f=50.0 P_amb=10.0 -> R_E=49.96 p_A=17.49 energy_demand=2354 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch48] nu_L=0.65 f=100.0 P_amb=4.0 -> R_E=74.15 p_A=37.03 energy_demand=2389 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch60] nu_L=0.65 f=200.0 P_amb=20.0 -> R_E=18.81 p_A=41.7 energy_demand=3806 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch64] nu_L=1.0 f=10.0 P_amb=2.0 -> R_E=183.1 p_A=3.883 energy_demand=1616 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch71] nu_L=1.0 f=10.0 P_amb=100.0 -> R_E=26.26 p_A=104.1 energy_demand=2192 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (104.1 bar) at/near upper bound (105 bar)
+[fine_mesh2_batch79] nu_L=1.0 f=20.0 P_amb=50.0 -> R_E=28.15 p_A=55.07 energy_demand=2316 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch85] nu_L=1.0 f=25.0 P_amb=5.0 -> R_E=106.1 p_A=10.26 energy_demand=1730 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch91] nu_L=1.0 f=30.0 P_amb=2.0 -> R_E=186 p_A=17 energy_demand=1882 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (17 bar) at/near upper bound (17 bar)
+[fine_mesh2_batch100] nu_L=1.0 f=50.0 P_amb=2.0 -> R_E=144.2 p_A=27 energy_demand=2037 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (27 bar) at/near upper bound (27 bar)
+[fine_mesh2_batch115] nu_L=1.0 f=100.0 P_amb=50.0 -> R_E=13.96 p_A=63.24 energy_demand=3553 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch122] nu_L=1.0 f=200.0 P_amb=10.0 -> R_E=34.9 p_A=54.11 energy_demand=2986 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch133] nu_L=5.0 f=10.0 P_amb=50.0 -> R_E=40.34 p_A=53.68 energy_demand=1795 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch139] nu_L=5.0 f=20.0 P_amb=5.0 -> R_E=123.5 p_A=9.882 energy_demand=1466 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch147] nu_L=5.0 f=25.0 P_amb=4.0 -> R_E=104.1 p_A=8.843 energy_demand=1553 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch155] nu_L=5.0 f=30.0 P_amb=3.0 -> R_E=169.7 p_A=18 energy_demand=1597 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (18 bar) at/near upper bound (18 bar)
+[fine_mesh2_batch166] nu_L=5.0 f=50.0 P_amb=5.0 -> R_E=117.3 p_A=28.92 energy_demand=1772 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch175] nu_L=5.0 f=100.0 P_amb=5.0 -> R_E=71.1 p_A=41.33 energy_demand=2020 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch185] nu_L=5.0 f=200.0 P_amb=10.0 -> R_E=35.44 p_A=58.63 energy_demand=2680 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch196] nu_L=10.0 f=10.0 P_amb=50.0 -> R_E=41.17 p_A=53.79 energy_demand=1780 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[fine_mesh2_batch200] nu_L=10.0 f=20.0 P_amb=3.0 -> R_E=208.7 p_A=13 energy_demand=1495 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (13 bar) at/near upper bound (13 bar)
