@@ -1,0 +1,108 @@
+cpp_compiler = 'clang++'
+cuda_compiler = 'nvcc'
+linker = 'clang++'
+src_dirs = ['./src', './test']
+include_dirs = ['./include', './test', './mechanism']
+build_dir = './bin'
+output_binary_name = 'main'
+submodules = {
+    "sundials": {
+        "include_dir": "./submodules/sundials/install/include",
+        "lib_dir": "./submodules/sundials/install/lib",
+        "core_lib": "sundials_core"
+    },
+    "json": {
+        "include_dir": "./submodules/json/include"
+    },
+    "cxxopt": {
+        "include_dir": "./submodules/cxxopt/include"
+    }
+}
+compiler_flags = ['-std=c++20', '-ftree-vectorize', '-pedantic', '-fno-fast-math', '-funroll-loops', '-O2']
+linker_flags = ['-flto', '-Wl', '-O2']
+common_flags = ['-Wall', '-Wextra', '-Werror']
+
+# compiling ./src/interpolator.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./src/interpolator.cpp -o ./bin/object_files/interpolator.o
+
+# compiling ./src/ode_solution.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./src/ode_solution.cpp -o ./bin/object_files/ode_solution.o
+
+# compiling ./src/ode_fun.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./src/ode_fun.cpp -o ./bin/object_files/ode_fun.o
+
+# compiling ./src/main.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./src/main.cpp -o ./bin/object_files/main.o
+
+# compiling ./src/control_parameters.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./src/control_parameters.cpp -o ./bin/object_files/control_parameters.o
+
+# compiling ./src/common.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./src/common.cpp -o ./bin/object_files/common.o
+
+# compiling ./src/ode_solver.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./src/ode_solver.cpp -o ./bin/object_files/ode_solver.o
+
+# compiling ./src/parameters.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./src/parameters.cpp -o ./bin/object_files/parameters.o
+
+# compiling ./src/parameter_combinator.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./src/parameter_combinator.cpp -o ./bin/object_files/parameter_combinator.o
+
+# compiling ./src/parameter_study.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./src/parameter_study.cpp -o ./bin/object_files/parameter_study.o
+
+# compiling ./src/test.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./src/test.cpp -o ./bin/object_files/test.o
+
+# compiling ./test/benchmark_ode_fun.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./test/benchmark_ode_fun.cpp -o ./bin/object_files/benchmark_ode_fun.o
+
+# compiling ./test/benchmark_parameter_study.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./test/benchmark_parameter_study.cpp -o ./bin/object_files/benchmark_parameter_study.o
+
+# compiling ./test/benchmark_speedup.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./test/benchmark_speedup.cpp -o ./bin/object_files/benchmark_speedup.o
+
+# compiling ./test/test_ode_fun_ar_he.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./test/test_ode_fun_ar_he.cpp -o ./bin/object_files/test_ode_fun_ar_he.o
+
+# compiling ./test/test_ode_fun_otomo2018.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./test/test_ode_fun_otomo2018.cpp -o ./bin/object_files/test_ode_fun_otomo2018.o
+
+# compiling ./test/test_ode_solver.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./test/test_ode_solver.cpp -o ./bin/object_files/test_ode_solver.o
+
+# compiling ./test/test_parameter_study.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./test/test_parameter_study.cpp -o ./bin/object_files/test_parameter_study.o
+
+# compiling ./test/test_par_cpar.cpp
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ -c -std=c++20 -ftree-vectorize -pedantic -fno-fast-math -funroll-loops -O2 -Wall -Wextra -Werror -I./include -I./test -I./mechanism -I./submodules/sundials/install/include -I./submodules/json/include -I./submodules/cxxopt/include ./test/test_par_cpar.cpp -o ./bin/object_files/test_par_cpar.o
+
+# linking ./bin/main
+/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP> clang++ ./bin/object_files/common.o ./bin/object_files/control_parameters.o ./bin/object_files/interpolator.o ./bin/object_files/main.o ./bin/object_files/ode_fun.o ./bin/object_files/ode_solution.o ./bin/object_files/ode_solver.o ./bin/object_files/parameters.o ./bin/object_files/parameter_combinator.o ./bin/object_files/parameter_study.o ./bin/object_files/test.o ./bin/object_files/benchmark_ode_fun.o ./bin/object_files/benchmark_parameter_study.o ./bin/object_files/benchmark_speedup.o ./bin/object_files/test_ode_fun_ar_he.o ./bin/object_files/test_ode_fun_otomo2018.o ./bin/object_files/test_ode_solver.o ./bin/object_files/test_parameter_study.o ./bin/object_files/test_par_cpar.o -o ./bin/main -flto -Wl -O2 -Wall -Wextra -Werror -L/mnt/c/Users/fkubicsek/Downloads/CPP_kód_fejlesztése/fejlesztoi_main/Bubble_dynamics_simulation_CPP/submodules/sundials/install/lib ./submodules/sundials/install/lib/libsundials_arkode.a ./submodules/sundials/install/lib/libsundials_cvode.a ./submodules/sundials/install/lib/libsundials_cvodes.a ./submodules/sundials/install/lib/libsundials_ida.a ./submodules/sundials/install/lib/libsundials_idas.a ./submodules/sundials/install/lib/libsundials_kinsol.a ./submodules/sundials/install/lib/libsundials_nvecmanyvector.a ./submodules/sundials/install/lib/libsundials_nvecserial.a ./submodules/sundials/install/lib/libsundials_sunlinsolband.a ./submodules/sundials/install/lib/libsundials_sunlinsoldense.a ./submodules/sundials/install/lib/libsundials_sunlinsolpcg.a ./submodules/sundials/install/lib/libsundials_sunlinsolspbcgs.a ./submodules/sundials/install/lib/libsundials_sunlinsolspfgmr.a ./submodules/sundials/install/lib/libsundials_sunlinsolspgmr.a ./submodules/sundials/install/lib/libsundials_sunlinsolsptfqmr.a ./submodules/sundials/install/lib/libsundials_sunmatrixband.a ./submodules/sundials/install/lib/libsundials_sunmatrixdense.a ./submodules/sundials/install/lib/libsundials_sunmatrixsparse.a ./submodules/sundials/install/lib/libsundials_sunnonlinsolfixedpoint.a ./submodules/sundials/install/lib/libsundials_sunnonlinsolnewton.a ./submodules/sundials/install/lib/libsundials_core.a -lm
+
+object file compilation times: 
+                          ./src/test.cpp:  0.07 s
+            ./test/benchmark_ode_fun.cpp:  0.07 s
+            ./test/benchmark_speedup.cpp:  0.03 s
+    ./test/benchmark_parameter_study.cpp:  0.04 s
+           ./test/test_ode_fun_ar_he.cpp:  0.04 s
+       ./test/test_ode_fun_otomo2018.cpp:  0.04 s
+              ./test/test_ode_solver.cpp:  0.04 s
+         ./test/test_parameter_study.cpp:  0.04 s
+                ./test/test_par_cpar.cpp:  0.05 s
+                        ./src/common.cpp:  3.09 s
+                  ./src/interpolator.cpp:  3.24 s
+                       ./src/ode_fun.cpp:  3.44 s
+               ./src/parameter_study.cpp:  6.80 s
+                    ./src/ode_solver.cpp:  6.89 s
+                    ./src/parameters.cpp:  8.29 s
+            ./src/control_parameters.cpp:  8.53 s
+                  ./src/ode_solution.cpp:  9.64 s
+                          ./src/main.cpp:  9.72 s
+          ./src/parameter_combinator.cpp: 10.28 s
+                                 linking:  0.97 s
+                                   total: 11.26 s
+
+build succeeded in 11.26 seconds
