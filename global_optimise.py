@@ -97,14 +97,14 @@ FAILURE_PENALTY = 1.0e12  # finite stand-in for any failed/huge energy_demand, s
 
 DEFAULT_PA_LOWER = 1.0              # [bar], unchanged -- never search below this
 DEFAULT_RE_BOUNDS = (1.0, 1000.0)   # [um]
-DEFAULT_MAXITER = 40                # generations; actual evals ~= popsize * ndim * generations used
-DEFAULT_POPSIZE = 15                # scipy's own default; population = popsize * ndim (ndim=2 here)
+DEFAULT_MAXITER = 100                # generations; actual evals ~= popsize * ndim * generations used
+DEFAULT_POPSIZE = 20                # scipy's own default; population = popsize * ndim (ndim=2 here)
 
 
 def default_pA_upper_bound(P_amb_bar: float, f_khz: float) -> float:
     """Physically-motivated default upper bound: P_amb [bar] + 0.5 * f [kHz],
     used whenever --pA-bounds isn't given explicitly."""
-    return P_amb_bar + 0.5 * f_khz
+    return P_amb_bar + 4.0 * f_khz #0.5 * f_khz
 
 
 def make_objective(run_tag: str, nu_L: float, f_khz: float, P_amb_bar: float,
