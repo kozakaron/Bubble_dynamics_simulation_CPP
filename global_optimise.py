@@ -97,7 +97,7 @@ FAILURE_PENALTY = 1.0e12  # finite stand-in for any failed/huge energy_demand, s
 
 DEFAULT_PA_LOWER = 1.0              # [bar], unchanged -- never search below this
 DEFAULT_RE_BOUNDS = (1.0, 1000.0)   # [um]
-DEFAULT_MAXITER = 100                # generations; actual evals ~= popsize * ndim * generations used
+DEFAULT_MAXITER = 150                # generations; actual evals ~= popsize * ndim * generations used
 DEFAULT_POPSIZE = 20                # scipy's own default; population = popsize * ndim (ndim=2 here)
 
 
