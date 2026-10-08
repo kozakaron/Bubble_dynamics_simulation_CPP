@@ -335,7 +335,7 @@ def archive_folder(folder: Path) -> bool:
 
     opt_files = list(folder.glob("*_opt.json"))
     if opt_files:
-        return archive_single_result(opt_files[0], "optimum")
+        return archive_single_result(opt_files[0], f"optimum_{folder.name}") #old: return archive_single_result(opt_files[0], "optimum")
 
     json_files = sorted(folder.glob("*.json"))
     if not json_files:
