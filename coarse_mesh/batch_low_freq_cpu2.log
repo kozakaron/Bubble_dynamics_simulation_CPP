@@ -1,0 +1,28 @@
+[batch_low_freq2] nu_L=0.65 f=0.1 P_amb=3.0 -> R_E=105.4 p_A=3.026 energy_demand=2448 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq14] nu_L=0.65 f=0.2 P_amb=10.0 -> R_E=981.4 p_A=10.5 energy_demand=1020 | status=OK | reason=Maximum number of iterations has been exceeded. | boundary_warning=R_E (981.4 um) at/near a bound ((1.0, 1000.0))
+[batch_low_freq47] nu_L=1.0 f=0.1 P_amb=3.0 -> R_E=104.1 p_A=3.026 energy_demand=2308 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq52] nu_L=1.0 f=0.1 P_amb=50.0 -> R_E=3.196 p_A=41.89 energy_demand=1e+12 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq54] nu_L=1.0 f=0.2 P_amb=1.0 -> R_E=151.1 p_A=1.029 energy_demand=2293 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq60] nu_L=1.0 f=0.2 P_amb=20.0 -> R_E=804.9 p_A=20.75 energy_demand=931.2 | status=OK | reason=Maximum number of iterations has been exceeded. | boundary_warning=p_A (20.75 bar) at/near upper bound (20.8 bar)
+[batch_low_freq77] nu_L=1.0 f=0.6 P_amb=10.0 -> R_E=871.6 p_A=11.35 energy_demand=1208 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq81] nu_L=1.0 f=0.8 P_amb=1.0 -> R_E=999 p_A=1.353 energy_demand=1832 | status=OK | reason=Optimization terminated successfully. | boundary_warning=R_E (999 um) at/near a bound ((1.0, 1000.0))
+[batch_low_freq87] nu_L=1.0 f=0.8 P_amb=20.0 -> R_E=419.9 p_A=21.49 energy_demand=1346 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq92] nu_L=5.0 f=0.1 P_amb=3.0 -> R_E=103.7 p_A=3.026 energy_demand=2136 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq100] nu_L=5.0 f=0.2 P_amb=2.0 -> R_E=125.4 p_A=2.039 energy_demand=2088 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq104] nu_L=5.0 f=0.2 P_amb=10.0 -> R_E=998.5 p_A=10.52 energy_demand=1127 | status=OK | reason=Optimization terminated successfully. | boundary_warning=R_E (998.5 um) at/near a bound ((1.0, 1000.0))
+[batch_low_freq110] nu_L=5.0 f=0.4 P_amb=3.0 -> R_E=137.1 p_A=3.085 energy_demand=1970 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq114] nu_L=5.0 f=0.4 P_amb=20.0 -> R_E=851 p_A=21.6 energy_demand=964.4 | status=OK | reason=Maximum number of iterations has been exceeded. | boundary_warning=p_A (21.6 bar) at/near upper bound (21.6 bar)
+[batch_low_freq123] nu_L=5.0 f=0.6 P_amb=20.0 -> R_E=549.4 p_A=21.51 energy_demand=1032 | status=OK | reason=Maximum number of iterations has been exceeded. | boundary_warning=none
+[batch_low_freq139] nu_L=10.0 f=0.1 P_amb=5.0 -> R_E=96.55 p_A=5.034 energy_demand=2152 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq143] nu_L=10.0 f=0.1 P_amb=100.0 -> R_E=43.97 p_A=21.65 energy_demand=1e+12 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq144] nu_L=10.0 f=0.2 P_amb=1.0 -> R_E=160.3 p_A=1.031 energy_demand=2157 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq148] nu_L=10.0 f=0.2 P_amb=5.0 -> R_E=999.8 p_A=5.297 energy_demand=1548 | status=OK | reason=Optimization terminated successfully. | boundary_warning=R_E (999.8 um) at/near a bound ((1.0, 1000.0))
+[batch_low_freq157] nu_L=10.0 f=0.4 P_amb=5.0 -> R_E=999.8 p_A=5.592 energy_demand=1120 | status=OK | reason=Optimization terminated successfully. | boundary_warning=R_E (999.8 um) at/near a bound ((1.0, 1000.0))
+[batch_low_freq160] nu_L=10.0 f=0.4 P_amb=50.0 -> R_E=381 p_A=51.49 energy_demand=947.7 | status=OK | reason=Maximum number of iterations has been exceeded. | boundary_warning=p_A (51.49 bar) at/near upper bound (51.6 bar)
+[batch_low_freq176] nu_L=10.0 f=0.8 P_amb=10.0 -> R_E=902.5 p_A=11.91 energy_demand=1068 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq177] nu_L=10.0 f=0.8 P_amb=20.0 -> R_E=425.6 p_A=21.55 energy_demand=1156 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq182] nu_L=50.0 f=0.1 P_amb=3.0 -> R_E=149.8 p_A=3.035 energy_demand=2677 | status=OK | reason=Optimization terminated successfully. | boundary_warning=none
+[batch_low_freq187] nu_L=50.0 f=0.1 P_amb=50.0 -> R_E=395.7 p_A=50.4 energy_demand=1568 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (50.4 bar) at/near upper bound (50.4 bar)
+[batch_low_freq191] nu_L=50.0 f=0.2 P_amb=3.0 -> R_E=964.1 p_A=3.177 energy_demand=1771 | status=OK | reason=Maximum number of iterations has been exceeded. | boundary_warning=none
+[batch_low_freq214] nu_L=50.0 f=0.6 P_amb=50.0 -> R_E=284.3 p_A=51.68 energy_demand=1233 | status=OK | reason=Optimization terminated successfully. | boundary_warning=p_A (51.68 bar) at/near upper bound (52.4 bar)
+[batch_low_freq218] nu_L=50.0 f=0.8 P_amb=3.0 -> R_E=997.8 p_A=3.799 energy_demand=947.4 | status=OK | reason=Maximum number of iterations has been exceeded. | boundary_warning=R_E (997.8 um) at/near a bound ((1.0, 1000.0))
