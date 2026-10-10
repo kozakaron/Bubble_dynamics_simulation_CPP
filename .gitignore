@@ -13,6 +13,14 @@ Bubble_dynamics_simulation*
 #*parameter_studies/*
 *jacobians/*
 
+/.venv/
+/tmp_data/
+/coarse_mesh/tmp_data/
+/raw_data/
+/raw_data_old/
+/coarse_mesh/raw_data/
+
+
 # Unwanted file formats
 *.csv
 *.out
