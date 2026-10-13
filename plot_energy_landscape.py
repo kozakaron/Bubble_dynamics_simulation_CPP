@@ -137,7 +137,7 @@ def main():
         if args.vmax is not None:
             vmax_val = args.vmax
         elif args.vmax_opt_plus:
-            vmax_val = panel_min * 1.1
+            vmax_val = panel_min * 1.2#1.1
         else:
             vmax_val = panel_max
 
