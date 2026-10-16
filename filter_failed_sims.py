@@ -40,8 +40,9 @@ def parse_log_files(tmp_dir: Path) -> list[dict]:
                         "maximum number of iterations has been exceeded" in line_lower or
                         #"boundary_warning" in line_lower or
                         "energy_demand=1e+12" in line_lower or
-                        "at/near a bound" in line_lower or
-                        "at/near upper bound" in line_lower
+                        "boundary_warning=p_A" in line_lower
+                        #"at/near a bound" in line_lower or
+                        #"at/near upper bound" in line_lower
                     )
 
                     if is_problematic:
